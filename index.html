@@ -64,7 +64,9 @@
         .media-nav:hover { background: rgba(0,0,0,0.9); }
         .media-prev { left: 8px; }
         .media-next { right: 8px; }
-        .hidden-nav { display: none !important; }
+        
+        /* Utility for toggling visibility */
+        .force-hidden { display: none !important; }
 
         /* Contact Carousel Specifics */
         .contact-slide { display: none; animation: slideIn 0.3s ease-out; }
@@ -319,8 +321,8 @@
                                 </div>
 
                                 <!-- Contact Nav Arrows -->
-                                <button onclick="ui.prevContact()" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
-                                <button onclick="ui.nextContact()" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
+                                <button onclick="ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
+                                <button onclick="ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
                             </div>
 
                             <!-- Interaction Diagram -->
@@ -365,8 +367,8 @@
                                 <div id="img-carousel" class="media-slider-container">
                                     <!-- Images injected here -->
                                 </div>
-                                <button class="media-nav media-prev hidden-nav" id="img-prev" onclick="ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
-                                <button class="media-nav media-next hidden-nav" id="img-next" onclick="ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
+                                <button class="media-nav media-prev force-hidden" id="img-prev" onclick="ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
+                                <button class="media-nav media-next force-hidden" id="img-next" onclick="ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
                                 
                                 <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
                                     <div class="flex gap-2">
@@ -381,8 +383,8 @@
                                 <div id="vid-carousel" class="media-slider-container">
                                     <!-- Videos injected here -->
                                 </div>
-                                <button class="media-nav media-prev hidden-nav" id="vid-prev" onclick="ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
-                                <button class="media-nav media-next hidden-nav" id="vid-next" onclick="ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
+                                <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
+                                <button class="media-nav media-next force-hidden" id="vid-next" onclick="ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
                             </div>
 
                             <!-- GIS Map -->
@@ -430,13 +432,15 @@
                       <div><label class="text-xs text-slate-500 font-bold block mb-1">YouTube IDs (Comma sep)</label><input type="text" id="inp-youtube" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 </div>
                 <div><label class="text-xs text-slate-500 font-bold block mb-1">Research Links (Comma separated)</label><input type="text" id="inp-research" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
-                <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm">
+                
+                <!-- Orange Box (Auto Link Fixed) -->
+                <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm relative">
                     <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button onclick="app.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Location</button></div>
                     
-                    <!-- AUTO LINK / SEARCH SUGGESTION -->
                     <div class="relative mb-4">
                         <input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="app.handleOriginSearch(this.value)">
-                        <div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-50 max-h-40 overflow-y-auto shadow-xl"></div>
+                        <!-- Z-index increased heavily to ensure it floats on top -->
+                        <div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-[9999] max-h-40 overflow-y-auto shadow-2xl"></div>
                     </div>
                     
                     <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-affected-latin" placeholder="Latin" class="bg-white border border-orange-200 rounded-xl p-3 text-xs italic"><input type="text" id="inp-affected-country" placeholder="Country" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"></div>
@@ -545,13 +549,13 @@
                 
                 if (items.length === 0) {
                     container.innerHTML = `<div class="w-full h-full flex items-center justify-center text-slate-400 text-xs">No Data</div>`;
-                    prevBtn.classList.add('hidden-nav'); nextBtn.classList.add('hidden-nav');
+                    prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden');
                     return;
                 }
 
-                // Arrows visibility
-                if (items.length > 1) { prevBtn.classList.remove('hidden-nav'); nextBtn.classList.remove('hidden-nav'); } 
-                else { prevBtn.classList.add('hidden-nav'); nextBtn.classList.add('hidden-nav'); }
+                // Arrows visibility (Use force-hidden instead of hidden to override Tailwind's flex/block clashes)
+                if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
+                else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
                 if (type === 'img') {
                     const img = document.createElement('img');
@@ -570,7 +574,7 @@
                     div.innerHTML = `
                         <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Preservation Organization ${items.length>1 ? `(${idx+1}/${items.length})` : ''}</div>
                         <div class="font-bold text-slate-800 text-lg leading-tight">${details[0] || 'Unknown'}</div>
-                        ${details[1] ? `<div class="text-xs text-blue-500 truncate mt-1"><i class="fas fa-link mr-1"></i> ${details[1]}</div>` : ''}
+                        ${details[1] ? `<div class="text-xs text-blue-500 truncate mt-1"><a href="https://${details[1].replace(/^https?:\/\//, '')}" target="_blank" class="hover:underline"><i class="fas fa-link mr-1"></i>${details[1]}</a></div>` : ''}
                         ${details[2] ? `<div class="text-xs text-slate-500 mt-0.5"><i class="fas fa-phone mr-1"></i> ${details[2]}</div>` : ''}
                     `;
                     container.appendChild(div);
