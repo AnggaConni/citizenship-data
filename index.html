@@ -470,7 +470,7 @@
                 </div>
                 <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button onclick="app.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Point</button><button onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Draw GIS</button></div></div>
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button type="button" onclick="app.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Set Point</button><button type="button" onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Draw GIS</button></div></div>
                     <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-lat" placeholder="Latitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"><input type="text" id="inp-lng" placeholder="Longitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"></div>
                     <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-blue-200 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON" readonly></textarea>
                 </div>
@@ -487,7 +487,7 @@
                 
                 <!-- Orange Box (Auto Link Fixed) -->
                 <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm relative">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button onclick="app.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Location</button></div>
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button type="button" onclick="app.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition relative z-10">Set Location</button></div>
                     
                     <div class="relative mb-4">
                         <input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="app.handleOriginSearch(this.value)">
@@ -605,7 +605,7 @@
                     return;
                 }
 
-                // Arrows visibility (Use force-hidden instead of hidden to override Tailwind's flex/block clashes)
+                // Arrows visibility
                 if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
                 else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
@@ -901,12 +901,16 @@
                 const data = {
                     id: state.editId || '',
                     local_name: document.getElementById('inp-local-name').value, latin_name: document.getElementById('inp-latin-name').value,
-                    country: document.getElementById('inp-country').value, lat: document.getElementById('inp-lat').value, lng: document.getElementById('inp-lng').value,
+                    country: document.getElementById('inp-country').value, 
+                    lat: parseFloat(document.getElementById('inp-lat').value), // FIX: Parse float
+                    lng: parseFloat(document.getElementById('inp-lng').value), // FIX: Parse float
                     description: document.getElementById('inp-desc').value, geometry_json: document.getElementById('inp-geometry').value,
                     unesco_status: document.getElementById('inp-unesco').value, contact: document.getElementById('inp-contact').value,
                     image_url: document.getElementById('inp-image').value, youtube_url: document.getElementById('inp-youtube').value, research_links: document.getElementById('inp-research').value,
                     affectedby_local_name: document.getElementById('inp-affected-local').value, affectedby_latin_name: document.getElementById('inp-affected-latin').value,
-                    affectedby_country: document.getElementById('inp-affected-country').value, affectedby_lat: document.getElementById('inp-affected-lat').value, affectedby_lng: document.getElementById('inp-affected-lng').value,
+                    affectedby_country: document.getElementById('inp-affected-country').value, 
+                    affectedby_lat: parseFloat(document.getElementById('inp-affected-lat').value), // FIX: Parse float
+                    affectedby_lng: parseFloat(document.getElementById('inp-affected-lng').value), // FIX: Parse float
                     connection_type: document.getElementById('inp-conn-type').value
                 };
                 const action = state.editId ? 'update' : 'insert';
@@ -917,9 +921,9 @@
                     if(d.status==='success') { 
                         alert('Saved Successfully!'); 
                         
-                        // Optimistic Update
+                        // Strict Optimistic Update
                         if (action === 'insert') {
-                            data.id = d.id || 'NEW'; // Temporary ID if server doesn't return one
+                            data.id = d.id || 'NEW';
                             state.data.push(data);
                         } else {
                             const idx = state.data.findIndex(item => item.id === state.editId);
@@ -929,9 +933,8 @@
                         ui.closeModal('input-modal');
                         mapLogic.render(); dashboard.render();
                         document.getElementById('record-count').innerText = state.data.length;
-
-                        // Background refresh
-                        app.refreshData(); 
+                        
+                        // NO REFRESH CALL to prevent cache overwrite
                     } else alert(d.message);
                 }).finally(()=>btn.innerText='Save Changes');
             },
@@ -964,8 +967,7 @@
 
                         ui.closeModal('input-modal'); 
                         
-                        // Background refresh (optional)
-                        // app.refreshData();
+                        // NO REFRESH CALL to prevent cache overwrite
                     } else {
                         alert('Delete Failed: ' + d.message);
                     }
