@@ -50,6 +50,13 @@
         .leaflet-tooltip-top:before { display: none; }
         path.leaflet-interactive { transition: stroke 0.3s ease-out, stroke-width 0.3s ease-out; }
 
+        /* GIS Marker (CSS Based) */
+        .geo-marker-icon {
+            background-color: transparent; 
+            width: 14px !important; height: 14px !important; margin-left: -7px !important; margin-top: -7px !important;
+            cursor: move;
+        }
+
         /* Media Slider (Generic) */
         .media-slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
         .media-slide { display: none; width: 100%; height: 100%; }
@@ -103,9 +110,6 @@
         .mascot-btn {
             animation: breath 2s infinite;
         }
-
-        /* Fix for Map Container in Modal */
-        #detail-geo-map { background: #f1f5f9; z-index: 1; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
@@ -276,8 +280,8 @@
                 </div>
                 <div class="absolute bottom-8 left-8 z-[400] glass-panel p-4 rounded-xl shadow-2xl bg-white/95 text-xs border border-slate-200">
                     <div class="font-bold text-slate-500 mb-2 uppercase tracking-wider text-[10px]">Ecological Network</div>
-                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0077D4] shadow-sm"></span> <span class="font-medium">Biodiversity / Species</span></div>
-                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#F59E0B] shadow-sm"></span> <span class="font-medium">Affected By (Factor)</span></div>
+                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0077D4] border-2 border-white shadow-sm"></span> <span class="font-medium">Biodiversity / Species</span></div>
+                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#F59E0B] border-2 border-white shadow-sm"></span> <span class="font-medium">Affected By (Factor)</span></div>
                     <div class="flex items-center gap-2"><span class="w-6 h-0 border-t-2 border-dashed border-slate-600"></span> <span class="font-medium">Interaction Path</span></div>
                 </div>
             </div>
@@ -695,11 +699,17 @@
                     }
                 });
 
-                // 2. Draw Blue Nodes LAST
+                // 2. Draw Blue Nodes LAST - Using L.marker with explicit high zIndex
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     const m = L.marker([d.lat, d.lng], { 
-                        icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14, 14] }) 
+                        icon: L.divIcon({
+                            className: 'blue-node-icon',
+                            html: `<div style="background-color: #0077D4; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
+                            iconSize: [14, 14],
+                            iconAnchor: [7, 7]
+                        }),
+                        zIndexOffset: 1000 // Force on top
                     }).addTo(mapLogic.map);
                     m.on('click', () => dashboard.showDetail(d));
                     m.bindTooltip(d.local_name, {className: 'custom-tooltip'});
