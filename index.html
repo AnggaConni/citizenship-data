@@ -74,7 +74,7 @@
         
         /* Research Link Card */
         .res-card {
-            flex: 0 0 auto; width: 240px; 
+            flex: 0 0 auto; width: 200px; 
             background: white; border: 1px solid #e2e8f0; border-radius: 12px;
             padding: 12px; transition: all 0.2s; cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between;
@@ -93,6 +93,16 @@
         .rec-arrow:hover { background: var(--primary-blue); color: white; border-color: var(--primary-blue); transform: translateY(-50%) scale(1.1); }
         .rec-prev { left: -24px; }
         .rec-next { right: -24px; }
+
+        /* Mascot Breathing Animation */
+        @keyframes breath {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .mascot-btn {
+            animation: breath 2s infinite;
+        }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
@@ -147,8 +157,8 @@
                     <button onclick="app.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
                 </nav>
             </div>
-            <div class="p-4 border-t border-slate-100 bg-slate-50/50">
-                <div id="auth-status-ui" class="mb-4">
+            <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2">
+                <div id="auth-status-ui" class="mb-2">
                     <div id="status-guest" class="w-full">
                         <div class="p-2 bg-slate-200 text-slate-500 text-center rounded-lg border border-slate-300 mb-2 text-[10px] font-bold tracking-wider">VIEW ONLY</div>
                         <button onclick="app.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login Contributor</button>
@@ -159,7 +169,16 @@
                         <button onclick="app.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
                     </div>
                 </div>
-                <button onclick="app.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
+                <button onclick="app.exportData()" class="w-full py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
+                
+                <!-- MASCOT HELP BUTTON -->
+                <div class="mt-4 flex justify-center">
+                    <button onclick="ui.openModal('help-modal')" class="mascot-btn w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white hover:bg-emerald-600 transition relative group">
+                        <i class="fas fa-paw text-2xl"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white">?</span>
+                        <div class="absolute bottom-full mb-2 hidden group-hover:block whitespace-nowrap bg-slate-800 text-white text-xs px-2 py-1 rounded">Help / Bantuan</div>
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -276,6 +295,39 @@
             <input type="password" id="login-pass" placeholder="Password" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
             <button onclick="app.login()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">Login</button>
             <button onclick="ui.closeModal('login-modal')" class="w-full mt-4 text-slate-400 text-xs hover:text-slate-600 transition">Cancel</button>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="help-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="glass-panel w-full max-w-2xl rounded-3xl bg-white shadow-2xl p-8 relative">
+            <button onclick="ui.closeModal('help-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600"><i class="fas fa-paw text-3xl"></i></div>
+                <h2 class="text-2xl font-black text-slate-800">Citizenship Science Guide</h2>
+                <p class="text-sm text-slate-500">Panduan Sains Warga</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+                <div>
+                    <h3 class="font-bold text-blue-600 mb-2 uppercase tracking-wide"><i class="fas fa-map-marked-alt mr-2"></i>Exploring / Menjelajah</h3>
+                    <ul class="space-y-2 text-slate-600">
+                        <li><strong>Blue Nodes</strong>: Recorded species. Click to view details.<br><span class="italic text-slate-400">Titik Biru: Spesies tercatat. Klik untuk detail.</span></li>
+                        <li><strong>Orange Nodes</strong>: Factors affecting the species (food, threats).<br><span class="italic text-slate-400">Titik Oranye: Faktor yang mempengaruhi (makanan, ancaman).</span></li>
+                        <li><strong>Dashed Lines</strong>: Ecological interactions.<br><span class="italic text-slate-400">Garis Putus: Hubungan ekologis.</span></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-emerald-600 mb-2 uppercase tracking-wide"><i class="fas fa-edit mr-2"></i>Contributing / Berkontribusi</h3>
+                    <ul class="space-y-2 text-slate-600">
+                        <li><strong>Login</strong>: Access required to add/edit data.<br><span class="italic text-slate-400">Login: Akses diperlukan untuk tambah/ubah data.</span></li>
+                        <li><strong>Adding Data</strong>: Use "Add Data", fill details, and set coordinates.<br><span class="italic text-slate-400">Tambah Data: Gunakan "Add Data", isi detail, dan atur koordinat.</span></li>
+                        <li><strong>Auto-Link</strong>: Type in "Affected By" to link existing nodes.<br><span class="italic text-slate-400">Auto-Link: Ketik di "Affected By" untuk hubungkan titik yg ada.</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                <button onclick="ui.closeModal('help-modal')" class="bg-emerald-600 text-white px-8 py-2 rounded-full font-bold hover:bg-emerald-700 transition">Got it / Mengerti</button>
+            </div>
         </div>
     </div>
 
