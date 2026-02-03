@@ -57,7 +57,7 @@
             cursor: move; box-shadow: 0 0 10px rgba(0, 119, 212, 0.5);
         }
 
-        /* Media Slider */
+        /* Media Slider (Generic) */
         .media-slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
         .media-slide { display: none; width: 100%; height: 100%; }
         .media-slide.active { display: block; animation: fadeIn 0.3s; }
@@ -72,11 +72,14 @@
         .media-prev { left: 8px; }
         .media-next { right: 8px; }
         
+        /* Utility for toggling visibility */
         .force-hidden { display: none !important; }
 
+        /* Contact Carousel Specifics */
         .contact-slide { display: none; animation: slideIn 0.3s ease-out; }
         .contact-slide.active { display: block; }
         
+        /* Research Link Card */
         .res-card {
             flex: 0 0 auto; width: 200px; 
             background: white; border: 1px solid #e2e8f0; border-radius: 12px;
@@ -85,6 +88,7 @@
         }
         .res-card:hover { border-color: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 119, 212, 0.15); }
 
+        /* Record Nav Arrows (Floating) */
         .rec-arrow {
             position: absolute; top: 50%; transform: translateY(-50%);
             width: 48px; height: 48px; border-radius: 50%;
@@ -97,12 +101,16 @@
         .rec-prev { left: -24px; }
         .rec-next { right: -24px; }
 
+        /* Mascot Breathing Animation */
         @keyframes breath {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
             70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
-        .mascot-btn { animation: breath 2s infinite; }
+        .mascot-btn {
+            animation: breath 2s infinite;
+        }
+
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
     </style>
@@ -111,6 +119,7 @@
 
     <!-- 1. LANDING PAGE -->
     <div id="landing-page" class="section-view active h-full w-full relative z-50 bg-slate-900 items-center justify-center flex-col">
+        <!-- HD Biosphere Background -->
         <div class="absolute inset-0 z-0 opacity-90 bg-[url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=85')] bg-cover bg-center"></div>
         <div class="absolute inset-0 z-0 bg-gradient-to-b from-black/30 via-black/50 to-slate-900"></div>
 
@@ -329,7 +338,7 @@
         </div>
     </div>
 
-    <!-- DETAIL MODAL -->
+    <!-- DETAIL MODAL (CLASSIC 2-COLUMN WITH ADVANCED CAROUSELS) -->
     <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
         <div class="relative w-full max-w-6xl h-[90vh]">
             
@@ -355,16 +364,22 @@
                     </div>
                 </div>
 
-                <!-- Scrollable Content -->
+                <!-- Scrollable Content - 2 Columns -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-50">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
                         
-                        <!-- LEFT COLUMN -->
+                        <!-- LEFT COLUMN: Info & Contact -->
                         <div class="space-y-6">
-                            <!-- Contact Carousel -->
+                            
+                            <!-- 1. Contact Card Carousel (CAROUSEL FIXED) -->
                             <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[140px] flex items-center">
                                 <div class="w-12 h-12 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-xl mr-4"><i class="fas fa-building"></i></div>
-                                <div id="contact-carousel" class="flex-1 relative overflow-hidden"></div>
+                                
+                                <div id="contact-carousel" class="flex-1 relative overflow-hidden">
+                                    <!-- Contacts injected here -->
+                                </div>
+
+                                <!-- Contact Nav Arrows -->
                                 <button onclick="ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
                                 <button onclick="ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
                             </div>
@@ -394,20 +409,26 @@
                                 <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description available.</p>
                             </div>
 
-                            <!-- Research Links -->
+                            <!-- 2. Research Links (Horizontal Scroll Cards) -->
                             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
-                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x"></div>
+                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+                                    <!-- Cards populated by JS -->
+                                </div>
                             </div>
                         </div>
 
-                        <!-- RIGHT COLUMN -->
+                        <!-- RIGHT COLUMN: Image, Video, Map -->
                         <div class="flex flex-col gap-6 h-full">
-                            <!-- Image Carousel -->
+                            
+                            <!-- 3. Image Carousel -->
                             <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="img-carousel" class="media-slider-container"></div>
+                                <div id="img-carousel" class="media-slider-container">
+                                    <!-- Images injected here -->
+                                </div>
                                 <button class="media-nav media-prev force-hidden" id="img-prev" onclick="ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
                                 <button class="media-nav media-next force-hidden" id="img-next" onclick="ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
+                                
                                 <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
                                     <div class="flex gap-2">
                                         <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
@@ -416,17 +437,19 @@
                                 </div>
                             </div>
 
-                            <!-- YouTube Carousel -->
+                            <!-- 4. YouTube Carousel -->
                             <div class="relative bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="vid-carousel" class="media-slider-container"></div>
+                                <div id="vid-carousel" class="media-slider-container">
+                                    <!-- Videos injected here -->
+                                </div>
                                 <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
                                 <button class="media-nav media-next force-hidden" id="vid-next" onclick="ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
                             </div>
 
-                            <!-- GIS Map -->
-                            <div class="flex-1 bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative min-h-[250px]">
-                                <div id="detail-geo-map" class="w-full h-full"></div>
-                                <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white z-[400]">GIS Habitat Layer</div>
+                            <!-- GIS Map with Overlay -->
+                            <div class="flex-1 bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative min-h-[250px] relative">
+                                <div id="detail-geo-map" class="w-full h-full z-0"></div>
+                                <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white z-[100]">GIS Habitat Layer</div>
                             </div>
                         </div>
                     </div>
@@ -475,6 +498,7 @@
                     
                     <div class="relative mb-4">
                         <input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="BioApp.handleOriginSearch(this.value)">
+                        <!-- Z-index increased heavily to ensure it floats on top -->
                         <div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-[9999] max-h-40 overflow-y-auto shadow-2xl"></div>
                     </div>
                     
@@ -495,8 +519,8 @@
     </div>
 
     <!-- GEO EDITOR -->
-    <div id="geo-editor" class="fixed inset-0 z-picker hidden bg-slate-100">
-        <div id="geo-map" class="w-full h-full"></div>
+    <div id="geo-editor" class="fixed inset-0 z-picker hidden bg-slate-100 z-[3000]">
+        <div id="geo-map" class="w-full h-full relative z-[3001]"></div>
         <div class="absolute top-6 left-1/2 -translate-x-1/2 z-[3100] bg-white px-6 py-3 rounded-full shadow-xl flex gap-4 border border-slate-200">
             <span class="font-bold text-purple-600 flex items-center gap-2"><i class="fas fa-draw-polygon"></i> DRAWING MODE</span>
             <div class="h-6 w-px bg-slate-200"></div>
@@ -634,6 +658,50 @@
             }
         };
 
+        const geoEditor = {
+            map: null, layer: null, points: [], markers: [],
+            start: () => {
+                ui.closeModal('input-modal'); 
+                document.getElementById('geo-editor').classList.remove('hidden');
+                
+                if(!geoEditor.map) {
+                    geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
+                    geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
+                }
+                
+                geoEditor.points = []; 
+                geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m)); 
+                geoEditor.markers = [];
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
+                
+                setTimeout(() => geoEditor.map.invalidateSize(), 300);
+            },
+            addPoint: (latlng) => {
+                const m = L.marker(latlng, { 
+                    draggable: true,
+                    icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12] }) 
+                }).addTo(geoEditor.map);
+                m.on('drag', () => geoEditor.updatePoly());
+                geoEditor.markers.push(m);
+                geoEditor.updatePoly();
+            },
+            updatePoly: () => {
+                geoEditor.points = geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
+                if(geoEditor.points.length > 2) geoEditor.layer = L.polygon(geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(geoEditor.map);
+                else if(geoEditor.points.length > 1) geoEditor.layer = L.polyline(geoEditor.points, {color:'#9333ea'}).addTo(geoEditor.map);
+            },
+            finish: () => {
+                if(geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(geoEditor.points);
+                geoEditor.cancel();
+            },
+            cancel: () => { 
+                document.getElementById('geo-editor').classList.add('hidden'); 
+                ui.openModal('input-modal'); 
+            }
+        };
+
         const mapLogic = {
             map: null, layers: [], 
             init: () => {
@@ -684,50 +752,6 @@
                 mapLogic.map.getContainer().classList.remove('picker-mode');
                 if (mapLogic.pickerHandler) mapLogic.map.off('click', mapLogic.pickerHandler);
                 if (mapLogic.pickerMarker) mapLogic.map.removeLayer(mapLogic.pickerMarker);
-            }
-        };
-
-        const geoEditor = {
-            map: null, layer: null, points: [], markers: [],
-            start: () => {
-                ui.closeModal('input-modal'); 
-                document.getElementById('geo-editor').classList.remove('hidden');
-                
-                if(!geoEditor.map) {
-                    geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
-                    geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
-                }
-                
-                geoEditor.points = []; 
-                geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m)); 
-                geoEditor.markers = [];
-                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
-                
-                setTimeout(() => geoEditor.map.invalidateSize(), 300);
-            },
-            addPoint: (latlng) => {
-                const m = L.marker(latlng, { 
-                    draggable: true,
-                    icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12] }) 
-                }).addTo(geoEditor.map);
-                m.on('drag', () => geoEditor.updatePoly());
-                geoEditor.markers.push(m);
-                geoEditor.updatePoly();
-            },
-            updatePoly: () => {
-                geoEditor.points = geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
-                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
-                if(geoEditor.points.length > 2) geoEditor.layer = L.polygon(geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(geoEditor.map);
-                else if(geoEditor.points.length > 1) geoEditor.layer = L.polyline(geoEditor.points, {color:'#9333ea'}).addTo(geoEditor.map);
-            },
-            finish: () => {
-                if(geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(geoEditor.points);
-                geoEditor.cancel();
-            },
-            cancel: () => { 
-                document.getElementById('geo-editor').classList.add('hidden'); 
-                ui.openModal('input-modal'); 
             }
         };
 
@@ -826,14 +850,62 @@
                 document.getElementById('dt-type').innerText = d.connection_type || 'Unknown';
                 
                 const mapContainer = document.getElementById('detail-geo-map'); mapContainer.innerHTML = '';
-                if (window.detailMap) { window.detailMap.remove(); window.detailMap = null; }
-                if(d.geometry_json) {
-                    setTimeout(() => {
-                        window.detailMap = L.map('detail-geo-map', {zoomControl:false}).setView([d.lat, d.lng], 6);
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.detailMap);
-                        try { const pts = JSON.parse(d.geometry_json); L.polygon(pts, {color:'#9333ea', weight:2, fillOpacity:0.4}).addTo(window.detailMap); window.detailMap.fitBounds(pts); } catch(e){}
-                    }, 300);
-                } else { mapContainer.innerHTML = '<div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100 text-xs">No GIS Data Available</div>'; }
+                
+                setTimeout(() => {
+                    // Init map
+                    window.detailMap = L.map('detail-geo-map', {zoomControl:false});
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.detailMap);
+
+                    const bounds = L.latLngBounds([]);
+
+                    // 1. Draw Current Species (Target)
+                    if(d.geometry_json) {
+                        try {
+                            const pts = JSON.parse(d.geometry_json);
+                            const poly = L.polygon(pts, {color:'#9333ea', weight:2, fillOpacity:0.4}).addTo(window.detailMap);
+                            poly.bindTooltip("Target: " + d.local_name, {sticky:true});
+                            bounds.extend(poly.getBounds());
+                        } catch(e){}
+                    } else {
+                        if(d.lat && d.lng) {
+                             L.marker([d.lat, d.lng]).addTo(window.detailMap);
+                             bounds.extend([d.lat, d.lng]);
+                        }
+                    }
+
+                    // 2. Find and Draw Source Species (Factor) - Overlap Logic
+                    if(d.affectedby_local_name) {
+                        const sourceNode = state.data.find(item => item.local_name === d.affectedby_local_name);
+                        if(sourceNode && sourceNode.geometry_json) {
+                            try {
+                                const pts = JSON.parse(sourceNode.geometry_json);
+                                const poly = L.polygon(pts, {color:'#F59E0B', weight:2, fillOpacity:0.4, dashArray: '5,5'}).addTo(window.detailMap);
+                                poly.bindTooltip("Factor: " + sourceNode.local_name, {sticky:true});
+                                bounds.extend(poly.getBounds());
+                            } catch(e){}
+                        }
+                    }
+
+                    // Fit bounds
+                    if(bounds.isValid()) {
+                        window.detailMap.fitBounds(bounds, {padding: [20, 20]});
+                    } else {
+                        window.detailMap.setView([d.lat, d.lng], 6);
+                    }
+                    
+                    // Legend Overlay
+                    const legend = L.control({position: 'bottomright'});
+                    legend.onAdd = function (map) {
+                        const div = L.DomUtil.create('div', 'bg-white/90 p-2 rounded shadow text-[10px] border border-slate-200');
+                        div.innerHTML = `
+                            <div class="flex items-center gap-2 mb-1"><span class="w-3 h-3 bg-[#9333ea] opacity-50 border border-[#9333ea]"></span> Target (${d.local_name})</div>
+                            <div class="flex items-center gap-2"><span class="w-3 h-3 bg-[#F59E0B] opacity-50 border border-[#F59E0B] border-dashed"></span> Factor/Habitat</div>
+                        `;
+                        return div;
+                    };
+                    legend.addTo(window.detailMap);
+
+                }, 300);
 
                 document.getElementById('dt-admin-actions').classList.toggle('hidden', state.role !== 'admin');
                 ui.openModal('detail-modal');
