@@ -271,7 +271,7 @@
                 <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
                 <div class="absolute top-6 left-6 z-[400] flex flex-col gap-2">
                     <div class="relative shadow-xl">
-                        <input type="text" id="map-search" placeholder="Find species on map..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="BioApp.updateMapFilter(this.value)">
+                        <input type="text" id="map-search" placeholder="Find species, status, country..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="BioApp.updateMapFilter(this.value)">
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                     </div>
                 </div>
@@ -555,7 +555,7 @@
             let id = null;
             if(url.includes('v=')) id = url.split('v=')[1].split('&')[0];
             else if(url.includes('youtu.be/')) id = url.split('youtu.be/')[1];
-            else id = url;
+            else id = url; // assume ID if not url
             if(id) return `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen class="w-full h-full"></iframe>`;
             return '';
         }
@@ -594,6 +594,7 @@
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
             closeModal: (id) => document.getElementById(id).classList.add('hidden'),
             
+            // --- Media Carousel Logic ---
             renderMedia: (type) => {
                 const container = document.getElementById(type === 'img' ? 'img-carousel' : (type==='vid'?'vid-carousel':'contact-carousel'));
                 const prevBtn = document.getElementById(type === 'img' ? 'img-prev' : (type==='vid'?'vid-prev':'contact-prev'));
@@ -611,6 +612,7 @@
                     return;
                 }
 
+                // Arrows visibility
                 if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
                 else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
@@ -624,6 +626,7 @@
                     vidDiv.innerHTML = extractYoutubeEmbed(items[idx]);
                     container.appendChild(vidDiv);
                 } else if (type === 'contact') {
+                    // Contact Parsing: "Name | Web | Phone"
                     const details = items[idx].split('|').map(s => s.trim());
                     const div = document.createElement('div');
                     div.className = "contact-slide active";
@@ -648,6 +651,8 @@
                 else state.media.contactIdx = (state.media.contactIdx - 1 + state.media.contacts.length) % state.media.contacts.length;
                 ui.renderMedia(type);
             },
+            
+            // --- Record Navigation ---
             nextRecord: () => {
                 const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
                 dashboard.showDetail(state.data[(idx + 1) % state.data.length]);
@@ -664,24 +669,29 @@
                 ui.closeModal('input-modal'); 
                 document.getElementById('geo-editor').classList.remove('hidden');
                 
+                // Initialize map if it doesn't exist
                 if(!geoEditor.map) {
                     geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
                     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
                     geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
                 }
                 
+                // Clear previous drawings
                 geoEditor.points = []; 
                 geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m)); 
                 geoEditor.markers = [];
                 if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
                 
+                // Important: Invalidate size after container becomes visible
                 setTimeout(() => geoEditor.map.invalidateSize(), 300);
             },
             addPoint: (latlng) => {
+                // Change to marker with divIcon (CSS) to avoid broken images
                 const m = L.marker(latlng, { 
                     draggable: true,
                     icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12] }) 
                 }).addTo(geoEditor.map);
+                
                 m.on('drag', () => geoEditor.updatePoly());
                 geoEditor.markers.push(m);
                 geoEditor.updatePoly();
@@ -714,8 +724,16 @@
             render: () => { 
                 mapLogic.layers.forEach(l => mapLogic.map.removeLayer(l)); mapLogic.layers = [];
                 const search = state.filter.search.toLowerCase();
-                const filtered = state.data.filter(d => d.local_name && d.local_name.toLowerCase().includes(search));
                 
+                const filtered = state.data.filter(d => {
+                    if (!search) return true;
+                    return (d.local_name && d.local_name.toLowerCase().includes(search)) ||
+                           (d.latin_name && d.latin_name.toLowerCase().includes(search)) ||
+                           (d.country && d.country.toLowerCase().includes(search)) ||
+                           (d.unesco_status && d.unesco_status.toLowerCase().includes(search));
+                });
+                
+                // 1. Draw Lines & Orange Nodes FIRST
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     if (d.affectedby_lat && d.affectedby_lng) {
@@ -729,6 +747,8 @@
                         mapLogic.layers.push(line, orange);
                     }
                 });
+
+                // 2. Draw Blue Nodes LAST
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     const m = L.marker([d.lat, d.lng], { 
@@ -790,7 +810,15 @@
             renderTable: () => {
                 const tbody = document.getElementById('table-body'); tbody.innerHTML = '';
                 const search = state.filter.search.toLowerCase();
-                const filtered = state.data.filter(d => d.local_name && d.local_name.toLowerCase().includes(search));
+                
+                const filtered = state.data.filter(d => {
+                    if (!search) return true;
+                    return (d.local_name && d.local_name.toLowerCase().includes(search)) ||
+                           (d.latin_name && d.latin_name.toLowerCase().includes(search)) ||
+                           (d.country && d.country.toLowerCase().includes(search)) ||
+                           (d.unesco_status && d.unesco_status.toLowerCase().includes(search));
+                });
+                
                 const start = (state.pagination.page - 1) * state.pagination.limit;
                 const pageData = filtered.slice(start, start + state.pagination.limit);
                 
@@ -805,7 +833,11 @@
                 document.getElementById('btn-next').disabled = start + state.pagination.limit >= filtered.length;
             },
             listeners: () => {
-                document.getElementById('search-input').addEventListener('keyup', (e)=>{ state.filter.search=e.target.value; state.pagination.page=1; dashboard.renderTable(); });
+                document.getElementById('search-input').addEventListener('keyup', (e)=>{ 
+                    state.filter.search = e.target.value.toLowerCase(); 
+                    state.pagination.page = 1; 
+                    dashboard.renderTable(); 
+                });
             },
             showDetail: (d) => {
                 state.currentDetail = d;
@@ -948,6 +980,10 @@
                 document.getElementById('view-'+t).classList.remove('hidden');
                 if(t==='map') mapLogic.resize();
                 if(t==='dashboard') dashboard.render();
+            },
+            updateMapFilter: (val) => {
+                state.filter.search = val.toLowerCase();
+                mapLogic.render();
             },
             pickLocation: (target) => {
                 state.pickerTarget = target; ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden');
