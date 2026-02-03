@@ -605,7 +605,7 @@
                     return;
                 }
 
-                // Arrows visibility
+                // Arrows visibility (Use force-hidden instead of hidden to override Tailwind's flex/block clashes)
                 if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
                 else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
@@ -824,7 +824,9 @@
                 app.refreshData(); 
             },
             refreshData: (cb) => {
-                Papa.parse(CSV_URL, {
+                // Add timestamp to prevent caching
+                const url = CSV_URL + '&t=' + new Date().getTime();
+                Papa.parse(url, {
                     download: true, header: true, skipEmptyLines: true,
                     complete: (res) => {
                         if(res.data.length) { 
@@ -842,7 +844,8 @@
                 const btn = document.getElementById('btn-login'); btn.innerText = 'Verifying...';
                 const form = new URLSearchParams(); 
                 form.append('action', 'login'); form.append('username', document.getElementById('login-user').value); form.append('password', document.getElementById('login-pass').value);
-                fetch(GAS_URL, { method: 'POST', body: form }).then(r=>r.json()).then(d => {
+                // Add redirect: 'follow'
+                fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }).then(r=>r.json()).then(d => {
                     if(d.status==='success') { state.role='admin'; ui.renderAuth(); ui.closeModal('login-modal'); if(document.getElementById('landing-page').style.display!=='none') app.enterAsGuest(); } 
                     else alert(d.message);
                 }).finally(() => btn.innerText='Login');
@@ -908,11 +911,27 @@
                 };
                 const action = state.editId ? 'update' : 'insert';
                 const form = new URLSearchParams(); form.append('action', action); form.append('data', JSON.stringify(data));
-                fetch(GAS_URL, { method: 'POST', body: form }).then(r=>r.json()).then(d => {
+                
+                // Add redirect: 'follow'
+                fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }).then(r=>r.json()).then(d => {
                     if(d.status==='success') { 
                         alert('Saved Successfully!'); 
+                        
+                        // Optimistic Update
+                        if (action === 'insert') {
+                            data.id = d.id || 'NEW'; // Temporary ID if server doesn't return one
+                            state.data.push(data);
+                        } else {
+                            const idx = state.data.findIndex(item => item.id === state.editId);
+                            if (idx !== -1) state.data[idx] = { ...state.data[idx], ...data };
+                        }
+                        
                         ui.closeModal('input-modal');
-                        app.refreshData(() => { app.switchTab('map'); });
+                        mapLogic.render(); dashboard.render();
+                        document.getElementById('record-count').innerText = state.data.length;
+
+                        // Background refresh
+                        app.refreshData(); 
                     } else alert(d.message);
                 }).finally(()=>btn.innerText='Save Changes');
             },
@@ -928,13 +947,25 @@
                 form.append('action', 'delete'); 
                 form.append('id', state.editId);
                 
-                fetch(GAS_URL, { method: 'POST', body: form }) // Add redirect: 'follow'
+                // Add redirect: 'follow'
+                fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }) 
                 .then(r => r.json())
                 .then(d => {
                     if(d.status==='success') { 
                         alert('Data successfully deleted.'); 
+                        
+                        // Optimistic Update: Remove from local state
+                        state.data = state.data.filter(item => item.id !== state.editId);
+                        
+                        // Update UI
+                        mapLogic.render();
+                        dashboard.render();
+                        document.getElementById('record-count').innerText = state.data.length;
+
                         ui.closeModal('input-modal'); 
-                        app.refreshData();
+                        
+                        // Background refresh (optional)
+                        // app.refreshData();
                     } else {
                         alert('Delete Failed: ' + d.message);
                     }
