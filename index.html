@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Biodiversity: Citizenship Science</title>
+    <title>Global Biodiversity by Angga Conni Saputra 2026</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,7 +11,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <!-- Leaflet Draw (Optional functionality simulated with custom logic below, keeping imports light) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
     <!-- Custom Styles -->
@@ -20,7 +19,7 @@
             --primary-blue: #0077D4;
             --secondary-blue: #0ea5e9;
             --accent-gold: #F59E0B;
-            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-bg: rgba(255, 255, 255, 0.98);
             --glass-border: rgba(226, 232, 240, 0.8);
             --text-main: #1e293b;
         }
@@ -30,7 +29,7 @@
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
 
         /* Components */
         .glass-panel {
@@ -51,68 +50,82 @@
         .leaflet-tooltip-top:before { display: none; }
         path.leaflet-interactive { transition: stroke 0.3s ease-out, stroke-width 0.3s ease-out; }
 
-        /* Carousel/Tabs Styles */
-        .tab-btn { border-bottom: 3px solid transparent; color: #64748b; }
-        .tab-btn:hover { color: var(--primary-blue); }
-        .tab-btn.active { border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); }
-        
-        .carousel-slide { display: none; animation: fadeIn 0.4s ease-out; }
-        .carousel-slide.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-
-        /* Navigation Arrows */
-        .nav-arrow {
+        /* Media Carousel (Inner) */
+        .media-slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
+        .media-slide { display: none; width: 100%; height: 100%; }
+        .media-slide.active { display: block; animation: fadeIn 0.3s; }
+        .media-nav {
             position: absolute; top: 50%; transform: translateY(-50%);
-            width: 40px; height: 40px; border-radius: 50%;
+            width: 32px; height: 32px; background: rgba(0,0,0,0.5); color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 10; transition: background 0.2s;
+        }
+        .media-nav:hover { background: rgba(0,0,0,0.8); }
+        .media-prev { left: 10px; }
+        .media-next { right: 10px; }
+        .hidden-nav { display: none !important; }
+
+        /* Contact Carousel */
+        .contact-slide { display: none; animation: slideIn 0.3s ease-out; }
+        .contact-slide.active { display: block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Research Link Card */
+        .res-card {
+            flex: 0 0 auto; width: 220px; 
+            background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 12px; transition: all 0.2s; cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .res-card:hover { border-color: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 119, 212, 0.15); }
+
+        /* Record Nav Arrows (Floating) */
+        .rec-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 48px; height: 48px; border-radius: 50%;
             background: white; border: 1px solid #e2e8f0;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            color: #64748b; transition: all 0.2s; z-index: 20;
+            cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            color: #64748b; transition: all 0.2s; z-index: 50;
         }
-        .nav-arrow:hover { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
-        .nav-prev { left: 20px; }
-        .nav-next { right: 20px; }
-        
-        /* Research Link Card */
-        .link-card {
-            flex: 0 0 auto; width: 200px; 
-            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
-            padding: 12px; font-size: 11px; color: #475569;
-            transition: all 0.2s;
-        }
-        .link-card:hover { border-color: var(--primary-blue); background: #eff6ff; }
+        .rec-arrow:hover { background: var(--primary-blue); color: white; border-color: var(--primary-blue); transform: translateY(-50%) scale(1.1); }
+        .rec-prev { left: -24px; }
+        .rec-next { right: -24px; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-slate-50">
 
     <!-- 1. LANDING PAGE -->
-    <div id="landing-page" class="section-view active h-full w-full relative z-50 bg-slate-50 items-center justify-center flex-col">
-        <div class="absolute inset-0 z-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')] bg-cover bg-center"></div>
-        <div class="absolute inset-0 z-0 bg-gradient-to-b from-slate-50/70 via-slate-50/90 to-slate-50"></div>
+    <div id="landing-page" class="section-view active h-full w-full relative z-50 bg-slate-900 items-center justify-center flex-col">
+        <!-- HD Biosphere Background -->
+        <div class="absolute inset-0 z-0 opacity-80 bg-[url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=85')] bg-cover bg-center"></div>
+        <div class="absolute inset-0 z-0 bg-gradient-to-b from-slate-900/40 via-slate-900/60 to-slate-900"></div>
 
-        <div class="z-10 text-center space-y-8 glass-panel p-16 rounded-3xl max-w-3xl border-t border-blue-200 shadow-2xl mx-4 flex flex-col items-center backdrop-blur-xl">
-            <div class="mb-2 w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-inner mx-auto"><i class="fas fa-globe-americas text-4xl"></i></div>
-            <h1 class="text-5xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-emerald-600 mb-2 leading-tight">Global Biodiversity</h1>
-            <p class="text-xl text-slate-500 tracking-[0.2em] uppercase font-light">Citizenship Science Initiative</p>
+        <div class="z-10 text-center space-y-8 glass-panel p-16 rounded-3xl max-w-3xl border-t border-white/20 shadow-2xl mx-4 flex flex-col items-center backdrop-blur-xl bg-white/10">
+            <div class="mb-2 w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-white shadow-inner mx-auto border border-white/30 backdrop-blur-md"><i class="fas fa-globe-americas text-5xl"></i></div>
+            <h1 class="text-5xl md:text-7xl font-black text-white mb-2 leading-tight drop-shadow-lg">Global Biodiversity</h1>
+            <p class="text-xl text-blue-100 tracking-[0.3em] uppercase font-light drop-shadow">Citizenship Science Initiative</p>
             
             <div id="loading-container" class="mt-8 flex justify-center h-12 items-center">
-                <i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl"></i>
-                <span class="ml-3 text-blue-600 font-mono text-sm">Synchronizing Database...</span>
+                <i class="fas fa-circle-notch fa-spin text-white text-3xl"></i>
+                <span class="ml-3 text-white font-mono text-sm">Synchronizing Database...</span>
             </div>
 
-            <div id="error-container" class="hidden mt-4 bg-red-50 border border-red-200 p-4 rounded-xl text-sm text-red-600">
+            <div id="error-container" class="hidden mt-4 bg-red-500/80 border border-red-400 p-4 rounded-xl text-sm text-white">
                 <i class="fas fa-wifi mr-2"></i> Connection Failed. <button onclick="location.reload()" class="ml-2 underline font-bold">Retry</button>
             </div>
 
             <div id="entry-buttons" class="hidden flex-col items-center justify-center gap-4 mt-8 w-full">
-                <button onclick="app.enterAsGuest()" class="w-64 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition transform hover:scale-105 mx-auto">
-                    EXPLORE MAP <i class="fas fa-map-marked-alt"></i>
+                <button onclick="app.enterAsGuest()" class="w-72 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-lg shadow-xl shadow-blue-900/50 flex items-center justify-center gap-3 transition transform hover:scale-105 mx-auto border border-blue-400">
+                    EXPLORE BIOSPHERE <i class="fas fa-arrow-right"></i>
                 </button>
-                <button onclick="app.enterAsContributor()" class="text-xs text-slate-500 hover:text-blue-600 underline mt-2 flex items-center gap-1"><i class="fas fa-lock"></i> Contributor Login</button>
+                <button onclick="app.enterAsContributor()" class="text-xs text-blue-200 hover:text-white underline mt-2 flex items-center gap-1"><i class="fas fa-lock"></i> Contributor Access</button>
             </div>
             
-            <div id="dataset-info" class="hidden mt-8 pt-4 border-t border-slate-200 w-full text-center">
-                <div class="text-[10px] text-slate-400 font-mono uppercase">v5.3 (Carousel & GIS Fix) • <span id="record-count" class="text-blue-600 font-bold">0</span> Records Found</div>
+            <div id="dataset-info" class="hidden mt-8 pt-4 border-t border-white/10 w-full text-center">
+                <div class="text-[10px] text-blue-200 font-mono uppercase tracking-widest">Angga Conni Saputra 2026 • <span id="record-count" class="text-white font-bold">0</span> Records</div>
             </div>
         </div>
     </div>
@@ -122,9 +135,9 @@
         <!-- Sidebar -->
         <aside class="w-72 bg-white border-r border-slate-200 flex flex-col justify-between z-40 shadow-xl relative">
             <div>
-                <div class="h-24 flex flex-col items-center justify-center border-b border-slate-100">
-                    <div class="text-xl font-black text-slate-800 tracking-tighter">BIO<span class="text-blue-600">SCIENCE</span></div>
-                    <div class="text-[10px] text-slate-400 tracking-widest uppercase">Citizenship Data</div>
+                <div class="h-24 flex flex-col items-center justify-center border-b border-slate-100 bg-gradient-to-br from-blue-50 to-white">
+                    <div class="text-xl font-black text-slate-800 tracking-tighter">BIO<span class="text-blue-600">SPHERE</span></div>
+                    <div class="text-[9px] text-slate-400 tracking-widest uppercase mt-1">Angga Conni Saputra 2026</div>
                 </div>
                 <nav class="p-4 space-y-2">
                     <button onclick="app.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Analytics</button>
@@ -133,12 +146,10 @@
             </div>
             <div class="p-4 border-t border-slate-100 bg-slate-50/50">
                 <div id="auth-status-ui" class="mb-4">
-                    <!-- Guest Mode -->
                     <div id="status-guest" class="w-full">
                         <div class="p-2 bg-slate-200 text-slate-500 text-center rounded-lg border border-slate-300 mb-2 text-[10px] font-bold tracking-wider">VIEW ONLY</div>
                         <button onclick="app.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login as Contributor</button>
                     </div>
-                    <!-- Admin Mode -->
                     <div id="status-admin" class="hidden w-full">
                         <div class="p-2 bg-green-100 text-green-700 text-center rounded-lg border border-green-200 mb-3 text-[10px] font-bold tracking-wider">CONTRIBUTOR</div>
                         <button onclick="app.initiateAddEntry()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
@@ -186,12 +197,10 @@
 
                 <!-- CHARTS -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <!-- Chart 1: Donut (UNESCO Status) -->
                     <div class="glass-panel p-6 rounded-3xl border border-slate-200 bg-white flex flex-col min-h-[350px]">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6 pb-2 border-b border-slate-100">Conservation Status (IUCN)</h3>
                         <div class="relative w-full h-64 flex justify-center"><canvas id="chart-status"></canvas></div>
                     </div>
-                    <!-- Chart 2: Curved Line (Trend) -->
                     <div class="glass-panel p-6 rounded-3xl border border-slate-200 bg-white flex flex-col min-h-[350px]">
                         <div class="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Data Submission Trend</h3>
@@ -237,8 +246,6 @@
             <!-- MAP -->
             <div id="view-map" class="absolute inset-0 hidden">
                 <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
-                
-                <!-- Map Controls -->
                 <div class="absolute top-6 left-6 z-[400] flex flex-col gap-2">
                     <div class="relative shadow-xl">
                         <input type="text" id="map-search" placeholder="Find species on map..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="app.updateMapFilter(this.value)">
@@ -248,8 +255,6 @@
                 <div class="absolute top-6 right-6 z-[400]">
                     <button onclick="mapLogic.resetZoom()" class="w-10 h-10 bg-white rounded-xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition"><i class="fas fa-compress-arrows-alt"></i></button>
                 </div>
-                
-                <!-- Legend -->
                 <div class="absolute bottom-8 left-8 z-[400] glass-panel p-4 rounded-xl shadow-2xl bg-white/95 text-xs border border-slate-200">
                     <div class="font-bold text-slate-500 mb-2 uppercase tracking-wider text-[10px]">Ecological Network</div>
                     <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0077D4] shadow-sm"></span> <span class="font-medium">Biodiversity / Species</span></div>
@@ -277,119 +282,122 @@
         </div>
     </div>
 
-    <!-- DETAIL MODAL (CAROUSEL STYLE - IMPROVED UI) -->
+    <!-- DETAIL MODAL (CLASSIC 2-COLUMN WITH ADVANCED CAROUSELS) -->
     <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
-        <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl border border-slate-200 shadow-2xl flex flex-col relative overflow-hidden">
-            <!-- Header -->
-            <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg"><i class="fas fa-leaf"></i></div>
-                    <div>
-                        <h2 id="detail-title" class="text-xl font-black text-slate-800 leading-tight">Species Name</h2>
-                        <p id="detail-subtitle" class="text-xs text-slate-500 italic font-serif">Latin Name</p>
+        <div class="relative w-full max-w-6xl h-[90vh]">
+            
+            <!-- Record Switcher Arrows -->
+            <button class="rec-arrow rec-prev" onclick="ui.prevRecord()"><i class="fas fa-chevron-left text-xl"></i></button>
+            <button class="rec-arrow rec-next" onclick="ui.nextRecord()"><i class="fas fa-chevron-right text-xl"></i></button>
+
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl h-full flex flex-col overflow-hidden relative z-10">
+                <!-- Header -->
+                <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-md"><i class="fas fa-leaf"></i></div>
+                        <div>
+                            <h2 id="detail-title" class="text-2xl font-black text-slate-800 leading-tight">Species Name</h2>
+                            <p id="detail-subtitle" class="text-sm text-slate-500 italic font-serif">Latin Name</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div id="dt-admin-actions" class="hidden">
+                            <button onclick="app.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
+                        </div>
+                        <button onclick="ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div id="dt-admin-actions" class="hidden">
-                        <button onclick="app.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
-                    </div>
-                    <button onclick="ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
 
-            <!-- Content Area -->
-            <div class="flex-1 relative bg-slate-50 overflow-hidden">
-                <!-- Navigation Arrows -->
-                <button class="nav-arrow nav-prev" onclick="ui.prevSlide()"><i class="fas fa-chevron-left"></i></button>
-                <button class="nav-arrow nav-next" onclick="ui.nextSlide()"><i class="fas fa-chevron-right"></i></button>
+                <!-- Scrollable Content - 2 Columns -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-50">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+                        
+                        <!-- LEFT COLUMN: Info & Contact -->
+                        <div class="space-y-6">
+                            
+                            <!-- 1. Contact Card Carousel -->
+                            <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[120px] flex items-center">
+                                <div class="w-12 h-12 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-xl mr-4"><i class="fas fa-building"></i></div>
+                                
+                                <div id="contact-carousel" class="flex-1 relative overflow-hidden">
+                                    <!-- Contacts injected here -->
+                                </div>
 
-                <!-- Carousel Slides -->
-                <div class="h-full overflow-y-auto custom-scrollbar p-8">
-                    
-                    <!-- Slide 0: Overview -->
-                    <div id="slide-0" class="carousel-slide active space-y-6">
-                        <div class="relative rounded-2xl overflow-hidden shadow-lg group bg-slate-900 aspect-video lg:aspect-[21/9]">
-                            <img id="dt-image" src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
-                            <div class="absolute bottom-0 left-0 p-6 w-full">
-                                <h1 id="dt-card-title" class="text-3xl font-black text-white mb-1 shadow-black drop-shadow-md">Species</h1>
-                                <p id="dt-card-latin" class="text-lg text-white/80 italic font-serif mb-3">Latin</p>
-                                <div class="flex gap-2">
-                                    <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
-                                    <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm">Endangered</span>
+                                <!-- Contact Nav Arrows -->
+                                <button onclick="ui.prevContact()" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
+                                <button onclick="ui.nextContact()" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+
+                            <!-- Interaction Diagram -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                <div class="absolute right-0 top-0 opacity-5 p-4"><i class="fas fa-project-diagram text-6xl"></i></div>
+                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Ecological Interaction</h3>
+                                <div class="flex items-center gap-4">
+                                    <div class="bg-orange-50 px-4 py-3 rounded-xl border border-orange-100 text-center flex-1">
+                                        <div class="text-[9px] text-orange-500 font-bold uppercase tracking-wide mb-1">Factor</div>
+                                        <div id="dt-aff-name" class="font-bold text-slate-700 text-sm truncate leading-tight">Factor</div>
+                                    </div>
+                                    <div class="flex-none border-t-2 border-dashed border-slate-300 relative text-center w-12">
+                                        <div id="dt-type" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-1 text-[9px] text-slate-400 font-bold border border-slate-100 rounded-full whitespace-nowrap overflow-hidden max-w-[60px] text-ellipsis">Type</div>
+                                    </div>
+                                    <div class="bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 text-center flex-1">
+                                        <div class="text-[9px] text-blue-500 font-bold uppercase tracking-wide mb-1">Species</div>
+                                        <div id="dt-local-name-sm" class="font-bold text-slate-700 text-sm truncate leading-tight">Species</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Description</h3>
+                                <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description available.</p>
+                            </div>
+
+                            <!-- 2. Research Links (Horizontal Scroll Card Carousel) -->
+                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
+                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+                                    <!-- Cards populated by JS -->
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Slide 1: Details -->
-                    <div id="slide-1" class="carousel-slide space-y-6">
-                        <div class="bg-blue-50 p-5 rounded-xl border border-blue-100 flex items-center gap-4">
-                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm text-xl"><i class="fas fa-building"></i></div>
-                            <div>
-                                <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Preservation Organization</div>
-                                <div id="dt-contact" class="font-bold text-slate-700 text-lg">Organization Name</div>
-                            </div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Description</h3>
-                            <div class="max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                                <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description.</p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
-                            <div id="dt-links" class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar"></div>
-                        </div>
-                    </div>
-
-                    <!-- Slide 2: Interaction -->
-                    <div id="slide-2" class="carousel-slide">
-                        <div class="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm text-center relative overflow-hidden h-full flex flex-col justify-center items-center">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-blue-500"></div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-10 tracking-widest">Ecological Connection</h3>
-                            <div class="flex flex-col items-center gap-6 w-full max-w-md">
-                                <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 w-full relative">
-                                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-cube"></i></div>
-                                    <div id="dt-aff-name" class="font-bold text-slate-800 text-xl mt-2">Factor Name</div>
-                                    <div id="dt-aff-latin" class="text-sm text-slate-500 italic">Latin Name</div>
-                                    <div class="mt-2 text-[10px] text-orange-600 font-bold uppercase tracking-wider">Affecting Factor</div>
+                        <!-- RIGHT COLUMN: Image, Video, Map -->
+                        <div class="flex flex-col gap-6 h-full">
+                            
+                            <!-- Image Carousel -->
+                            <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
+                                <div id="img-carousel" class="media-slider-container">
+                                    <!-- Images injected here -->
                                 </div>
-                                <div class="h-12 border-l-2 border-dashed border-slate-300 relative">
-                                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 shadow-sm whitespace-nowrap" id="dt-type">Interaction Type</div>
-                                </div>
-                                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 w-full relative">
-                                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-leaf"></i></div>
-                                    <div id="dt-local-name-2" class="font-bold text-slate-800 text-xl mt-2">Species Name</div>
-                                    <div id="dt-latin-name-2" class="text-sm text-slate-500 italic">Latin Name</div>
-                                    <div class="mt-2 text-[10px] text-blue-600 font-bold uppercase tracking-wider">Affected Species</div>
+                                <button class="media-nav media-prev hidden-nav" id="img-prev" onclick="ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
+                                <button class="media-nav media-next hidden-nav" id="img-next" onclick="ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
+                                
+                                <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
+                                    <div class="flex gap-2">
+                                        <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
+                                        <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm">Status</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Slide 3: Science & GIS -->
-                    <div id="slide-3" class="carousel-slide space-y-6">
-                        <div class="bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative group aspect-video">
-                            <div id="dt-youtube" class="w-full h-full flex items-center justify-center text-slate-500 flex-col gap-2">
-                                <i class="fab fa-youtube text-4xl opacity-50"></i>
-                                <span class="text-xs">No Video Documentation</span>
+                            <!-- YouTube Carousel -->
+                            <div class="relative bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
+                                <div id="vid-carousel" class="media-slider-container">
+                                    <!-- Videos injected here -->
+                                </div>
+                                <button class="media-nav media-prev hidden-nav" id="vid-prev" onclick="ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
+                                <button class="media-nav media-next hidden-nav" id="vid-next" onclick="ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
                             </div>
-                        </div>
-                        <div class="bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative h-64">
-                            <div id="detail-geo-map" class="w-full h-full"></div>
-                            <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white">GIS Habitat Layer</div>
+
+                            <!-- GIS Map -->
+                            <div class="flex-1 bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative min-h-[250px]">
+                                <div id="detail-geo-map" class="w-full h-full"></div>
+                                <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white z-[400]">GIS Habitat Layer</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Slide Indicator (Dots) -->
-            <div class="bg-white border-t border-slate-100 p-4 flex justify-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="0"></div>
-                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="1"></div>
-                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="2"></div>
-                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="3"></div>
             </div>
         </div>
     </div>
@@ -400,47 +408,39 @@
             <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl">
                 <div>
                     <h3 id="input-title" class="text-xl font-bold text-slate-800">Manage Data</h3>
-                    <p class="text-xs text-slate-500">Edit or Add new observation entry.</p>
+                    <p class="text-xs text-slate-500">Separators: Comma (,) for lists, Pipe (|) for contact details.</p>
                 </div>
                 <button onclick="ui.closeModal('input-modal')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             
             <div class="p-8 overflow-y-auto custom-scrollbar space-y-6 flex-1 bg-white">
                 <input type="hidden" id="inp-id">
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Local Name</label><input type="text" id="inp-local-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="e.g. Komodo Dragon"></div>
-                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Latin Name</label><input type="text" id="inp-latin-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm italic" placeholder="e.g. Varanus komodoensis"></div>
+                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Local Name</label><input type="text" id="inp-local-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Latin Name</label><input type="text" id="inp-latin-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm italic"></div>
                 </div>
-                
-                <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></div>
-
-                <!-- Blue Location Box -->
+                <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
                     <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button onclick="app.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Point</button><button onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Draw GIS</button></div></div>
                     <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-lat" placeholder="Latitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"><input type="text" id="inp-lng" placeholder="Longitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"></div>
-                    <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-blue-200 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON (Auto-filled)" readonly></textarea>
+                    <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-blue-200 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON" readonly></textarea>
                 </div>
-                
-                <div><label class="text-xs text-slate-500 font-bold block mb-1">Description</label><textarea id="inp-desc" rows="3" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></textarea></div>
-
+                <div><label class="text-xs text-slate-500 font-bold block mb-1">Description</label><textarea id="inp-desc" rows="3" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></textarea></div>
                 <div class="grid grid-cols-2 gap-6">
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Status (IUCN)</label><input type="text" id="inp-unesco" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="e.g. Endangered"></div>
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Organization (Contact)</label><input type="text" id="inp-contact" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Status (IUCN)</label><input type="text" id="inp-unesco" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Organization (Name | Web | Phone)</label><input type="text" id="inp-contact" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm" placeholder="Org 1 | web | tel, Org 2..."></div>
                 </div>
                 <div class="grid grid-cols-2 gap-6">
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Image URL</label><input type="text" id="inp-image" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="https://..."></div>
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">YouTube URL</label><input type="text" id="inp-youtube" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="https://..."></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Images (Comma separated)</label><input type="text" id="inp-image" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">YouTube IDs (Comma sep)</label><input type="text" id="inp-youtube" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 </div>
-                <div><label class="text-xs text-slate-500 font-bold block mb-1">Research Links (Comma separated)</label><input type="text" id="inp-research" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></div>
-                
-                <!-- Orange Location Box -->
+                <div><label class="text-xs text-slate-500 font-bold block mb-1">Research Links (Comma separated)</label><input type="text" id="inp-research" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm">
                     <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button onclick="app.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Location</button></div>
-                    <div class="relative mb-4"><input type="text" id="inp-affected-local" placeholder="Factor Name (e.g. Palm Oil, Bamboo)" class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:border-orange-500 transition outline-none" oninput="app.handleOriginSearch(this.value)"><div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-50 max-h-40 overflow-y-auto shadow-xl"></div></div>
-                    <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-affected-latin" placeholder="Latin Name (if species)" class="bg-white border border-orange-200 rounded-xl p-3 text-xs italic"><input type="text" id="inp-affected-country" placeholder="Country" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"></div>
+                    <div class="relative mb-4"><input type="text" id="inp-affected-local" placeholder="Search..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200" oninput="app.handleOriginSearch(this.value)"><div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-50 max-h-40 overflow-y-auto shadow-xl"></div></div>
+                    <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-affected-latin" placeholder="Latin" class="bg-white border border-orange-200 rounded-xl p-3 text-xs italic"><input type="text" id="inp-affected-country" placeholder="Country" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"></div>
                     <div class="grid grid-cols-2 gap-4"><input type="text" id="inp-affected-lat" placeholder="Lat" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"><input type="text" id="inp-affected-lng" placeholder="Lng" class="bg-white border-orange-200 rounded-xl p-3 text-xs"></div>
-                    <div class="mt-4"><label class="text-xs text-slate-500 font-bold block mb-1">Interaction Type</label><input type="text" id="inp-conn-type" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="e.g. Predation, Habitat Loss"></div>
+                    <div class="mt-4"><label class="text-xs text-slate-500 font-bold block mb-1">Interaction Type</label><input type="text" id="inp-conn-type" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 </div>
             </div>
             
@@ -468,7 +468,10 @@
     <script>
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbyORDZAAgE5HTduFgMB6tFnk-lvKCObL-kDcbLMEiNfUtKTO2qmYhXufn0JR3_iBgii4A/exec';
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQcKtxqi1W_5A25VJ6BkA4yPmkwjbfmAM-LSTQH2f76DN8j85fMEODzOEKs83hMkC9iZxbShNpK2xo/pub?output=csv';
-        const state = { data: [], role: 'guest', editId: null, pickerTarget: null, currentDetail: null, filter: { search: '' }, pagination: { page: 1, limit: 10 }, currentSlide: 0 };
+        const state = { 
+            data: [], role: 'guest', editId: null, pickerTarget: null, currentDetail: null, filter: { search: '' }, pagination: { page: 1, limit: 10 }, 
+            media: { imgIdx: 0, vidIdx: 0, contactIdx: 0, images: [], videos: [], contacts: [] } 
+        };
 
         function robustParse(val) {
             if (!val) return null;
@@ -488,6 +491,7 @@
             let id = null;
             if(url.includes('v=')) id = url.split('v=')[1].split('&')[0];
             else if(url.includes('youtu.be/')) id = url.split('youtu.be/')[1];
+            else id = url; // assume ID if not url
             if(id) return `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen class="w-full h-full"></iframe>`;
             return '';
         }
@@ -500,13 +504,11 @@
                 latin_name: get('latin_name'), 
                 country: get('country'),
                 lat: robustParse(get('lat')), lng: robustParse(get('lng')),
-                
                 affectedby_local_name: get('affectedby_local_name') || get('affected_by_local_name') || get('origin_food_name'), 
                 affectedby_latin_name: get('affectedby_latin_name'),
                 affectedby_country: get('affectedby_country') || get('origin_country'), 
                 affectedby_lat: robustParse(get('affectedby_lat') || get('origin_lat')), 
                 affectedby_lng: robustParse(get('affectedby_lng') || get('origin_lng')),
-                
                 connection_type: get('connection_type'), contact: get('Contact'),
                 youtube_url: get('youtube_url'), image_url: get('image_url'), description: get('description'), 
                 geometry_json: get('GEOMETRY_JSON'), unesco_status: get('unesco_status'), research_links: get('research_links')
@@ -527,26 +529,73 @@
             },
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
             closeModal: (id) => document.getElementById(id).classList.add('hidden'),
-            switchSlide: (idx) => {
-                state.currentSlide = idx;
-                document.querySelectorAll('.carousel-slide').forEach((s, i) => s.classList.toggle('active', i === idx));
-                document.querySelectorAll('.slide-dot').forEach((d, i) => {
-                    d.className = i === idx ? 'w-2 h-2 rounded-full bg-blue-600 slide-dot transition-all scale-125' : 'w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all';
-                });
+            
+            // --- Media Carousel Logic ---
+            renderMedia: (type) => {
+                const container = document.getElementById(type === 'img' ? 'img-carousel' : (type==='vid'?'vid-carousel':'contact-carousel'));
+                const prevBtn = document.getElementById(type === 'img' ? 'img-prev' : (type==='vid'?'vid-prev':'contact-prev'));
+                const nextBtn = document.getElementById(type === 'img' ? 'img-next' : (type==='vid'?'vid-next':'contact-next'));
+                container.innerHTML = '';
                 
-                if(idx === 3 && state.currentDetail && state.currentDetail.geometry_json) {
-                    setTimeout(() => { if(window.detailMap) window.detailMap.invalidateSize(); }, 200);
+                let items, idx;
+                if(type === 'img') { items = state.media.images; idx = state.media.imgIdx; }
+                else if(type === 'vid') { items = state.media.videos; idx = state.media.vidIdx; }
+                else { items = state.media.contacts; idx = state.media.contactIdx; }
+                
+                if (items.length === 0) {
+                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center text-slate-400 text-xs">No Data</div>`;
+                    prevBtn.classList.add('hidden-nav'); nextBtn.classList.add('hidden-nav');
+                    return;
+                }
+
+                // Arrows visibility
+                if (items.length > 1) { prevBtn.classList.remove('hidden-nav'); nextBtn.classList.remove('hidden-nav'); } 
+                else { prevBtn.classList.add('hidden-nav'); nextBtn.classList.add('hidden-nav'); }
+
+                if (type === 'img') {
+                    const img = document.createElement('img');
+                    img.src = items[idx]; img.className = "w-full h-full object-cover animate-[fadeIn_0.3s]";
+                    container.appendChild(img);
+                } else if (type === 'vid') {
+                    const vidDiv = document.createElement('div');
+                    vidDiv.className = "w-full h-full animate-[fadeIn_0.3s]";
+                    vidDiv.innerHTML = extractYoutubeEmbed(items[idx]);
+                    container.appendChild(vidDiv);
+                } else if (type === 'contact') {
+                    // Contact Parsing: "Name | Web | Phone"
+                    const details = items[idx].split('|').map(s => s.trim());
+                    const div = document.createElement('div');
+                    div.className = "contact-slide active";
+                    div.innerHTML = `
+                        <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Preservation Organization ${items.length>1 ? `(${idx+1}/${items.length})` : ''}</div>
+                        <div class="font-bold text-slate-800 text-lg leading-tight">${details[0] || 'Unknown'}</div>
+                        ${details[1] ? `<div class="text-xs text-blue-500 truncate mt-1"><i class="fas fa-link mr-1"></i>${details[1]}</div>` : ''}
+                        ${details[2] ? `<div class="text-xs text-slate-500 mt-0.5"><i class="fas fa-phone mr-1"></i>${details[2]}</div>` : ''}
+                    `;
+                    container.appendChild(div);
                 }
             },
-            nextSlide: () => {
-                let next = state.currentSlide + 1;
-                if(next > 3) next = 0;
-                ui.switchSlide(next);
+            nextMedia: (type) => {
+                if (type === 'img') state.media.imgIdx = (state.media.imgIdx + 1) % state.media.images.length;
+                else if (type === 'vid') state.media.vidIdx = (state.media.vidIdx + 1) % state.media.videos.length;
+                else state.media.contactIdx = (state.media.contactIdx + 1) % state.media.contacts.length;
+                ui.renderMedia(type);
             },
-            prevSlide: () => {
-                let prev = state.currentSlide - 1;
-                if(prev < 0) prev = 3;
-                ui.switchSlide(prev);
+            prevMedia: (type) => {
+                if (type === 'img') state.media.imgIdx = (state.media.imgIdx - 1 + state.media.images.length) % state.media.images.length;
+                else if (type === 'vid') state.media.vidIdx = (state.media.vidIdx - 1 + state.media.videos.length) % state.media.videos.length;
+                else state.media.contactIdx = (state.media.contactIdx - 1 + state.media.contacts.length) % state.media.contacts.length;
+                ui.renderMedia(type);
+            },
+            
+            // --- Record Navigation ---
+            nextRecord: () => {
+                const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
+                dashboard.showDetail(state.data[(idx + 1) % state.data.length]);
+            },
+            prevRecord: () => {
+                const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
+                dashboard.showDetail(state.data[(idx - 1 + state.data.length) % state.data.length]);
             }
         };
 
@@ -567,23 +616,14 @@
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     if (d.affectedby_lat && d.affectedby_lng) {
-                        // High Contrast Line
                         const line = L.polyline([[d.affectedby_lat, d.affectedby_lng], [d.lat, d.lng]], { color: '#475569', weight: 2, dashArray: '6, 6' }).addTo(mapLogic.map);
-                        line.on('mouseover', function() {
-                            this.setStyle({ color: '#0077D4', weight: 4, opacity: 1, dashArray: null });
-                            this.bindTooltip(`${d.affectedby_local_name} ➔ ${d.local_name}`, { sticky: true, direction: 'top', className: 'custom-tooltip' }).openTooltip();
-                        });
-                        line.on('mouseout', function() {
-                            this.setStyle({ color: '#475569', weight: 2, dashArray: '6, 6' });
-                            this.closeTooltip();
-                        });
-
+                        line.on('mouseover', function() { this.setStyle({ color: '#0077D4', weight: 4, dashArray: null }); });
+                        line.on('mouseout', function() { this.setStyle({ color: '#475569', weight: 2, dashArray: '6, 6' }); });
                         const orange = L.circleMarker([d.affectedby_lat, d.affectedby_lng], { color: '#F59E0B', fillColor: '#F59E0B', fillOpacity: 0.9, radius: 5 }).addTo(mapLogic.map);
                         orange.bindTooltip(`Factor: ${d.affectedby_local_name}`, {className: 'custom-tooltip'});
                         mapLogic.layers.push(line, orange);
                     }
                 });
-
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     const m = L.circleMarker([d.lat, d.lng], { color: '#0077D4', fillColor: '#0077D4', fillOpacity: 1, radius: 7 }).addTo(mapLogic.map);
@@ -621,36 +661,22 @@
                 const edges = state.data.filter(d=>d.affectedby_local_name).length;
                 const threatened = state.data.filter(d=>d.unesco_status && (d.unesco_status.toLowerCase().includes('endangered') || d.unesco_status.toLowerCase().includes('critical'))).length;
                 
-                ['total', 'countries', 'edges', 'unesco'].forEach((k,i) => {
-                    document.getElementById('kpi-'+k).innerText = [total, countries, edges, threatened][i];
-                });
+                ['total', 'countries', 'edges', 'unesco'].forEach((k,i) => document.getElementById('kpi-'+k).innerText = [total, countries, edges, threatened][i]);
 
-                const statuses = {}; 
-                state.data.forEach(d => { const s = d.unesco_status || 'Unknown'; statuses[s] = (statuses[s]||0)+1; });
-                
+                const statuses = {}; state.data.forEach(d => { const s = d.unesco_status || 'Unknown'; statuses[s] = (statuses[s]||0)+1; });
                 if(dashboard.chartStatus) dashboard.chartStatus.destroy();
                 dashboard.chartStatus = new Chart(ctx1, { 
                     type: 'doughnut', 
-                    data: { 
-                        labels: Object.keys(statuses), 
-                        datasets: [{ data: Object.values(statuses), backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#64748B'], borderWidth: 0 }] 
-                    }, 
+                    data: { labels: Object.keys(statuses), datasets: [{ data: Object.values(statuses), backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#64748B'], borderWidth: 0 }] }, 
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } }, cutout: '60%' } 
                 });
 
-                const trendData = state.data.map((_, i) => i + 1); 
-                const trendLabels = state.data.map((_, i) => i + 1);
-                
+                const trendData = state.data.map((_, i) => i + 1); const trendLabels = state.data.map((_, i) => i + 1);
                 if(dashboard.chartTrend) dashboard.chartTrend.destroy();
                 dashboard.chartTrend = new Chart(ctx2, {
-                    type: 'line',
-                    data: {
-                        labels: trendLabels,
-                        datasets: [{ label: 'Total', data: trendData, borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 3, tension: 0.4, pointRadius: 3, fill: true }]
-                    },
+                    type: 'line', data: { labels: trendLabels, datasets: [{ label: 'Total', data: trendData, borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 3, tension: 0.4, pointRadius: 3, fill: true }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f1f5f9' }, beginAtZero: true }, x: { display: false } } }
                 });
-
                 dashboard.renderTable();
             },
             changePage: (step) => { state.pagination.page += step; dashboard.renderTable(); },
@@ -678,33 +704,46 @@
                 state.currentDetail = d;
                 document.getElementById('detail-title').innerText = d.local_name;
                 document.getElementById('detail-subtitle').innerText = d.latin_name;
-                document.getElementById('dt-image').src = d.image_url;
-                document.getElementById('dt-card-title').innerText = d.local_name;
-                document.getElementById('dt-card-latin').innerText = d.latin_name;
+                
+                // --- SETUP MEDIA (Images, Videos, Contacts) ---
+                state.media.images = d.image_url ? d.image_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
+                state.media.videos = d.youtube_url ? d.youtube_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
+                state.media.contacts = d.contact ? d.contact.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
+                state.media.imgIdx = 0; state.media.vidIdx = 0; state.media.contactIdx = 0;
+                
+                ui.renderMedia('img');
+                ui.renderMedia('vid');
+                ui.renderMedia('contact'); // New Contact Carousel
+
                 document.getElementById('dt-country').innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${d.country}`;
                 document.getElementById('dt-status').innerText = d.unesco_status || 'Unknown';
-                document.getElementById('dt-contact').innerText = d.contact || 'No Data';
                 document.getElementById('dt-desc').innerText = d.description || 'No description available.';
                 
+                // Research Links (Card Carousel Style)
                 const linkContainer = document.getElementById('dt-links');
                 linkContainer.innerHTML = '';
                 if(d.research_links) {
                     const links = d.research_links.split(/[,;]/).map(l => l.trim()).filter(l => l);
                     links.forEach(l => {
                         const div = document.createElement('div');
-                        div.className = 'link-card cursor-pointer';
-                        div.innerHTML = `<div class="font-bold mb-1 truncate">Source Link</div><div class="truncate opacity-70">${l}</div>`;
+                        div.className = 'res-card group';
+                        div.innerHTML = `
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs"><i class="fas fa-book-open"></i></div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">Source</div>
+                            </div>
+                            <div class="text-xs font-medium text-slate-700 truncate">${l}</div>
+                            <div class="text-[10px] text-blue-500 mt-2 font-bold group-hover:underline">OPEN LINK <i class="fas fa-external-link-alt ml-1"></i></div>
+                        `;
                         div.onclick = () => window.open(l, '_blank');
                         linkContainer.appendChild(div);
                     });
-                } else { linkContainer.innerHTML = '<span class="text-slate-400 text-xs">No links provided</span>'; }
+                } else { linkContainer.innerHTML = '<span class="text-slate-400 text-xs italic">No research links provided.</span>'; }
 
                 document.getElementById('dt-aff-name').innerText = d.affectedby_local_name || 'None';
-                document.getElementById('dt-aff-latin').innerText = d.affectedby_latin_name || '';
-                document.getElementById('dt-local-name-2').innerText = d.local_name;
-                document.getElementById('dt-latin-name-2').innerText = d.latin_name;
+                document.getElementById('dt-local-name-sm').innerText = d.local_name;
                 document.getElementById('dt-type').innerText = d.connection_type || 'Unknown';
-                document.getElementById('dt-youtube').innerHTML = extractYoutubeEmbed(d.youtube_url);
+                
                 const mapContainer = document.getElementById('detail-geo-map'); mapContainer.innerHTML = '';
                 if (window.detailMap) { window.detailMap.remove(); window.detailMap = null; }
                 if(d.geometry_json) {
@@ -716,7 +755,7 @@
                 } else { mapContainer.innerHTML = '<div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100 text-xs">No GIS Data Available</div>'; }
 
                 document.getElementById('dt-admin-actions').classList.toggle('hidden', state.role !== 'admin');
-                ui.switchSlide(0); ui.openModal('detail-modal');
+                ui.openModal('detail-modal');
             }
         };
 
@@ -724,7 +763,6 @@
             init: () => {
                 ui.renderAuth();
                 window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') app.enterAsGuest(); });
-                // Refresh data logic extracted to re-use
                 app.refreshData(); 
             },
             refreshData: (cb) => {
