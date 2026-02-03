@@ -38,8 +38,8 @@
         }
         .section-view { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
         .section-view.active { display: flex; opacity: 1; }
-        .z-modal { z-index: 2000; }
-        .z-picker { z-index: 3000; }
+        .z-modal { z-index: 3000; }
+        .z-picker { z-index: 4000; }
         .picker-mode { cursor: crosshair !important; }
         
         /* Markers & Tooltips */
@@ -138,10 +138,10 @@
             </div>
 
             <div id="entry-buttons" class="hidden flex-col items-center justify-center gap-4 mt-8 w-full">
-                <button onclick="BioApp.enterAsGuest()" class="w-72 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-3 transition transform hover:scale-105 mx-auto border border-emerald-400">
+                <button onclick="window.BioApp.enterAsGuest()" class="w-72 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-3 transition transform hover:scale-105 mx-auto border border-emerald-400">
                     ENTER BIOSPHERE <i class="fas fa-arrow-right"></i>
                 </button>
-                <button onclick="BioApp.enterAsContributor()" class="text-xs text-emerald-200 hover:text-white underline mt-2 flex items-center gap-1"><i class="fas fa-user-lock"></i> Contributor Access</button>
+                <button onclick="window.BioApp.enterAsContributor()" class="text-xs text-emerald-200 hover:text-white underline mt-2 flex items-center gap-1"><i class="fas fa-user-lock"></i> Contributor Access</button>
             </div>
             
             <div id="dataset-info" class="hidden mt-8 pt-4 border-t border-white/10 w-full text-center">
@@ -160,27 +160,27 @@
                     <div class="text-[9px] text-slate-400 tracking-widest uppercase mt-2 border-t border-slate-200 pt-1 w-full">Angga Conni Saputra 2026</div>
                 </div>
                 <nav class="p-4 space-y-2">
-                    <button onclick="BioApp.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Analytics</button>
-                    <button onclick="BioApp.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
+                    <button onclick="window.BioApp.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Analytics</button>
+                    <button onclick="window.BioApp.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
                 </nav>
             </div>
             <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2">
                 <div id="auth-status-ui" class="mb-2">
                     <div id="status-guest" class="w-full">
                         <div class="p-2 bg-slate-200 text-slate-500 text-center rounded-lg border border-slate-300 mb-2 text-[10px] font-bold tracking-wider">VIEW ONLY</div>
-                        <button onclick="BioApp.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login Contributor</button>
+                        <button onclick="window.BioApp.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login Contributor</button>
                     </div>
                     <div id="status-admin" class="hidden w-full">
                         <div class="p-2 bg-emerald-100 text-emerald-700 text-center rounded-lg border border-emerald-200 mb-3 text-[10px] font-bold tracking-wider">ADMIN ACCESS</div>
-                        <button onclick="BioApp.initiateAddEntry()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
-                        <button onclick="BioApp.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
+                        <button onclick="window.BioApp.initiateAddEntry()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
+                        <button onclick="window.BioApp.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
                     </div>
                 </div>
-                <button onclick="BioApp.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
+                <button onclick="window.BioApp.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
                 
                 <!-- MASCOT HELP BUTTON -->
                 <div class="mt-4 flex justify-center">
-                    <button onclick="ui.openModal('help-modal')" class="mascot-btn w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white hover:bg-emerald-600 transition relative group">
+                    <button onclick="window.ui.openModal('help-modal')" class="mascot-btn w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white hover:bg-emerald-600 transition relative group">
                         <i class="fas fa-paw text-2xl"></i>
                         <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white">?</span>
                         <div class="absolute bottom-full mb-2 hidden group-hover:block whitespace-nowrap bg-slate-800 text-white text-xs px-2 py-1 rounded">Help / Bantuan</div>
@@ -193,7 +193,7 @@
         <main class="flex-1 relative overflow-hidden bg-slate-50 flex flex-col">
             <!-- PICKER NOTIFICATION -->
             <div id="picker-notification" class="absolute top-6 left-1/2 -translate-x-1/2 z-[3000] hidden flex-col items-center w-auto">
-                <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border-2 border-white animate-pulse cursor-pointer hover:bg-blue-700 transition" onclick="BioApp.cancelPicker()">
+                <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border-2 border-white animate-pulse cursor-pointer hover:bg-blue-700 transition" onclick="window.BioApp.cancelPicker()">
                     <i class="fas fa-crosshairs"></i> <span class="text-sm font-bold" id="picker-msg">Select Location</span> <div class="bg-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs"><i class="fas fa-times"></i></div>
                 </div>
                 <div class="mt-2 text-[10px] text-slate-500 bg-white/80 px-2 py-1 rounded backdrop-blur border border-slate-200">Click anywhere on the map to set point</div>
@@ -259,8 +259,8 @@
                     <div class="p-4 bg-white border-t border-slate-100 flex justify-between items-center">
                         <span class="text-xs text-slate-400 font-mono" id="pagination-info">Showing 0-0</span>
                         <div class="flex gap-2">
-                            <button id="btn-prev" onclick="dashboard.changePage(-1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Prev</button>
-                            <button id="btn-next" onclick="dashboard.changePage(1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Next</button>
+                            <button id="btn-prev" onclick="window.dashboard.changePage(-1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Prev</button>
+                            <button id="btn-next" onclick="window.dashboard.changePage(1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Next</button>
                         </div>
                     </div>
                 </div>
@@ -271,17 +271,17 @@
                 <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
                 <div class="absolute top-6 left-6 z-[400] flex flex-col gap-2">
                     <div class="relative shadow-xl">
-                        <input type="text" id="map-search" placeholder="Find species, status, country..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="BioApp.updateMapFilter(this.value)">
+                        <input type="text" id="map-search" placeholder="Find species, status, country..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="window.BioApp.updateMapFilter(this.value)">
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                     </div>
                 </div>
                 <div class="absolute top-6 right-6 z-[400]">
-                    <button onclick="mapLogic.resetZoom()" class="w-10 h-10 bg-white rounded-xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition"><i class="fas fa-compress-arrows-alt"></i></button>
+                    <button onclick="window.mapLogic.resetZoom()" class="w-10 h-10 bg-white rounded-xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition"><i class="fas fa-compress-arrows-alt"></i></button>
                 </div>
                 <div class="absolute bottom-8 left-8 z-[400] glass-panel p-4 rounded-xl shadow-2xl bg-white/95 text-xs border border-slate-200">
                     <div class="font-bold text-slate-500 mb-2 uppercase tracking-wider text-[10px]">Ecological Network</div>
-                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0077D4] border-2 border-white shadow-sm"></span> <span class="font-medium">Biodiversity / Species</span></div>
-                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#F59E0B] border-2 border-white shadow-sm"></span> <span class="font-medium">Affected By (Factor)</span></div>
+                    <div class="flex items-center gap-2 mb-1.5"><span class="w-3 h-3 rounded-full bg-[#0077D4] border-2 border-white shadow-sm"></span> <span class="font-medium">Biodiversity / Species</span></div>
+                    <div class="flex items-center gap-2 mb-1.5"><span class="w-3 h-3 rounded-full bg-[#F59E0B] border-2 border-white shadow-sm"></span> <span class="font-medium">Affected By (Factor)</span></div>
                     <div class="flex items-center gap-2"><span class="w-6 h-0 border-t-2 border-dashed border-slate-600"></span> <span class="font-medium">Interaction Path</span></div>
                 </div>
             </div>
@@ -289,7 +289,6 @@
     </div>
 
     <!-- MODALS -->
-    
     <!-- LOGIN -->
     <div id="login-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
         <div class="glass-panel w-96 p-8 rounded-3xl border border-slate-200 bg-white shadow-2xl">
@@ -300,15 +299,15 @@
             </div>
             <input type="text" id="login-user" placeholder="Username" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
             <input type="password" id="login-pass" placeholder="Password" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
-            <button onclick="BioApp.login()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">Login</button>
-            <button onclick="ui.closeModal('login-modal')" class="w-full mt-4 text-slate-400 text-xs hover:text-slate-600 transition">Cancel</button>
+            <button onclick="window.BioApp.login()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">Login</button>
+            <button onclick="window.ui.closeModal('login-modal')" class="w-full mt-4 text-slate-400 text-xs hover:text-slate-600 transition">Cancel</button>
         </div>
     </div>
 
     <!-- HELP MODAL -->
     <div id="help-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
         <div class="glass-panel w-full max-w-2xl rounded-3xl bg-white shadow-2xl p-8 relative">
-            <button onclick="ui.closeModal('help-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+            <button onclick="window.ui.closeModal('help-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
             <div class="text-center mb-6">
                 <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600"><i class="fas fa-paw text-3xl"></i></div>
                 <h2 class="text-2xl font-black text-slate-800">Citizenship Science Guide</h2>
@@ -333,21 +332,18 @@
                 </div>
             </div>
             <div class="mt-8 text-center">
-                <button onclick="ui.closeModal('help-modal')" class="bg-emerald-600 text-white px-8 py-2 rounded-full font-bold hover:bg-emerald-700 transition">Got it / Mengerti</button>
+                <button onclick="window.ui.closeModal('help-modal')" class="bg-emerald-600 text-white px-8 py-2 rounded-full font-bold hover:bg-emerald-700 transition">Got it / Mengerti</button>
             </div>
         </div>
     </div>
 
-    <!-- DETAIL MODAL (CLASSIC 2-COLUMN WITH ADVANCED CAROUSELS) -->
+    <!-- DETAIL MODAL -->
     <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
         <div class="relative w-full max-w-6xl h-[90vh]">
-            
-            <!-- Record Switcher Arrows -->
-            <button class="rec-arrow rec-prev" onclick="ui.prevRecord()"><i class="fas fa-chevron-left text-xl"></i></button>
-            <button class="rec-arrow rec-next" onclick="ui.nextRecord()"><i class="fas fa-chevron-right text-xl"></i></button>
+            <button class="rec-arrow rec-prev" onclick="window.ui.prevRecord()"><i class="fas fa-chevron-left text-xl"></i></button>
+            <button class="rec-arrow rec-next" onclick="window.ui.nextRecord()"><i class="fas fa-chevron-right text-xl"></i></button>
 
             <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl h-full flex flex-col overflow-hidden relative z-10">
-                <!-- Header -->
                 <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-md"><i class="fas fa-leaf"></i></div>
@@ -358,33 +354,22 @@
                     </div>
                     <div class="flex items-center gap-4">
                         <div id="dt-admin-actions" class="hidden">
-                            <button onclick="BioApp.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
+                            <button onclick="window.BioApp.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
                         </div>
-                        <button onclick="ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
+                        <button onclick="window.ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
 
-                <!-- Scrollable Content - 2 Columns -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-50">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-                        
-                        <!-- LEFT COLUMN: Info & Contact -->
                         <div class="space-y-6">
-                            
-                            <!-- 1. Contact Card Carousel (CAROUSEL FIXED) -->
                             <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[140px] flex items-center">
                                 <div class="w-12 h-12 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-xl mr-4"><i class="fas fa-building"></i></div>
-                                
-                                <div id="contact-carousel" class="flex-1 relative overflow-hidden">
-                                    <!-- Contacts injected here -->
-                                </div>
-
-                                <!-- Contact Nav Arrows -->
-                                <button onclick="ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
-                                <button onclick="ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
+                                <div id="contact-carousel" class="flex-1 relative overflow-hidden"></div>
+                                <button onclick="window.ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
+                                <button onclick="window.ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
                             </div>
 
-                            <!-- Interaction Diagram -->
                             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                                 <div class="absolute right-0 top-0 opacity-5 p-4"><i class="fas fa-project-diagram text-6xl"></i></div>
                                 <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Ecological Interaction</h3>
@@ -403,32 +388,22 @@
                                 </div>
                             </div>
 
-                            <!-- Description -->
                             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Description</h3>
                                 <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description available.</p>
                             </div>
 
-                            <!-- 2. Research Links (Horizontal Scroll Cards) -->
                             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
-                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
-                                    <!-- Cards populated by JS -->
-                                </div>
+                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x"></div>
                             </div>
                         </div>
 
-                        <!-- RIGHT COLUMN: Image, Video, Map -->
                         <div class="flex flex-col gap-6 h-full">
-                            
-                            <!-- 3. Image Carousel -->
                             <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="img-carousel" class="media-slider-container">
-                                    <!-- Images injected here -->
-                                </div>
-                                <button class="media-nav media-prev force-hidden" id="img-prev" onclick="ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
-                                <button class="media-nav media-next force-hidden" id="img-next" onclick="ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
-                                
+                                <div id="img-carousel" class="media-slider-container"></div>
+                                <button class="media-nav media-prev force-hidden" id="img-prev" onclick="window.ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
+                                <button class="media-nav media-next force-hidden" id="img-next" onclick="window.ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
                                 <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
                                     <div class="flex gap-2">
                                         <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
@@ -437,16 +412,12 @@
                                 </div>
                             </div>
 
-                            <!-- 4. YouTube Carousel -->
                             <div class="relative bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="vid-carousel" class="media-slider-container">
-                                    <!-- Videos injected here -->
-                                </div>
-                                <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
-                                <button class="media-nav media-next force-hidden" id="vid-next" onclick="ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
+                                <div id="vid-carousel" class="media-slider-container"></div>
+                                <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="window.ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
+                                <button class="media-nav media-next force-hidden" id="vid-next" onclick="window.ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
                             </div>
 
-                            <!-- GIS Map with Overlay -->
                             <div class="flex-1 bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative min-h-[250px] relative">
                                 <div id="detail-geo-map" class="w-full h-full z-0"></div>
                                 <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white z-[100]">GIS Habitat Layer</div>
@@ -466,7 +437,7 @@
                     <h3 id="input-title" class="text-xl font-bold text-slate-800">Manage Data</h3>
                     <p class="text-xs text-slate-500">Separators: Comma (,) for lists, Pipe (|) for contact details.</p>
                 </div>
-                <button onclick="ui.closeModal('input-modal')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+                <button onclick="window.ui.closeModal('input-modal')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             
             <div class="p-8 overflow-y-auto custom-scrollbar space-y-6 flex-1 bg-white">
@@ -477,7 +448,7 @@
                 </div>
                 <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button type="button" onclick="BioApp.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Set Point</button><button type="button" onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Draw GIS</button></div></div>
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button type="button" onclick="window.BioApp.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Set Point</button><button type="button" onclick="window.geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Draw GIS</button></div></div>
                     <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-lat" placeholder="Latitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"><input type="text" id="inp-lng" placeholder="Longitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"></div>
                     <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-blue-200 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON" readonly></textarea>
                 </div>
@@ -492,16 +463,9 @@
                 </div>
                 <div><label class="text-xs text-slate-500 font-bold block mb-1">Research Links (Comma separated)</label><input type="text" id="inp-research" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 
-                <!-- Orange Box (Auto Link Fixed) -->
                 <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm relative">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button type="button" onclick="BioApp.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition relative z-10">Set Location</button></div>
-                    
-                    <div class="relative mb-4">
-                        <input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="BioApp.handleOriginSearch(this.value)">
-                        <!-- Z-index increased heavily to ensure it floats on top -->
-                        <div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-[9999] max-h-40 overflow-y-auto shadow-2xl"></div>
-                    </div>
-                    
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button type="button" onclick="window.BioApp.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition relative z-10">Set Location</button></div>
+                    <div class="relative mb-4"><input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="window.BioApp.handleOriginSearch(this.value)"><div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-[9999] max-h-40 overflow-y-auto shadow-2xl"></div></div>
                     <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-affected-latin" placeholder="Latin" class="bg-white border border-orange-200 rounded-xl p-3 text-xs italic"><input type="text" id="inp-affected-country" placeholder="Country" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"></div>
                     <div class="grid grid-cols-2 gap-4"><input type="text" id="inp-affected-lat" placeholder="Lat" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"><input type="text" id="inp-affected-lng" placeholder="Lng" class="bg-white border-orange-200 rounded-xl p-3 text-xs"></div>
                     <div class="mt-4"><label class="text-xs text-slate-500 font-bold block mb-1">Interaction Type</label><input type="text" id="inp-conn-type" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
@@ -509,10 +473,10 @@
             </div>
             
             <div class="p-6 border-t border-slate-200 bg-slate-50 rounded-b-3xl flex justify-between items-center">
-                <button id="btn-delete" onclick="BioApp.deleteData()" class="hidden px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl font-bold text-xs border border-red-100 transition"><i class="fas fa-trash mr-2"></i> Delete Entry</button>
+                <button id="btn-delete" onclick="window.BioApp.deleteData()" class="hidden px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl font-bold text-xs border border-red-100 transition"><i class="fas fa-trash mr-2"></i> Delete Entry</button>
                 <div class="flex gap-4 ml-auto">
-                    <button onclick="ui.closeModal('input-modal')" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition">Cancel</button>
-                    <button onclick="BioApp.saveData()" id="btn-save" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95">Save Changes</button>
+                    <button onclick="window.ui.closeModal('input-modal')" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition">Cancel</button>
+                    <button onclick="window.BioApp.saveData()" id="btn-save" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -524,8 +488,8 @@
         <div class="absolute top-6 left-1/2 -translate-x-1/2 z-[3100] bg-white px-6 py-3 rounded-full shadow-xl flex gap-4 border border-slate-200">
             <span class="font-bold text-purple-600 flex items-center gap-2"><i class="fas fa-draw-polygon"></i> DRAWING MODE</span>
             <div class="h-6 w-px bg-slate-200"></div>
-            <button onclick="geoEditor.finish()" class="text-green-600 font-bold hover:text-green-700">Save</button>
-            <button onclick="geoEditor.cancel()" class="text-slate-400 hover:text-slate-600">Cancel</button>
+            <button onclick="window.geoEditor.finish()" class="text-green-600 font-bold hover:text-green-700">Save</button>
+            <button onclick="window.geoEditor.cancel()" class="text-slate-400 hover:text-slate-600">Cancel</button>
         </div>
     </div>
 
@@ -555,7 +519,7 @@
             let id = null;
             if(url.includes('v=')) id = url.split('v=')[1].split('&')[0];
             else if(url.includes('youtu.be/')) id = url.split('youtu.be/')[1];
-            else id = url; // assume ID if not url
+            else id = url;
             if(id) return `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen class="w-full h-full"></iframe>`;
             return '';
         }
@@ -579,7 +543,17 @@
             };
         }
 
-        const ui = {
+        // --- DEFINISI OBJEK GLOBAL (HOISTING) ---
+        // Kita mendefinisikan objek kosong terlebih dahulu di window, baru mengisinya.
+        // Ini mencegah masalah ReferenceError saat dipanggil oleh HTML onclick.
+        window.ui = {};
+        window.mapLogic = {};
+        window.dashboard = {};
+        window.geoEditor = {};
+        window.BioApp = {};
+
+        // --- UI MODULE ---
+        window.ui = {
             renderAuth: () => {
                 const isGuest = state.role !== 'admin';
                 document.getElementById('status-guest').classList.toggle('hidden', !isGuest);
@@ -594,7 +568,6 @@
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
             closeModal: (id) => document.getElementById(id).classList.add('hidden'),
             
-            // --- Media Carousel Logic ---
             renderMedia: (type) => {
                 const container = document.getElementById(type === 'img' ? 'img-carousel' : (type==='vid'?'vid-carousel':'contact-carousel'));
                 const prevBtn = document.getElementById(type === 'img' ? 'img-prev' : (type==='vid'?'vid-prev':'contact-prev'));
@@ -612,7 +585,6 @@
                     return;
                 }
 
-                // Arrows visibility (Use force-hidden instead of hidden to override Tailwind's flex/block clashes)
                 if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
                 else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
@@ -626,7 +598,6 @@
                     vidDiv.innerHTML = extractYoutubeEmbed(items[idx]);
                     container.appendChild(vidDiv);
                 } else if (type === 'contact') {
-                    // Contact Parsing: "Name | Web | Phone"
                     const details = items[idx].split('|').map(s => s.trim());
                     const div = document.createElement('div');
                     div.className = "contact-slide active";
@@ -643,37 +614,86 @@
                 if (type === 'img') state.media.imgIdx = (state.media.imgIdx + 1) % state.media.images.length;
                 else if (type === 'vid') state.media.vidIdx = (state.media.vidIdx + 1) % state.media.videos.length;
                 else state.media.contactIdx = (state.media.contactIdx + 1) % state.media.contacts.length;
-                ui.renderMedia(type);
+                window.ui.renderMedia(type);
             },
             prevMedia: (type) => {
                 if (type === 'img') state.media.imgIdx = (state.media.imgIdx - 1 + state.media.images.length) % state.media.images.length;
                 else if (type === 'vid') state.media.vidIdx = (state.media.vidIdx - 1 + state.media.videos.length) % state.media.videos.length;
                 else state.media.contactIdx = (state.media.contactIdx - 1 + state.media.contacts.length) % state.media.contacts.length;
-                ui.renderMedia(type);
+                window.ui.renderMedia(type);
             },
-            
-            // --- Record Navigation ---
             nextRecord: () => {
                 const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
-                dashboard.showDetail(state.data[(idx + 1) % state.data.length]);
+                window.dashboard.showDetail(state.data[(idx + 1) % state.data.length]);
             },
             prevRecord: () => {
                 const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
-                dashboard.showDetail(state.data[(idx - 1 + state.data.length) % state.data.length]);
+                window.dashboard.showDetail(state.data[(idx - 1 + state.data.length) % state.data.length]);
             }
         };
 
-        const mapLogic = {
+        // --- GEO EDITOR MODULE ---
+        window.geoEditor = {
+            map: null, layer: null, points: [], markers: [],
+            start: () => {
+                window.ui.closeModal('input-modal'); 
+                document.getElementById('geo-editor').classList.remove('hidden');
+                
+                if(!window.geoEditor.map) {
+                    window.geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.geoEditor.map);
+                    window.geoEditor.map.on('click', e => window.geoEditor.addPoint(e.latlng));
+                }
+                
+                window.geoEditor.points = []; 
+                window.geoEditor.markers.forEach(m => window.geoEditor.map.removeLayer(m)); 
+                window.geoEditor.markers = [];
+                if(window.geoEditor.layer) window.geoEditor.map.removeLayer(window.geoEditor.layer);
+                
+                setTimeout(() => window.geoEditor.map.invalidateSize(), 300);
+            },
+            addPoint: (latlng) => {
+                const m = L.marker(latlng, { 
+                    draggable: true,
+                    icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12], html: '<div style="width:100%; height:100%; background-color:#0077D4; border:2px solid white; border-radius:50%;"></div>' }) 
+                }).addTo(window.geoEditor.map);
+                m.on('drag', () => window.geoEditor.updatePoly());
+                window.geoEditor.markers.push(m);
+                window.geoEditor.updatePoly();
+            },
+            updatePoly: () => {
+                window.geoEditor.points = window.geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
+                if(window.geoEditor.layer) window.geoEditor.map.removeLayer(window.geoEditor.layer);
+                if(window.geoEditor.points.length > 2) window.geoEditor.layer = L.polygon(window.geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(window.geoEditor.map);
+                else if(window.geoEditor.points.length > 1) window.geoEditor.layer = L.polyline(window.geoEditor.points, {color:'#9333ea'}).addTo(window.geoEditor.map);
+            },
+            finish: () => {
+                if(window.geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(window.geoEditor.points);
+                window.geoEditor.cancel();
+            },
+            cancel: () => { 
+                document.getElementById('geo-editor').classList.add('hidden'); 
+                window.ui.openModal('input-modal'); 
+            }
+        };
+
+        // --- MAP LOGIC MODULE ---
+        window.mapLogic = {
             map: null, layers: [], 
             init: () => {
-                mapLogic.map = L.map('map-container', { zoomControl: false }).setView([20, 0], 2);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapLogic.map);
-                L.control.zoom({ position: 'topright' }).addTo(mapLogic.map);
+                window.mapLogic.map = L.map('map-container', { zoomControl: false }).setView([20, 0], 2);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.mapLogic.map);
+                L.control.zoom({ position: 'topright' }).addTo(window.mapLogic.map);
+                
+                // CREATE CUSTOM PANE FOR BLUE NODES (HIGH Z-INDEX)
+                window.mapLogic.map.createPane('blueNodes');
+                window.mapLogic.map.getPane('blueNodes').style.zIndex = 650;
             },
-            resize: () => setTimeout(() => mapLogic.map.invalidateSize(), 200),
-            resetZoom: () => mapLogic.map.setView([20, 0], 2),
+            resize: () => setTimeout(() => window.mapLogic.map.invalidateSize(), 200),
+            resetZoom: () => window.mapLogic.map.setView([20, 0], 2),
             render: () => { 
-                mapLogic.layers.forEach(l => mapLogic.map.removeLayer(l)); mapLogic.layers = [];
+                window.mapLogic.layers.forEach(l => window.mapLogic.map.removeLayer(l)); 
+                window.mapLogic.layers = [];
                 const search = state.filter.search.toLowerCase();
                 
                 const filtered = state.data.filter(d => {
@@ -684,57 +704,59 @@
                            (d.unesco_status && d.unesco_status.toLowerCase().includes(search));
                 });
                 
-                // 1. Draw Lines & Orange Nodes FIRST
+                // 1. Draw Lines & Orange Nodes (Standard Pane)
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     if (d.affectedby_lat && d.affectedby_lng) {
-                        const line = L.polyline([[d.affectedby_lat, d.affectedby_lng], [d.lat, d.lng]], { color: '#475569', weight: 2, dashArray: '6, 6' }).addTo(mapLogic.map);
+                        const line = L.polyline([[d.affectedby_lat, d.affectedby_lng], [d.lat, d.lng]], { color: '#475569', weight: 2, dashArray: '6, 6' }).addTo(window.mapLogic.map);
                         line.on('mouseover', function() { this.setStyle({ color: '#0077D4', weight: 4, dashArray: null }); });
                         line.on('mouseout', function() { this.setStyle({ color: '#475569', weight: 2, dashArray: '6, 6' }); });
+                        
                         const orange = L.marker([d.affectedby_lat, d.affectedby_lng], { 
                              icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12], html: `<div style="background-color: #F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);"></div>` })
-                        }).addTo(mapLogic.map);
+                        }).addTo(window.mapLogic.map);
                         orange.bindTooltip(`Factor: ${d.affectedby_local_name}`, {className: 'custom-tooltip'});
-                        mapLogic.layers.push(line, orange);
+                        window.mapLogic.layers.push(line, orange);
                     }
                 });
 
-                // 2. Draw Blue Nodes LAST - Using L.marker with explicit high zIndex
+                // 2. Draw Blue Nodes (CUSTOM PANE - TOP)
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     const m = L.marker([d.lat, d.lng], { 
+                        pane: 'blueNodes', 
                         icon: L.divIcon({
                             className: 'blue-node-icon',
                             html: `<div style="background-color: #0077D4; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
                             iconSize: [14, 14],
                             iconAnchor: [7, 7]
-                        }),
-                        zIndexOffset: 1000 // Force on top
-                    }).addTo(mapLogic.map);
-                    m.on('click', () => dashboard.showDetail(d));
+                        })
+                    }).addTo(window.mapLogic.map);
+                    m.on('click', () => window.dashboard.showDetail(d));
                     m.bindTooltip(d.local_name, {className: 'custom-tooltip'});
-                    mapLogic.layers.push(m);
+                    window.mapLogic.layers.push(m);
                 });
             },
             enablePicker: (cb) => {
-                mapLogic.map.getContainer().classList.add('picker-mode');
-                mapLogic.pickerHandler = (e) => {
-                    if (mapLogic.pickerMarker) mapLogic.map.removeLayer(mapLogic.pickerMarker);
-                    mapLogic.pickerMarker = L.circleMarker(e.latlng, { color: state.pickerTarget==='main'?'#0077D4':'#F59E0B', radius: 8 }).addTo(mapLogic.map);
+                window.mapLogic.map.getContainer().classList.add('picker-mode');
+                window.mapLogic.pickerHandler = (e) => {
+                    if (window.mapLogic.pickerMarker) window.mapLogic.map.removeLayer(window.mapLogic.pickerMarker);
+                    window.mapLogic.pickerMarker = L.circleMarker(e.latlng, { color: state.pickerTarget==='main'?'#0077D4':'#F59E0B', radius: 8 }).addTo(window.mapLogic.map);
                     cb(e.latlng.lat, e.latlng.lng);
                 };
-                mapLogic.map.on('click', mapLogic.pickerHandler);
+                window.mapLogic.map.on('click', window.mapLogic.pickerHandler);
             },
             disablePicker: () => {
-                mapLogic.map.getContainer().classList.remove('picker-mode');
-                if (mapLogic.pickerHandler) mapLogic.map.off('click', mapLogic.pickerHandler);
-                if (mapLogic.pickerMarker) mapLogic.map.removeLayer(mapLogic.pickerMarker);
+                window.mapLogic.map.getContainer().classList.remove('picker-mode');
+                if (window.mapLogic.pickerHandler) window.mapLogic.map.off('click', window.mapLogic.pickerHandler);
+                if (window.mapLogic.pickerMarker) window.mapLogic.map.removeLayer(window.mapLogic.pickerMarker);
             }
         };
 
-        const dashboard = {
+        // --- DASHBOARD MODULE ---
+        window.dashboard = {
             chartStatus: null, chartTrend: null,
-            init: () => { dashboard.render(); dashboard.listeners(); },
+            init: () => { window.dashboard.render(); window.dashboard.listeners(); },
             render: () => {
                 const ctx1 = document.getElementById('chart-status')?.getContext('2d');
                 const ctx2 = document.getElementById('chart-trend')?.getContext('2d');
@@ -748,26 +770,25 @@
                 ['total', 'countries', 'edges', 'unesco'].forEach((k,i) => document.getElementById('kpi-'+k).innerText = [total, countries, edges, threatened][i]);
 
                 const statuses = {}; state.data.forEach(d => { const s = d.unesco_status || 'Unknown'; statuses[s] = (statuses[s]||0)+1; });
-                if(dashboard.chartStatus) dashboard.chartStatus.destroy();
-                dashboard.chartStatus = new Chart(ctx1, { 
+                if(window.dashboard.chartStatus) window.dashboard.chartStatus.destroy();
+                window.dashboard.chartStatus = new Chart(ctx1, { 
                     type: 'doughnut', 
                     data: { labels: Object.keys(statuses), datasets: [{ data: Object.values(statuses), backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#64748B'], borderWidth: 0 }] }, 
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } }, cutout: '60%' } 
                 });
 
                 const trendData = state.data.map((_, i) => i + 1); const trendLabels = state.data.map((_, i) => i + 1);
-                if(dashboard.chartTrend) dashboard.chartTrend.destroy();
-                dashboard.chartTrend = new Chart(ctx2, {
+                if(window.dashboard.chartTrend) window.dashboard.chartTrend.destroy();
+                window.dashboard.chartTrend = new Chart(ctx2, {
                     type: 'line', data: { labels: trendLabels, datasets: [{ label: 'Total', data: trendData, borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 3, tension: 0.4, pointRadius: 3, fill: true }] },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f1f5f9' }, beginAtZero: true }, x: { display: false } } }
                 });
-                dashboard.renderTable();
+                window.dashboard.renderTable();
             },
-            changePage: (step) => { state.pagination.page += step; dashboard.renderTable(); },
+            changePage: (step) => { state.pagination.page += step; window.dashboard.renderTable(); },
             renderTable: () => {
                 const tbody = document.getElementById('table-body'); tbody.innerHTML = '';
                 const search = state.filter.search.toLowerCase();
-                
                 const filtered = state.data.filter(d => {
                     if (!search) return true;
                     return (d.local_name && d.local_name.toLowerCase().includes(search)) ||
@@ -781,7 +802,7 @@
                 
                 pageData.forEach(d => {
                     const tr = document.createElement('tr'); tr.className = "border-b border-slate-50 hover:bg-blue-50 cursor-pointer transition";
-                    tr.onclick = () => dashboard.showDetail(d);
+                    tr.onclick = () => window.dashboard.showDetail(d);
                     tr.innerHTML = `<td class="p-4 font-mono text-xs text-slate-400">${d.id}</td><td class="p-4"><div class="font-bold text-slate-700">${d.local_name}</div><div class="text-[10px] text-slate-400 italic">${d.latin_name}</div></td><td class="p-4 text-slate-500 text-xs">${d.country}</td><td class="p-4 text-xs text-slate-500">${d.affectedby_local_name||'-'}</td><td class="p-4 text-right"><i class="fas fa-chevron-right text-slate-300"></i></td>`;
                     tbody.appendChild(tr);
                 });
@@ -793,7 +814,7 @@
                 document.getElementById('search-input').addEventListener('keyup', (e)=>{ 
                     state.filter.search = e.target.value.toLowerCase(); 
                     state.pagination.page = 1; 
-                    dashboard.renderTable(); 
+                    window.dashboard.renderTable(); 
                 });
             },
             showDetail: (d) => {
@@ -806,9 +827,9 @@
                 state.media.contacts = d.contact ? d.contact.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
                 state.media.imgIdx = 0; state.media.vidIdx = 0; state.media.contactIdx = 0;
                 
-                ui.renderMedia('img');
-                ui.renderMedia('vid');
-                ui.renderMedia('contact'); 
+                window.ui.renderMedia('img');
+                window.ui.renderMedia('vid');
+                window.ui.renderMedia('contact'); 
 
                 document.getElementById('dt-country').innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${d.country}`;
                 document.getElementById('dt-status').innerText = d.unesco_status || 'Unknown';
@@ -839,8 +860,6 @@
                 document.getElementById('dt-type').innerText = d.connection_type || 'Unknown';
                 
                 const mapContainer = document.getElementById('detail-geo-map'); 
-                
-                // Clear content first but ensure container exists
                 mapContainer.innerHTML = ''; 
 
                 if (window.detailMap) {
@@ -848,9 +867,7 @@
                     window.detailMap = null;
                 }
 
-                // Wait for modal transition then init map
                 setTimeout(() => {
-                    // Check if container exists in DOM again before init
                     if(!document.getElementById('detail-geo-map')) return;
 
                     window.detailMap = L.map('detail-geo-map', {zoomControl:false});
@@ -859,7 +876,6 @@
                     const bounds = L.latLngBounds([]);
                     let hasBounds = false;
 
-                    // 1. Draw Current Species (Target)
                     if(d.geometry_json) {
                         try {
                             const pts = JSON.parse(d.geometry_json);
@@ -874,7 +890,6 @@
                         hasBounds = true;
                     }
 
-                    // 2. Find and Draw Source Species (Factor) - Overlap Logic
                     if(d.affectedby_local_name) {
                         const sourceNode = state.data.find(item => item.local_name === d.affectedby_local_name);
                         if(sourceNode && sourceNode.geometry_json) {
@@ -888,14 +903,9 @@
                         }
                     }
 
-                    // Fit bounds
-                    if(hasBounds && bounds.isValid()) {
-                        window.detailMap.fitBounds(bounds, {padding: [20, 20]});
-                    } else {
-                        window.detailMap.setView([0, 0], 2);
-                    }
+                    if(hasBounds && bounds.isValid()) { window.detailMap.fitBounds(bounds, {padding: [20, 20]}); } 
+                    else { window.detailMap.setView([0, 0], 2); }
                     
-                    // Legend Overlay
                     const legend = L.control({position: 'bottomright'});
                     legend.onAdd = function (map) {
                         const div = L.DomUtil.create('div', 'bg-white/90 p-2 rounded shadow text-[10px] border border-slate-200');
@@ -907,21 +917,21 @@
                     };
                     legend.addTo(window.detailMap);
                     
-                    // Crucial fix: Force resize calculation
                     window.detailMap.invalidateSize();
 
-                }, 400); // Wait 400ms for modal animation
+                }, 400);
 
                 document.getElementById('dt-admin-actions').classList.toggle('hidden', state.role !== 'admin');
-                ui.openModal('detail-modal');
+                window.ui.openModal('detail-modal');
             }
         };
 
-        const BioApp = {
+        // --- MAIN APP MODULE ---
+        window.BioApp = {
             init: () => {
-                ui.renderAuth();
-                window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') BioApp.enterAsGuest(); });
-                BioApp.refreshData(); 
+                window.ui.renderAuth();
+                window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') window.BioApp.enterAsGuest(); });
+                window.BioApp.refreshData(); 
             },
             refreshData: (cb) => {
                 Papa.parse(CSV_URL, {
@@ -929,48 +939,48 @@
                     complete: (res) => {
                         if(res.data.length) { 
                             state.data = res.data.map(transformData).filter(x => x.lat && x.lng); 
-                            if(!mapLogic.map) mapLogic.init(); 
-                            dashboard.init(); ui.loaded(); mapLogic.render(); 
+                            if(!window.mapLogic.map) window.mapLogic.init(); 
+                            window.dashboard.init(); window.ui.loaded(); window.mapLogic.render(); 
                             if(cb) cb();
                         }
                     }
                 });
             },
-            enterAsGuest: () => { document.getElementById('landing-page').style.display='none'; document.getElementById('main-app').classList.add('active'); BioApp.switchTab('dashboard'); mapLogic.resize(); },
-            enterAsContributor: () => { if(state.role==='admin') return; ui.openModal('login-modal'); },
+            enterAsGuest: () => { document.getElementById('landing-page').style.display='none'; document.getElementById('main-app').classList.add('active'); window.BioApp.switchTab('dashboard'); window.mapLogic.resize(); },
+            enterAsContributor: () => { if(state.role==='admin') return; window.ui.openModal('login-modal'); },
             login: () => {
                 const btn = document.getElementById('btn-login'); btn.innerText = 'Verifying...';
                 const form = new URLSearchParams(); 
                 form.append('action', 'login'); form.append('username', document.getElementById('login-user').value); form.append('password', document.getElementById('login-pass').value);
                 fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }).then(r=>r.json()).then(d => {
-                    if(d.status==='success') { state.role='admin'; ui.renderAuth(); ui.closeModal('login-modal'); if(document.getElementById('landing-page').style.display!=='none') BioApp.enterAsGuest(); } 
+                    if(d.status==='success') { state.role='admin'; window.ui.renderAuth(); window.ui.closeModal('login-modal'); if(document.getElementById('landing-page').style.display!=='none') window.BioApp.enterAsGuest(); } 
                     else alert(d.message);
                 }).finally(() => btn.innerText='Login');
             },
-            logout: () => { state.role='guest'; ui.renderAuth(); alert('Logged Out'); },
+            logout: () => { state.role='guest'; window.ui.renderAuth(); alert('Logged Out'); },
             switchTab: (t) => {
                 document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-map').classList.add('hidden');
                 document.getElementById('view-'+t).classList.remove('hidden');
-                if(t==='map') mapLogic.resize();
-                if(t==='dashboard') dashboard.render();
+                if(t==='map') window.mapLogic.resize();
+                if(t==='dashboard') window.dashboard.render();
             },
             updateMapFilter: (val) => {
                 state.filter.search = val.toLowerCase();
-                mapLogic.render();
+                window.mapLogic.render();
             },
             pickLocation: (target) => {
-                state.pickerTarget = target; ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden');
+                state.pickerTarget = target; window.ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden');
                 document.getElementById('picker-msg').innerText = target==='main'?'Select Species Location':'Select Factor Location';
-                mapLogic.enablePicker((lat, lng) => {
+                window.mapLogic.enablePicker((lat, lng) => {
                     if(state.pickerTarget==='main') { document.getElementById('inp-lat').value=lat.toFixed(6); document.getElementById('inp-lng').value=lng.toFixed(6); }
                     else { document.getElementById('inp-affected-lat').value=lat.toFixed(6); document.getElementById('inp-affected-lng').value=lng.toFixed(6); }
-                    BioApp.cancelPicker();
+                    window.BioApp.cancelPicker();
                 });
             },
-            cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); mapLogic.disablePicker(); ui.openModal('input-modal'); },
-            initiateAddEntry: () => { state.editId=null; document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value=''); BioApp.switchTab('map'); BioApp.pickLocation('main'); },
+            cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); window.mapLogic.disablePicker(); window.ui.openModal('input-modal'); },
+            initiateAddEntry: () => { state.editId=null; document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value=''); window.BioApp.switchTab('map'); window.BioApp.pickLocation('main'); },
             openInputModal: (mode) => {
-                ui.closeModal('detail-modal'); 
+                window.ui.closeModal('detail-modal'); 
                 const d = state.currentDetail;
                 if(mode==='edit' && d) {
                     state.editId = d.id;
@@ -995,7 +1005,7 @@
                 } else {
                     document.getElementById('btn-delete').classList.add('hidden');
                 }
-                ui.openModal('input-modal');
+                window.ui.openModal('input-modal');
             },
             saveData: () => {
                 const btn = document.getElementById('btn-save'); btn.innerText='Saving...';
@@ -1027,8 +1037,8 @@
                             const idx = state.data.findIndex(item => item.id === state.editId);
                             if (idx !== -1) state.data[idx] = { ...state.data[idx], ...data };
                         }
-                        ui.closeModal('input-modal');
-                        mapLogic.render(); dashboard.render();
+                        window.ui.closeModal('input-modal');
+                        window.mapLogic.render(); window.dashboard.render();
                         document.getElementById('record-count').innerText = state.data.length;
                     } else alert(d.message);
                 }).finally(()=>btn.innerText='Save Changes');
@@ -1051,10 +1061,10 @@
                     if(d.status==='success') { 
                         alert('Data successfully deleted.'); 
                         state.data = state.data.filter(item => item.id !== state.editId);
-                        mapLogic.render();
-                        dashboard.render();
+                        window.mapLogic.render();
+                        window.dashboard.render();
                         document.getElementById('record-count').innerText = state.data.length;
-                        ui.closeModal('input-modal'); 
+                        window.ui.closeModal('input-modal'); 
                     } else {
                         alert('Delete Failed: ' + d.message);
                     }
@@ -1071,7 +1081,7 @@
                 if(val.length < 2) { list.classList.add('hidden'); return; }
                 const matches = state.data.filter(d => d.local_name.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
                 if(matches.length > 0) {
-                    list.innerHTML = matches.map(m => `<div class="p-2 hover:bg-slate-100 cursor-pointer text-xs text-slate-700" onclick="BioApp.selectOriginNode('${m.id}')">${m.local_name} (${m.country})</div>`).join('');
+                    list.innerHTML = matches.map(m => `<div class="p-2 hover:bg-slate-100 cursor-pointer text-xs text-slate-700" onclick="window.BioApp.selectOriginNode('${m.id}')">${m.local_name} (${m.country})</div>`).join('');
                     list.classList.remove('hidden');
                 } else list.classList.add('hidden');
             },
@@ -1088,7 +1098,7 @@
             }
         };
 
-        window.addEventListener('DOMContentLoaded', BioApp.init);
+        window.addEventListener('DOMContentLoaded', window.BioApp.init);
     </script>
 </body>
 </html>
