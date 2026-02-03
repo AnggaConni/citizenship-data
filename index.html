@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Leaflet Draw (Optional functionality simulated with custom logic below, keeping imports light) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
     <!-- Custom Styles -->
@@ -27,7 +28,7 @@
         body { background-color: #f8fafc; color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; }
 
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
@@ -54,9 +55,32 @@
         .tab-btn { border-bottom: 3px solid transparent; color: #64748b; }
         .tab-btn:hover { color: var(--primary-blue); }
         .tab-btn.active { border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); }
+        
         .carousel-slide { display: none; animation: fadeIn 0.4s ease-out; }
         .carousel-slide.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        /* Navigation Arrows */
+        .nav-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 40px; height: 40px; border-radius: 50%;
+            background: white; border: 1px solid #e2e8f0;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            color: #64748b; transition: all 0.2s; z-index: 20;
+        }
+        .nav-arrow:hover { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        .nav-prev { left: 20px; }
+        .nav-next { right: 20px; }
+        
+        /* Research Link Card */
+        .link-card {
+            flex: 0 0 auto; width: 200px; 
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+            padding: 12px; font-size: 11px; color: #475569;
+            transition: all 0.2s;
+        }
+        .link-card:hover { border-color: var(--primary-blue); background: #eff6ff; }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-slate-50">
@@ -88,7 +112,7 @@
             </div>
             
             <div id="dataset-info" class="hidden mt-8 pt-4 border-t border-slate-200 w-full text-center">
-                <div class="text-[10px] text-slate-400 font-mono uppercase">v5.1 (Hi-Contrast) • <span id="record-count" class="text-blue-600 font-bold">0</span> Records Found</div>
+                <div class="text-[10px] text-slate-400 font-mono uppercase">v5.3 (Carousel & GIS Fix) • <span id="record-count" class="text-blue-600 font-bold">0</span> Records Found</div>
             </div>
         </div>
     </div>
@@ -253,7 +277,7 @@
         </div>
     </div>
 
-    <!-- DETAIL MODAL -->
+    <!-- DETAIL MODAL (CAROUSEL STYLE - IMPROVED UI) -->
     <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
         <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl border border-slate-200 shadow-2xl flex flex-col relative overflow-hidden">
             <!-- Header -->
@@ -273,95 +297,99 @@
                 </div>
             </div>
 
-            <!-- Content Area (Split View) -->
-            <div class="flex-1 overflow-hidden flex flex-col lg:flex-row bg-slate-50">
-                <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-                    <!-- Tabs -->
-                    <div class="flex border-b border-slate-200 bg-white sticky top-0 z-10 px-8">
-                        <button onclick="ui.switchSlide(0)" class="tab-btn active px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Overview</button>
-                        <button onclick="ui.switchSlide(1)" class="tab-btn px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Details</button>
-                        <button onclick="ui.switchSlide(2)" class="tab-btn px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Interaction</button>
-                        <button onclick="ui.switchSlide(3)" class="tab-btn px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Science</button>
+            <!-- Content Area -->
+            <div class="flex-1 relative bg-slate-50 overflow-hidden">
+                <!-- Navigation Arrows -->
+                <button class="nav-arrow nav-prev" onclick="ui.prevSlide()"><i class="fas fa-chevron-left"></i></button>
+                <button class="nav-arrow nav-next" onclick="ui.nextSlide()"><i class="fas fa-chevron-right"></i></button>
+
+                <!-- Carousel Slides -->
+                <div class="h-full overflow-y-auto custom-scrollbar p-8">
+                    
+                    <!-- Slide 0: Overview -->
+                    <div id="slide-0" class="carousel-slide active space-y-6">
+                        <div class="relative rounded-2xl overflow-hidden shadow-lg group bg-slate-900 aspect-video lg:aspect-[21/9]">
+                            <img id="dt-image" src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                            <div class="absolute bottom-0 left-0 p-6 w-full">
+                                <h1 id="dt-card-title" class="text-3xl font-black text-white mb-1 shadow-black drop-shadow-md">Species</h1>
+                                <p id="dt-card-latin" class="text-lg text-white/80 italic font-serif mb-3">Latin</p>
+                                <div class="flex gap-2">
+                                    <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
+                                    <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm">Endangered</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="p-8">
-                        <!-- Slide 0: Overview -->
-                        <div id="slide-0" class="carousel-slide active space-y-6">
-                            <div class="relative rounded-2xl overflow-hidden shadow-lg group bg-slate-900 aspect-video lg:aspect-[21/9]">
-                                <img id="dt-image" src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition duration-500">
-                                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
-                                <div class="absolute bottom-0 left-0 p-6 w-full">
-                                    <h1 id="dt-card-title" class="text-3xl font-black text-white mb-1 shadow-black drop-shadow-md">Species</h1>
-                                    <p id="dt-card-latin" class="text-lg text-white/80 italic font-serif mb-3">Latin</p>
-                                    <div class="flex gap-2">
-                                        <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
-                                        <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm">Endangered</span>
-                                    </div>
+                    <!-- Slide 1: Details -->
+                    <div id="slide-1" class="carousel-slide space-y-6">
+                        <div class="bg-blue-50 p-5 rounded-xl border border-blue-100 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm text-xl"><i class="fas fa-building"></i></div>
+                            <div>
+                                <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Preservation Organization</div>
+                                <div id="dt-contact" class="font-bold text-slate-700 text-lg">Organization Name</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Description</h3>
+                            <div class="max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description.</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
+                            <div id="dt-links" class="flex gap-3 overflow-x-auto pb-2 custom-scrollbar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2: Interaction -->
+                    <div id="slide-2" class="carousel-slide">
+                        <div class="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm text-center relative overflow-hidden h-full flex flex-col justify-center items-center">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-blue-500"></div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-10 tracking-widest">Ecological Connection</h3>
+                            <div class="flex flex-col items-center gap-6 w-full max-w-md">
+                                <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 w-full relative">
+                                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-cube"></i></div>
+                                    <div id="dt-aff-name" class="font-bold text-slate-800 text-xl mt-2">Factor Name</div>
+                                    <div id="dt-aff-latin" class="text-sm text-slate-500 italic">Latin Name</div>
+                                    <div class="mt-2 text-[10px] text-orange-600 font-bold uppercase tracking-wider">Affecting Factor</div>
+                                </div>
+                                <div class="h-12 border-l-2 border-dashed border-slate-300 relative">
+                                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 shadow-sm whitespace-nowrap" id="dt-type">Interaction Type</div>
+                                </div>
+                                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 w-full relative">
+                                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-leaf"></i></div>
+                                    <div id="dt-local-name-2" class="font-bold text-slate-800 text-xl mt-2">Species Name</div>
+                                    <div id="dt-latin-name-2" class="text-sm text-slate-500 italic">Latin Name</div>
+                                    <div class="mt-2 text-[10px] text-blue-600 font-bold uppercase tracking-wider">Affected Species</div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Slide 1: Details -->
-                        <div id="slide-1" class="carousel-slide space-y-6">
-                            <div class="bg-blue-50 p-5 rounded-xl border border-blue-100 flex items-center gap-4">
-                                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm text-xl"><i class="fas fa-building"></i></div>
-                                <div>
-                                    <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Preservation Organization</div>
-                                    <div id="dt-contact" class="font-bold text-slate-700 text-lg">Organization Name</div>
-                                </div>
-                            </div>
-                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Description</h3>
-                                <div class="max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                                    <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description.</p>
-                                </div>
-                            </div>
-                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
-                                <div id="dt-links" class="space-y-2"></div>
+                    <!-- Slide 3: Science & GIS -->
+                    <div id="slide-3" class="carousel-slide space-y-6">
+                        <div class="bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative group aspect-video">
+                            <div id="dt-youtube" class="w-full h-full flex items-center justify-center text-slate-500 flex-col gap-2">
+                                <i class="fab fa-youtube text-4xl opacity-50"></i>
+                                <span class="text-xs">No Video Documentation</span>
                             </div>
                         </div>
-
-                        <!-- Slide 2: Interaction -->
-                        <div id="slide-2" class="carousel-slide">
-                            <div class="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm text-center relative overflow-hidden h-full flex flex-col justify-center items-center">
-                                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-blue-500"></div>
-                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-10 tracking-widest">Ecological Connection</h3>
-                                <div class="flex flex-col items-center gap-6 w-full max-w-md">
-                                    <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 w-full relative">
-                                        <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-cube"></i></div>
-                                        <div id="dt-aff-name" class="font-bold text-slate-800 text-xl mt-2">Factor Name</div>
-                                        <div id="dt-aff-latin" class="text-sm text-slate-500 italic">Latin Name</div>
-                                        <div class="mt-2 text-[10px] text-orange-600 font-bold uppercase tracking-wider">Affecting Factor</div>
-                                    </div>
-                                    <div class="h-12 border-l-2 border-dashed border-slate-300 relative">
-                                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 shadow-sm whitespace-nowrap" id="dt-type">Interaction Type</div>
-                                    </div>
-                                    <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 w-full relative">
-                                        <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-leaf"></i></div>
-                                        <div id="dt-local-name-2" class="font-bold text-slate-800 text-xl mt-2">Species Name</div>
-                                        <div id="dt-latin-name-2" class="text-sm text-slate-500 italic">Latin Name</div>
-                                        <div class="mt-2 text-[10px] text-blue-600 font-bold uppercase tracking-wider">Affected Species</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Slide 3: Science & GIS -->
-                        <div id="slide-3" class="carousel-slide space-y-6">
-                            <div class="bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative group aspect-video">
-                                <div id="dt-youtube" class="w-full h-full flex items-center justify-center text-slate-500 flex-col gap-2">
-                                    <i class="fab fa-youtube text-4xl opacity-50"></i>
-                                    <span class="text-xs">No Video Documentation</span>
-                                </div>
-                            </div>
-                            <div class="bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative h-64">
-                                <div id="detail-geo-map" class="w-full h-full"></div>
-                                <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white">GIS Habitat Layer</div>
-                            </div>
+                        <div class="bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative h-64">
+                            <div id="detail-geo-map" class="w-full h-full"></div>
+                            <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white">GIS Habitat Layer</div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Slide Indicator (Dots) -->
+            <div class="bg-white border-t border-slate-100 p-4 flex justify-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="0"></div>
+                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="1"></div>
+                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="2"></div>
+                <div class="w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all" data-idx="3"></div>
             </div>
         </div>
     </div>
@@ -440,7 +468,7 @@
     <script>
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbyORDZAAgE5HTduFgMB6tFnk-lvKCObL-kDcbLMEiNfUtKTO2qmYhXufn0JR3_iBgii4A/exec';
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQcKtxqi1W_5A25VJ6BkA4yPmkwjbfmAM-LSTQH2f76DN8j85fMEODzOEKs83hMkC9iZxbShNpK2xo/pub?output=csv';
-        const state = { data: [], role: 'guest', editId: null, pickerTarget: null, currentDetail: null, filter: { search: '' }, pagination: { page: 1, limit: 10 } };
+        const state = { data: [], role: 'guest', editId: null, pickerTarget: null, currentDetail: null, filter: { search: '' }, pagination: { page: 1, limit: 10 }, currentSlide: 0 };
 
         function robustParse(val) {
             if (!val) return null;
@@ -468,12 +496,11 @@
              const get = (k) => item[Object.keys(item).find(x=>x.toLowerCase()===k.toLowerCase())];
              return {
                 id: get('id'), 
-                local_name: get('local_name') || get('food_name'), // Fallback
+                local_name: get('local_name') || get('food_name'), 
                 latin_name: get('latin_name'), 
                 country: get('country'),
                 lat: robustParse(get('lat')), lng: robustParse(get('lng')),
                 
-                // Enhanced Robust Parsing for Affected By (Try multiple keys)
                 affectedby_local_name: get('affectedby_local_name') || get('affected_by_local_name') || get('origin_food_name'), 
                 affectedby_latin_name: get('affectedby_latin_name'),
                 affectedby_country: get('affectedby_country') || get('origin_country'), 
@@ -501,11 +528,25 @@
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
             closeModal: (id) => document.getElementById(id).classList.add('hidden'),
             switchSlide: (idx) => {
-                document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+                state.currentSlide = idx;
                 document.querySelectorAll('.carousel-slide').forEach((s, i) => s.classList.toggle('active', i === idx));
+                document.querySelectorAll('.slide-dot').forEach((d, i) => {
+                    d.className = i === idx ? 'w-2 h-2 rounded-full bg-blue-600 slide-dot transition-all scale-125' : 'w-2 h-2 rounded-full bg-slate-300 slide-dot transition-all';
+                });
+                
                 if(idx === 3 && state.currentDetail && state.currentDetail.geometry_json) {
                     setTimeout(() => { if(window.detailMap) window.detailMap.invalidateSize(); }, 200);
                 }
+            },
+            nextSlide: () => {
+                let next = state.currentSlide + 1;
+                if(next > 3) next = 0;
+                ui.switchSlide(next);
+            },
+            prevSlide: () => {
+                let prev = state.currentSlide - 1;
+                if(prev < 0) prev = 3;
+                ui.switchSlide(prev);
             }
         };
 
@@ -523,10 +564,10 @@
                 const search = state.filter.search.toLowerCase();
                 const filtered = state.data.filter(d => d.local_name && d.local_name.toLowerCase().includes(search));
                 
-                // 1. Draw Lines & Orange Nodes FIRST (So they are under Blue Nodes)
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     if (d.affectedby_lat && d.affectedby_lng) {
+                        // High Contrast Line
                         const line = L.polyline([[d.affectedby_lat, d.affectedby_lng], [d.lat, d.lng]], { color: '#475569', weight: 2, dashArray: '6, 6' }).addTo(mapLogic.map);
                         line.on('mouseover', function() {
                             this.setStyle({ color: '#0077D4', weight: 4, opacity: 1, dashArray: null });
@@ -543,7 +584,6 @@
                     }
                 });
 
-                // 2. Draw Blue Nodes LAST (Top Layer)
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     const m = L.circleMarker([d.lat, d.lng], { color: '#0077D4', fillColor: '#0077D4', fillOpacity: 1, radius: 7 }).addTo(mapLogic.map);
@@ -651,10 +691,11 @@
                 if(d.research_links) {
                     const links = d.research_links.split(/[,;]/).map(l => l.trim()).filter(l => l);
                     links.forEach(l => {
-                        const a = document.createElement('a'); a.href = l; a.target = "_blank";
-                        a.className = "block truncate text-blue-600 hover:underline text-xs bg-slate-50 p-2 rounded mb-1 flex items-center gap-2";
-                        a.innerHTML = `<i class="fas fa-link text-slate-400"></i> ${l}`;
-                        linkContainer.appendChild(a);
+                        const div = document.createElement('div');
+                        div.className = 'link-card cursor-pointer';
+                        div.innerHTML = `<div class="font-bold mb-1 truncate">Source Link</div><div class="truncate opacity-70">${l}</div>`;
+                        div.onclick = () => window.open(l, '_blank');
+                        linkContainer.appendChild(div);
                     });
                 } else { linkContainer.innerHTML = '<span class="text-slate-400 text-xs">No links provided</span>'; }
 
@@ -775,11 +816,7 @@
                     if(d.status==='success') { 
                         alert('Saved Successfully!'); 
                         ui.closeModal('input-modal');
-                        // Refresh data smoothly instead of full reload
-                        app.refreshData(() => {
-                            // Go back to map to see changes
-                            app.switchTab('map');
-                        });
+                        app.refreshData(() => { app.switchTab('map'); });
                     } else alert(d.message);
                 }).finally(()=>btn.innerText='Save Changes');
             },
@@ -814,6 +851,50 @@
                     document.getElementById('inp-affected-lng').value = node.lng;
                     document.getElementById('origin-suggestions').classList.add('hidden');
                 }
+            }
+        };
+
+        const geoEditor = {
+            map: null, layer: null, points: [], markers: [],
+            start: () => {
+                ui.closeModal('input-modal'); 
+                document.getElementById('geo-editor').classList.remove('hidden');
+                
+                // Initialize map if it doesn't exist
+                if(!geoEditor.map) {
+                    geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
+                    geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
+                }
+                
+                // Clear previous drawings
+                geoEditor.points = []; 
+                geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m)); 
+                geoEditor.markers = [];
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
+                
+                // Important: Invalidate size after container becomes visible
+                setTimeout(() => geoEditor.map.invalidateSize(), 300);
+            },
+            addPoint: (latlng) => {
+                const m = L.marker(latlng, { draggable: true }).addTo(geoEditor.map);
+                m.on('drag', () => geoEditor.updatePoly());
+                geoEditor.markers.push(m);
+                geoEditor.updatePoly();
+            },
+            updatePoly: () => {
+                geoEditor.points = geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
+                if(geoEditor.points.length > 2) geoEditor.layer = L.polygon(geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(geoEditor.map);
+                else if(geoEditor.points.length > 1) geoEditor.layer = L.polyline(geoEditor.points, {color:'#9333ea'}).addTo(geoEditor.map);
+            },
+            finish: () => {
+                if(geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(geoEditor.points);
+                geoEditor.cancel();
+            },
+            cancel: () => { 
+                document.getElementById('geo-editor').classList.add('hidden'); 
+                ui.openModal('input-modal'); 
             }
         };
 
