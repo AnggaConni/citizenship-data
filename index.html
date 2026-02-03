@@ -81,7 +81,7 @@
         
         /* Research Link Card */
         .res-card {
-            flex: 0 0 auto; width: 200px; 
+            flex: 0 0 auto; width: 220px; 
             background: white; border: 1px solid #e2e8f0; border-radius: 12px;
             padding: 12px; transition: all 0.2s; cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between;
@@ -535,24 +535,16 @@
                 affectedby_local_name: get('affectedby_local_name') || get('affected_by_local_name') || get('origin_food_name'), 
                 affectedby_latin_name: get('affectedby_latin_name'),
                 affectedby_country: get('affectedby_country') || get('origin_country'), 
-                affectedby_lat: robustParse(get('affectedby_lat') || get('origin_lat')), 
-                affectedby_lng: robustParse(get('affectedby_lng') || get('origin_lng')),
+                affectedby_lat: robustParse(get('affectedby_lat')), 
+                affectedby_lng: robustParse(get('affectedby_lng')),
                 connection_type: get('connection_type'), contact: get('Contact'),
                 youtube_url: get('youtube_url'), image_url: get('image_url'), description: get('description'), 
                 geometry_json: get('GEOMETRY_JSON'), unesco_status: get('unesco_status'), research_links: get('research_links')
             };
         }
 
-        // --- DEFINISI OBJEK GLOBAL (HOISTING) ---
-        // Kita mendefinisikan objek kosong terlebih dahulu di window, baru mengisinya.
-        // Ini mencegah masalah ReferenceError saat dipanggil oleh HTML onclick.
-        window.ui = {};
-        window.mapLogic = {};
-        window.dashboard = {};
-        window.geoEditor = {};
-        window.BioApp = {};
+        window.ui = {}; window.mapLogic = {}; window.dashboard = {}; window.geoEditor = {}; window.BioApp = {};
 
-        // --- UI MODULE ---
         window.ui = {
             renderAuth: () => {
                 const isGuest = state.role !== 'admin';
@@ -632,7 +624,6 @@
             }
         };
 
-        // --- GEO EDITOR MODULE ---
         window.geoEditor = {
             map: null, layer: null, points: [], markers: [],
             start: () => {
@@ -677,7 +668,6 @@
             }
         };
 
-        // --- MAP LOGIC MODULE ---
         window.mapLogic = {
             map: null, layers: [], 
             init: () => {
@@ -685,7 +675,6 @@
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.mapLogic.map);
                 L.control.zoom({ position: 'topright' }).addTo(window.mapLogic.map);
                 
-                // CREATE CUSTOM PANE FOR BLUE NODES (HIGH Z-INDEX)
                 window.mapLogic.map.createPane('blueNodes');
                 window.mapLogic.map.getPane('blueNodes').style.zIndex = 650;
             },
@@ -704,7 +693,6 @@
                            (d.unesco_status && d.unesco_status.toLowerCase().includes(search));
                 });
                 
-                // 1. Draw Lines & Orange Nodes (Standard Pane)
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     if (d.affectedby_lat && d.affectedby_lng) {
@@ -720,7 +708,6 @@
                     }
                 });
 
-                // 2. Draw Blue Nodes (CUSTOM PANE - TOP)
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
                     const m = L.marker([d.lat, d.lng], { 
@@ -753,7 +740,6 @@
             }
         };
 
-        // --- DASHBOARD MODULE ---
         window.dashboard = {
             chartStatus: null, chartTrend: null,
             init: () => { window.dashboard.render(); window.dashboard.listeners(); },
@@ -876,6 +862,7 @@
                     const bounds = L.latLngBounds([]);
                     let hasBounds = false;
 
+                    // 1. Draw Current Species (Target)
                     if(d.geometry_json) {
                         try {
                             const pts = JSON.parse(d.geometry_json);
@@ -890,8 +877,9 @@
                         hasBounds = true;
                     }
 
+                    // 2. Find and Draw Source Species (Factor) - Overlap Logic - CASE INSENSITIVE FIX
                     if(d.affectedby_local_name) {
-                        const sourceNode = state.data.find(item => item.local_name === d.affectedby_local_name);
+                        const sourceNode = state.data.find(item => item.local_name && item.local_name.toLowerCase() === d.affectedby_local_name.toLowerCase());
                         if(sourceNode && sourceNode.geometry_json) {
                             try {
                                 const pts = JSON.parse(sourceNode.geometry_json);
@@ -969,6 +957,7 @@
                 window.mapLogic.render();
             },
             pickLocation: (target) => {
+                window.BioApp.switchTab('map'); // UX FIX: Auto switch to map tab
                 state.pickerTarget = target; window.ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden');
                 document.getElementById('picker-msg').innerText = target==='main'?'Select Species Location':'Select Factor Location';
                 window.mapLogic.enablePicker((lat, lng) => {
