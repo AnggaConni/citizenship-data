@@ -50,13 +50,6 @@
         .leaflet-tooltip-top:before { display: none; }
         path.leaflet-interactive { transition: stroke 0.3s ease-out, stroke-width 0.3s ease-out; }
 
-        /* GIS Marker (CSS Based) */
-        .geo-marker-icon {
-            background-color: var(--primary-blue); border: 2px solid white; border-radius: 50%;
-            width: 14px !important; height: 14px !important; margin-left: -7px !important; margin-top: -7px !important;
-            cursor: move; box-shadow: 0 0 10px rgba(0, 119, 212, 0.5);
-        }
-
         /* Media Slider (Generic) */
         .media-slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
         .media-slide { display: none; width: 100%; height: 100%; }
@@ -110,6 +103,9 @@
         .mascot-btn {
             animation: breath 2s infinite;
         }
+
+        /* Fix for Map Container in Modal */
+        #detail-geo-map { background: #f1f5f9; z-index: 1; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
@@ -612,7 +608,7 @@
                     return;
                 }
 
-                // Arrows visibility
+                // Arrows visibility (Use force-hidden instead of hidden to override Tailwind's flex/block clashes)
                 if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
                 else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
@@ -660,55 +656,6 @@
             prevRecord: () => {
                 const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
                 dashboard.showDetail(state.data[(idx - 1 + state.data.length) % state.data.length]);
-            }
-        };
-
-        const geoEditor = {
-            map: null, layer: null, points: [], markers: [],
-            start: () => {
-                ui.closeModal('input-modal'); 
-                document.getElementById('geo-editor').classList.remove('hidden');
-                
-                // Initialize map if it doesn't exist
-                if(!geoEditor.map) {
-                    geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
-                    geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
-                }
-                
-                // Clear previous drawings
-                geoEditor.points = []; 
-                geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m)); 
-                geoEditor.markers = [];
-                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
-                
-                // Important: Invalidate size after container becomes visible
-                setTimeout(() => geoEditor.map.invalidateSize(), 300);
-            },
-            addPoint: (latlng) => {
-                // Change to marker with divIcon (CSS) to avoid broken images
-                const m = L.marker(latlng, { 
-                    draggable: true,
-                    icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12] }) 
-                }).addTo(geoEditor.map);
-                
-                m.on('drag', () => geoEditor.updatePoly());
-                geoEditor.markers.push(m);
-                geoEditor.updatePoly();
-            },
-            updatePoly: () => {
-                geoEditor.points = geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
-                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
-                if(geoEditor.points.length > 2) geoEditor.layer = L.polygon(geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(geoEditor.map);
-                else if(geoEditor.points.length > 1) geoEditor.layer = L.polyline(geoEditor.points, {color:'#9333ea'}).addTo(geoEditor.map);
-            },
-            finish: () => {
-                if(geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(geoEditor.points);
-                geoEditor.cancel();
-            },
-            cancel: () => { 
-                document.getElementById('geo-editor').classList.add('hidden'); 
-                ui.openModal('input-modal'); 
             }
         };
 
@@ -881,14 +828,26 @@
                 document.getElementById('dt-local-name-sm').innerText = d.local_name;
                 document.getElementById('dt-type').innerText = d.connection_type || 'Unknown';
                 
-                const mapContainer = document.getElementById('detail-geo-map'); mapContainer.innerHTML = '';
+                const mapContainer = document.getElementById('detail-geo-map'); 
                 
+                // Clear content first but ensure container exists
+                mapContainer.innerHTML = ''; 
+
+                if (window.detailMap) {
+                    window.detailMap.remove();
+                    window.detailMap = null;
+                }
+
+                // Wait for modal transition then init map
                 setTimeout(() => {
-                    // Init map
+                    // Check if container exists in DOM again before init
+                    if(!document.getElementById('detail-geo-map')) return;
+
                     window.detailMap = L.map('detail-geo-map', {zoomControl:false});
                     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.detailMap);
 
                     const bounds = L.latLngBounds([]);
+                    let hasBounds = false;
 
                     // 1. Draw Current Species (Target)
                     if(d.geometry_json) {
@@ -897,12 +856,12 @@
                             const poly = L.polygon(pts, {color:'#9333ea', weight:2, fillOpacity:0.4}).addTo(window.detailMap);
                             poly.bindTooltip("Target: " + d.local_name, {sticky:true});
                             bounds.extend(poly.getBounds());
+                            hasBounds = true;
                         } catch(e){}
-                    } else {
-                        if(d.lat && d.lng) {
-                             L.marker([d.lat, d.lng]).addTo(window.detailMap);
-                             bounds.extend([d.lat, d.lng]);
-                        }
+                    } else if(d.lat && d.lng) {
+                        L.marker([d.lat, d.lng]).addTo(window.detailMap);
+                        bounds.extend([d.lat, d.lng]);
+                        hasBounds = true;
                     }
 
                     // 2. Find and Draw Source Species (Factor) - Overlap Logic
@@ -914,15 +873,16 @@
                                 const poly = L.polygon(pts, {color:'#F59E0B', weight:2, fillOpacity:0.4, dashArray: '5,5'}).addTo(window.detailMap);
                                 poly.bindTooltip("Factor: " + sourceNode.local_name, {sticky:true});
                                 bounds.extend(poly.getBounds());
+                                hasBounds = true;
                             } catch(e){}
                         }
                     }
 
                     // Fit bounds
-                    if(bounds.isValid()) {
+                    if(hasBounds && bounds.isValid()) {
                         window.detailMap.fitBounds(bounds, {padding: [20, 20]});
                     } else {
-                        window.detailMap.setView([d.lat, d.lng], 6);
+                        window.detailMap.setView([0, 0], 2);
                     }
                     
                     // Legend Overlay
@@ -936,8 +896,11 @@
                         return div;
                     };
                     legend.addTo(window.detailMap);
+                    
+                    // Crucial fix: Force resize calculation
+                    window.detailMap.invalidateSize();
 
-                }, 300);
+                }, 400); // Wait 400ms for modal animation
 
                 document.getElementById('dt-admin-actions').classList.toggle('hidden', state.role !== 'admin');
                 ui.openModal('detail-modal');
