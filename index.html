@@ -50,7 +50,14 @@
         .leaflet-tooltip-top:before { display: none; }
         path.leaflet-interactive { transition: stroke 0.3s ease-out, stroke-width 0.3s ease-out; }
 
-        /* Media Slider (Generic) */
+        /* GIS Marker (CSS Based) */
+        .geo-marker-icon {
+            background-color: var(--primary-blue); border: 2px solid white; border-radius: 50%;
+            width: 14px !important; height: 14px !important; margin-left: -7px !important; margin-top: -7px !important;
+            cursor: move; box-shadow: 0 0 10px rgba(0, 119, 212, 0.5);
+        }
+
+        /* Media Slider */
         .media-slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
         .media-slide { display: none; width: 100%; height: 100%; }
         .media-slide.active { display: block; animation: fadeIn 0.3s; }
@@ -65,14 +72,11 @@
         .media-prev { left: 8px; }
         .media-next { right: 8px; }
         
-        /* Utility for toggling visibility */
         .force-hidden { display: none !important; }
 
-        /* Contact Carousel Specifics */
         .contact-slide { display: none; animation: slideIn 0.3s ease-out; }
         .contact-slide.active { display: block; }
         
-        /* Research Link Card */
         .res-card {
             flex: 0 0 auto; width: 200px; 
             background: white; border: 1px solid #e2e8f0; border-radius: 12px;
@@ -81,7 +85,6 @@
         }
         .res-card:hover { border-color: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 119, 212, 0.15); }
 
-        /* Record Nav Arrows (Floating) */
         .rec-arrow {
             position: absolute; top: 50%; transform: translateY(-50%);
             width: 48px; height: 48px; border-radius: 50%;
@@ -94,16 +97,12 @@
         .rec-prev { left: -24px; }
         .rec-next { right: -24px; }
 
-        /* Mascot Breathing Animation */
         @keyframes breath {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
             70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
-        .mascot-btn {
-            animation: breath 2s infinite;
-        }
-
+        .mascot-btn { animation: breath 2s infinite; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
     </style>
@@ -112,7 +111,6 @@
 
     <!-- 1. LANDING PAGE -->
     <div id="landing-page" class="section-view active h-full w-full relative z-50 bg-slate-900 items-center justify-center flex-col">
-        <!-- HD Biosphere Background -->
         <div class="absolute inset-0 z-0 opacity-90 bg-[url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=85')] bg-cover bg-center"></div>
         <div class="absolute inset-0 z-0 bg-gradient-to-b from-black/30 via-black/50 to-slate-900"></div>
 
@@ -131,10 +129,10 @@
             </div>
 
             <div id="entry-buttons" class="hidden flex-col items-center justify-center gap-4 mt-8 w-full">
-                <button onclick="app.enterAsGuest()" class="w-72 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-3 transition transform hover:scale-105 mx-auto border border-emerald-400">
+                <button onclick="BioApp.enterAsGuest()" class="w-72 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-3 transition transform hover:scale-105 mx-auto border border-emerald-400">
                     ENTER BIOSPHERE <i class="fas fa-arrow-right"></i>
                 </button>
-                <button onclick="app.enterAsContributor()" class="text-xs text-emerald-200 hover:text-white underline mt-2 flex items-center gap-1"><i class="fas fa-user-lock"></i> Contributor Access</button>
+                <button onclick="BioApp.enterAsContributor()" class="text-xs text-emerald-200 hover:text-white underline mt-2 flex items-center gap-1"><i class="fas fa-user-lock"></i> Contributor Access</button>
             </div>
             
             <div id="dataset-info" class="hidden mt-8 pt-4 border-t border-white/10 w-full text-center">
@@ -153,23 +151,23 @@
                     <div class="text-[9px] text-slate-400 tracking-widest uppercase mt-2 border-t border-slate-200 pt-1 w-full">Angga Conni Saputra 2026</div>
                 </div>
                 <nav class="p-4 space-y-2">
-                    <button onclick="app.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Analytics</button>
-                    <button onclick="app.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
+                    <button onclick="BioApp.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Analytics</button>
+                    <button onclick="BioApp.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
                 </nav>
             </div>
             <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2">
                 <div id="auth-status-ui" class="mb-2">
                     <div id="status-guest" class="w-full">
                         <div class="p-2 bg-slate-200 text-slate-500 text-center rounded-lg border border-slate-300 mb-2 text-[10px] font-bold tracking-wider">VIEW ONLY</div>
-                        <button onclick="app.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login Contributor</button>
+                        <button onclick="BioApp.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login Contributor</button>
                     </div>
                     <div id="status-admin" class="hidden w-full">
                         <div class="p-2 bg-emerald-100 text-emerald-700 text-center rounded-lg border border-emerald-200 mb-3 text-[10px] font-bold tracking-wider">ADMIN ACCESS</div>
-                        <button onclick="app.initiateAddEntry()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
-                        <button onclick="app.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
+                        <button onclick="BioApp.initiateAddEntry()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
+                        <button onclick="BioApp.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
                     </div>
                 </div>
-                <button onclick="app.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
+                <button onclick="BioApp.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
                 
                 <!-- MASCOT HELP BUTTON -->
                 <div class="mt-4 flex justify-center">
@@ -186,7 +184,7 @@
         <main class="flex-1 relative overflow-hidden bg-slate-50 flex flex-col">
             <!-- PICKER NOTIFICATION -->
             <div id="picker-notification" class="absolute top-6 left-1/2 -translate-x-1/2 z-[3000] hidden flex-col items-center w-auto">
-                <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border-2 border-white animate-pulse cursor-pointer hover:bg-blue-700 transition" onclick="app.cancelPicker()">
+                <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border-2 border-white animate-pulse cursor-pointer hover:bg-blue-700 transition" onclick="BioApp.cancelPicker()">
                     <i class="fas fa-crosshairs"></i> <span class="text-sm font-bold" id="picker-msg">Select Location</span> <div class="bg-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs"><i class="fas fa-times"></i></div>
                 </div>
                 <div class="mt-2 text-[10px] text-slate-500 bg-white/80 px-2 py-1 rounded backdrop-blur border border-slate-200">Click anywhere on the map to set point</div>
@@ -264,7 +262,7 @@
                 <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
                 <div class="absolute top-6 left-6 z-[400] flex flex-col gap-2">
                     <div class="relative shadow-xl">
-                        <input type="text" id="map-search" placeholder="Find species on map..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="app.updateMapFilter(this.value)">
+                        <input type="text" id="map-search" placeholder="Find species on map..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="BioApp.updateMapFilter(this.value)">
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                     </div>
                 </div>
@@ -293,7 +291,7 @@
             </div>
             <input type="text" id="login-user" placeholder="Username" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
             <input type="password" id="login-pass" placeholder="Password" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
-            <button onclick="app.login()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">Login</button>
+            <button onclick="BioApp.login()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">Login</button>
             <button onclick="ui.closeModal('login-modal')" class="w-full mt-4 text-slate-400 text-xs hover:text-slate-600 transition">Cancel</button>
         </div>
     </div>
@@ -331,7 +329,7 @@
         </div>
     </div>
 
-    <!-- DETAIL MODAL (CLASSIC 2-COLUMN WITH ADVANCED CAROUSELS) -->
+    <!-- DETAIL MODAL -->
     <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
         <div class="relative w-full max-w-6xl h-[90vh]">
             
@@ -351,28 +349,22 @@
                     </div>
                     <div class="flex items-center gap-4">
                         <div id="dt-admin-actions" class="hidden">
-                            <button onclick="app.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
+                            <button onclick="BioApp.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
                         </div>
                         <button onclick="ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
 
-                <!-- Scrollable Content - 2 Columns -->
+                <!-- Scrollable Content -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-50">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
                         
-                        <!-- LEFT COLUMN: Info & Contact -->
+                        <!-- LEFT COLUMN -->
                         <div class="space-y-6">
-                            
-                            <!-- 1. Contact Card Carousel (CAROUSEL FIXED) -->
+                            <!-- Contact Carousel -->
                             <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[140px] flex items-center">
                                 <div class="w-12 h-12 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-xl mr-4"><i class="fas fa-building"></i></div>
-                                
-                                <div id="contact-carousel" class="flex-1 relative overflow-hidden">
-                                    <!-- Contacts injected here -->
-                                </div>
-
-                                <!-- Contact Nav Arrows -->
+                                <div id="contact-carousel" class="flex-1 relative overflow-hidden"></div>
                                 <button onclick="ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
                                 <button onclick="ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
                             </div>
@@ -402,26 +394,20 @@
                                 <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description available.</p>
                             </div>
 
-                            <!-- 2. Research Links (Horizontal Scroll Cards) -->
+                            <!-- Research Links -->
                             <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
-                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
-                                    <!-- Cards populated by JS -->
-                                </div>
+                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x"></div>
                             </div>
                         </div>
 
-                        <!-- RIGHT COLUMN: Image, Video, Map -->
+                        <!-- RIGHT COLUMN -->
                         <div class="flex flex-col gap-6 h-full">
-                            
-                            <!-- 3. Image Carousel -->
+                            <!-- Image Carousel -->
                             <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="img-carousel" class="media-slider-container">
-                                    <!-- Images injected here -->
-                                </div>
+                                <div id="img-carousel" class="media-slider-container"></div>
                                 <button class="media-nav media-prev force-hidden" id="img-prev" onclick="ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
                                 <button class="media-nav media-next force-hidden" id="img-next" onclick="ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
-                                
                                 <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
                                     <div class="flex gap-2">
                                         <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
@@ -430,11 +416,9 @@
                                 </div>
                             </div>
 
-                            <!-- 4. YouTube Carousel -->
+                            <!-- YouTube Carousel -->
                             <div class="relative bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="vid-carousel" class="media-slider-container">
-                                    <!-- Videos injected here -->
-                                </div>
+                                <div id="vid-carousel" class="media-slider-container"></div>
                                 <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
                                 <button class="media-nav media-next force-hidden" id="vid-next" onclick="ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
                             </div>
@@ -470,7 +454,7 @@
                 </div>
                 <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button type="button" onclick="app.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Set Point</button><button type="button" onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Draw GIS</button></div></div>
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button type="button" onclick="BioApp.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Set Point</button><button type="button" onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Draw GIS</button></div></div>
                     <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-lat" placeholder="Latitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"><input type="text" id="inp-lng" placeholder="Longitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"></div>
                     <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-blue-200 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON" readonly></textarea>
                 </div>
@@ -487,11 +471,10 @@
                 
                 <!-- Orange Box (Auto Link Fixed) -->
                 <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm relative">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button type="button" onclick="app.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition relative z-10">Set Location</button></div>
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button type="button" onclick="BioApp.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition relative z-10">Set Location</button></div>
                     
                     <div class="relative mb-4">
-                        <input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="app.handleOriginSearch(this.value)">
-                        <!-- Z-index increased heavily to ensure it floats on top -->
+                        <input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="BioApp.handleOriginSearch(this.value)">
                         <div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-[9999] max-h-40 overflow-y-auto shadow-2xl"></div>
                     </div>
                     
@@ -502,10 +485,10 @@
             </div>
             
             <div class="p-6 border-t border-slate-200 bg-slate-50 rounded-b-3xl flex justify-between items-center">
-                <button id="btn-delete" onclick="app.deleteData()" class="hidden px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl font-bold text-xs border border-red-100 transition"><i class="fas fa-trash mr-2"></i> Delete Entry</button>
+                <button id="btn-delete" onclick="BioApp.deleteData()" class="hidden px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl font-bold text-xs border border-red-100 transition"><i class="fas fa-trash mr-2"></i> Delete Entry</button>
                 <div class="flex gap-4 ml-auto">
                     <button onclick="ui.closeModal('input-modal')" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition">Cancel</button>
-                    <button onclick="app.saveData()" id="btn-save" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95">Save Changes</button>
+                    <button onclick="BioApp.saveData()" id="btn-save" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -548,7 +531,7 @@
             let id = null;
             if(url.includes('v=')) id = url.split('v=')[1].split('&')[0];
             else if(url.includes('youtu.be/')) id = url.split('youtu.be/')[1];
-            else id = url; // assume ID if not url
+            else id = url;
             if(id) return `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen class="w-full h-full"></iframe>`;
             return '';
         }
@@ -587,7 +570,6 @@
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
             closeModal: (id) => document.getElementById(id).classList.add('hidden'),
             
-            // --- Media Carousel Logic ---
             renderMedia: (type) => {
                 const container = document.getElementById(type === 'img' ? 'img-carousel' : (type==='vid'?'vid-carousel':'contact-carousel'));
                 const prevBtn = document.getElementById(type === 'img' ? 'img-prev' : (type==='vid'?'vid-prev':'contact-prev'));
@@ -605,7 +587,6 @@
                     return;
                 }
 
-                // Arrows visibility
                 if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
                 else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
@@ -619,7 +600,6 @@
                     vidDiv.innerHTML = extractYoutubeEmbed(items[idx]);
                     container.appendChild(vidDiv);
                 } else if (type === 'contact') {
-                    // Contact Parsing: "Name | Web | Phone"
                     const details = items[idx].split('|').map(s => s.trim());
                     const div = document.createElement('div');
                     div.className = "contact-slide active";
@@ -644,8 +624,6 @@
                 else state.media.contactIdx = (state.media.contactIdx - 1 + state.media.contacts.length) % state.media.contacts.length;
                 ui.renderMedia(type);
             },
-            
-            // --- Record Navigation ---
             nextRecord: () => {
                 const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
                 dashboard.showDetail(state.data[(idx + 1) % state.data.length]);
@@ -676,14 +654,18 @@
                         const line = L.polyline([[d.affectedby_lat, d.affectedby_lng], [d.lat, d.lng]], { color: '#475569', weight: 2, dashArray: '6, 6' }).addTo(mapLogic.map);
                         line.on('mouseover', function() { this.setStyle({ color: '#0077D4', weight: 4, dashArray: null }); });
                         line.on('mouseout', function() { this.setStyle({ color: '#475569', weight: 2, dashArray: '6, 6' }); });
-                        const orange = L.circleMarker([d.affectedby_lat, d.affectedby_lng], { color: '#F59E0B', fillColor: '#F59E0B', fillOpacity: 0.9, radius: 5 }).addTo(mapLogic.map);
+                        const orange = L.marker([d.affectedby_lat, d.affectedby_lng], { 
+                             icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12], html: `<div style="background-color: #F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);"></div>` })
+                        }).addTo(mapLogic.map);
                         orange.bindTooltip(`Factor: ${d.affectedby_local_name}`, {className: 'custom-tooltip'});
                         mapLogic.layers.push(line, orange);
                     }
                 });
                 filtered.forEach(d => {
                     if (!d.lat || !d.lng) return;
-                    const m = L.circleMarker([d.lat, d.lng], { color: '#0077D4', fillColor: '#0077D4', fillOpacity: 1, radius: 7 }).addTo(mapLogic.map);
+                    const m = L.marker([d.lat, d.lng], { 
+                        icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14, 14] }) 
+                    }).addTo(mapLogic.map);
                     m.on('click', () => dashboard.showDetail(d));
                     m.bindTooltip(d.local_name, {className: 'custom-tooltip'});
                     mapLogic.layers.push(m);
@@ -702,6 +684,50 @@
                 mapLogic.map.getContainer().classList.remove('picker-mode');
                 if (mapLogic.pickerHandler) mapLogic.map.off('click', mapLogic.pickerHandler);
                 if (mapLogic.pickerMarker) mapLogic.map.removeLayer(mapLogic.pickerMarker);
+            }
+        };
+
+        const geoEditor = {
+            map: null, layer: null, points: [], markers: [],
+            start: () => {
+                ui.closeModal('input-modal'); 
+                document.getElementById('geo-editor').classList.remove('hidden');
+                
+                if(!geoEditor.map) {
+                    geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
+                    geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
+                }
+                
+                geoEditor.points = []; 
+                geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m)); 
+                geoEditor.markers = [];
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
+                
+                setTimeout(() => geoEditor.map.invalidateSize(), 300);
+            },
+            addPoint: (latlng) => {
+                const m = L.marker(latlng, { 
+                    draggable: true,
+                    icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12] }) 
+                }).addTo(geoEditor.map);
+                m.on('drag', () => geoEditor.updatePoly());
+                geoEditor.markers.push(m);
+                geoEditor.updatePoly();
+            },
+            updatePoly: () => {
+                geoEditor.points = geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
+                if(geoEditor.points.length > 2) geoEditor.layer = L.polygon(geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(geoEditor.map);
+                else if(geoEditor.points.length > 1) geoEditor.layer = L.polyline(geoEditor.points, {color:'#9333ea'}).addTo(geoEditor.map);
+            },
+            finish: () => {
+                if(geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(geoEditor.points);
+                geoEditor.cancel();
+            },
+            cancel: () => { 
+                document.getElementById('geo-editor').classList.add('hidden'); 
+                ui.openModal('input-modal'); 
             }
         };
 
@@ -762,7 +788,6 @@
                 document.getElementById('detail-title').innerText = d.local_name;
                 document.getElementById('detail-subtitle').innerText = d.latin_name;
                 
-                // --- SETUP MEDIA (Images, Videos, Contacts) ---
                 state.media.images = d.image_url ? d.image_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
                 state.media.videos = d.youtube_url ? d.youtube_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
                 state.media.contacts = d.contact ? d.contact.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
@@ -770,13 +795,12 @@
                 
                 ui.renderMedia('img');
                 ui.renderMedia('vid');
-                ui.renderMedia('contact'); // New Contact Carousel
+                ui.renderMedia('contact'); 
 
                 document.getElementById('dt-country').innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${d.country}`;
                 document.getElementById('dt-status').innerText = d.unesco_status || 'Unknown';
                 document.getElementById('dt-desc').innerText = d.description || 'No description available.';
                 
-                // Research Links (Card Carousel Style)
                 const linkContainer = document.getElementById('dt-links');
                 linkContainer.innerHTML = '';
                 if(d.research_links) {
@@ -816,17 +840,14 @@
             }
         };
 
-        const app = {
+        const BioApp = {
             init: () => {
                 ui.renderAuth();
-                window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') app.enterAsGuest(); });
-                // Refresh data logic extracted to re-use
-                app.refreshData(); 
+                window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') BioApp.enterAsGuest(); });
+                BioApp.refreshData(); 
             },
             refreshData: (cb) => {
-                // Add timestamp to prevent caching
-                const url = CSV_URL + '&t=' + new Date().getTime();
-                Papa.parse(url, {
+                Papa.parse(CSV_URL, {
                     download: true, header: true, skipEmptyLines: true,
                     complete: (res) => {
                         if(res.data.length) { 
@@ -838,15 +859,14 @@
                     }
                 });
             },
-            enterAsGuest: () => { document.getElementById('landing-page').style.display='none'; document.getElementById('main-app').classList.add('active'); app.switchTab('dashboard'); mapLogic.resize(); },
+            enterAsGuest: () => { document.getElementById('landing-page').style.display='none'; document.getElementById('main-app').classList.add('active'); BioApp.switchTab('dashboard'); mapLogic.resize(); },
             enterAsContributor: () => { if(state.role==='admin') return; ui.openModal('login-modal'); },
             login: () => {
                 const btn = document.getElementById('btn-login'); btn.innerText = 'Verifying...';
                 const form = new URLSearchParams(); 
                 form.append('action', 'login'); form.append('username', document.getElementById('login-user').value); form.append('password', document.getElementById('login-pass').value);
-                // Add redirect: 'follow'
                 fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }).then(r=>r.json()).then(d => {
-                    if(d.status==='success') { state.role='admin'; ui.renderAuth(); ui.closeModal('login-modal'); if(document.getElementById('landing-page').style.display!=='none') app.enterAsGuest(); } 
+                    if(d.status==='success') { state.role='admin'; ui.renderAuth(); ui.closeModal('login-modal'); if(document.getElementById('landing-page').style.display!=='none') BioApp.enterAsGuest(); } 
                     else alert(d.message);
                 }).finally(() => btn.innerText='Login');
             },
@@ -863,11 +883,11 @@
                 mapLogic.enablePicker((lat, lng) => {
                     if(state.pickerTarget==='main') { document.getElementById('inp-lat').value=lat.toFixed(6); document.getElementById('inp-lng').value=lng.toFixed(6); }
                     else { document.getElementById('inp-affected-lat').value=lat.toFixed(6); document.getElementById('inp-affected-lng').value=lng.toFixed(6); }
-                    app.cancelPicker();
+                    BioApp.cancelPicker();
                 });
             },
             cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); mapLogic.disablePicker(); ui.openModal('input-modal'); },
-            initiateAddEntry: () => { state.editId=null; document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value=''); app.switchTab('map'); app.pickLocation('main'); },
+            initiateAddEntry: () => { state.editId=null; document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value=''); BioApp.switchTab('map'); BioApp.pickLocation('main'); },
             openInputModal: (mode) => {
                 ui.closeModal('detail-modal'); 
                 const d = state.currentDetail;
@@ -902,26 +922,23 @@
                     id: state.editId || '',
                     local_name: document.getElementById('inp-local-name').value, latin_name: document.getElementById('inp-latin-name').value,
                     country: document.getElementById('inp-country').value, 
-                    lat: parseFloat(document.getElementById('inp-lat').value), // FIX: Parse float
-                    lng: parseFloat(document.getElementById('inp-lng').value), // FIX: Parse float
+                    lat: parseFloat(document.getElementById('inp-lat').value), 
+                    lng: parseFloat(document.getElementById('inp-lng').value), 
                     description: document.getElementById('inp-desc').value, geometry_json: document.getElementById('inp-geometry').value,
                     unesco_status: document.getElementById('inp-unesco').value, contact: document.getElementById('inp-contact').value,
                     image_url: document.getElementById('inp-image').value, youtube_url: document.getElementById('inp-youtube').value, research_links: document.getElementById('inp-research').value,
                     affectedby_local_name: document.getElementById('inp-affected-local').value, affectedby_latin_name: document.getElementById('inp-affected-latin').value,
                     affectedby_country: document.getElementById('inp-affected-country').value, 
-                    affectedby_lat: parseFloat(document.getElementById('inp-affected-lat').value), // FIX: Parse float
-                    affectedby_lng: parseFloat(document.getElementById('inp-affected-lng').value), // FIX: Parse float
+                    affectedby_lat: parseFloat(document.getElementById('inp-affected-lat').value), 
+                    affectedby_lng: parseFloat(document.getElementById('inp-affected-lng').value), 
                     connection_type: document.getElementById('inp-conn-type').value
                 };
                 const action = state.editId ? 'update' : 'insert';
                 const form = new URLSearchParams(); form.append('action', action); form.append('data', JSON.stringify(data));
                 
-                // Add redirect: 'follow'
                 fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }).then(r=>r.json()).then(d => {
                     if(d.status==='success') { 
                         alert('Saved Successfully!'); 
-                        
-                        // Strict Optimistic Update
                         if (action === 'insert') {
                             data.id = d.id || 'NEW';
                             state.data.push(data);
@@ -929,12 +946,9 @@
                             const idx = state.data.findIndex(item => item.id === state.editId);
                             if (idx !== -1) state.data[idx] = { ...state.data[idx], ...data };
                         }
-                        
                         ui.closeModal('input-modal');
                         mapLogic.render(); dashboard.render();
                         document.getElementById('record-count').innerText = state.data.length;
-                        
-                        // NO REFRESH CALL to prevent cache overwrite
                     } else alert(d.message);
                 }).finally(()=>btn.innerText='Save Changes');
             },
@@ -950,24 +964,16 @@
                 form.append('action', 'delete'); 
                 form.append('id', state.editId);
                 
-                // Add redirect: 'follow'
                 fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }) 
                 .then(r => r.json())
                 .then(d => {
                     if(d.status==='success') { 
                         alert('Data successfully deleted.'); 
-                        
-                        // Optimistic Update: Remove from local state
                         state.data = state.data.filter(item => item.id !== state.editId);
-                        
-                        // Update UI
                         mapLogic.render();
                         dashboard.render();
                         document.getElementById('record-count').innerText = state.data.length;
-
                         ui.closeModal('input-modal'); 
-                        
-                        // NO REFRESH CALL to prevent cache overwrite
                     } else {
                         alert('Delete Failed: ' + d.message);
                     }
@@ -984,7 +990,7 @@
                 if(val.length < 2) { list.classList.add('hidden'); return; }
                 const matches = state.data.filter(d => d.local_name.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
                 if(matches.length > 0) {
-                    list.innerHTML = matches.map(m => `<div class="p-2 hover:bg-slate-100 cursor-pointer text-xs text-slate-700" onclick="app.selectOriginNode('${m.id}')">${m.local_name} (${m.country})</div>`).join('');
+                    list.innerHTML = matches.map(m => `<div class="p-2 hover:bg-slate-100 cursor-pointer text-xs text-slate-700" onclick="BioApp.selectOriginNode('${m.id}')">${m.local_name} (${m.country})</div>`).join('');
                     list.classList.remove('hidden');
                 } else list.classList.add('hidden');
             },
@@ -1001,7 +1007,7 @@
             }
         };
 
-        window.addEventListener('DOMContentLoaded', app.init);
+        window.addEventListener('DOMContentLoaded', BioApp.init);
     </script>
 </body>
 </html>
