@@ -169,7 +169,7 @@
                         <button onclick="app.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
                     </div>
                 </div>
-                <button onclick="app.exportData()" class="w-full py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
+                <button onclick="app.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
                 
                 <!-- MASCOT HELP BUTTON -->
                 <div class="mt-4 flex justify-center">
@@ -364,7 +364,7 @@
                         <!-- LEFT COLUMN: Info & Contact -->
                         <div class="space-y-6">
                             
-                            <!-- 1. Contact Card Carousel (CAROUSEL) -->
+                            <!-- 1. Contact Card Carousel (CAROUSEL FIXED) -->
                             <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[140px] flex items-center">
                                 <div class="w-12 h-12 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-xl mr-4"><i class="fas fa-building"></i></div>
                                 
@@ -523,7 +523,7 @@
     </div>
 
     <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyORDZAAgE5HTduFgMB6tFnk-lvKCObL-kDcbLMEiNfUtKTO2qmYhXufn0JR3_iBgii4A/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzgkaqhigU7Pd09c27Hgk786dVEcFIozA_hXEwesA2_ePrl1884GW3KB7Zj7Ve_IwqImQ/exec';
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQcKtxqi1W_5A25VJ6BkA4yPmkwjbfmAM-LSTQH2f76DN8j85fMEODzOEKs83hMkC9iZxbShNpK2xo/pub?output=csv';
         const state = { 
             data: [], role: 'guest', editId: null, pickerTarget: null, currentDetail: null, filter: { search: '' }, pagination: { page: 1, limit: 10 }, 
@@ -605,7 +605,7 @@
                     return;
                 }
 
-                // Arrows visibility (Use force-hidden instead of hidden to override Tailwind's flex/block clashes)
+                // Arrows visibility
                 if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
                 else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
 
@@ -820,6 +820,7 @@
             init: () => {
                 ui.renderAuth();
                 window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') app.enterAsGuest(); });
+                // Refresh data logic extracted to re-use
                 app.refreshData(); 
             },
             refreshData: (cb) => {
@@ -916,14 +917,32 @@
                 }).finally(()=>btn.innerText='Save Changes');
             },
             deleteData: () => {
-                if(!confirm("Delete this entry?")) return;
-                const form = new URLSearchParams(); form.append('action', 'delete'); form.append('id', state.editId);
-                fetch(GAS_URL, { method: 'POST', body: form }).then(r=>r.json()).then(d => {
+                if(!confirm("Are you sure you want to delete this data? This cannot be undone.")) return;
+                
+                const btn = document.getElementById('btn-delete');
+                const origText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+                btn.disabled = true;
+
+                const form = new URLSearchParams(); 
+                form.append('action', 'delete'); 
+                form.append('id', state.editId);
+                
+                fetch(GAS_URL, { method: 'POST', body: form }) // Add redirect: 'follow'
+                .then(r => r.json())
+                .then(d => {
                     if(d.status==='success') { 
-                        alert('Deleted'); 
+                        alert('Data successfully deleted.'); 
                         ui.closeModal('input-modal'); 
                         app.refreshData();
+                    } else {
+                        alert('Delete Failed: ' + d.message);
                     }
+                })
+                .catch(e => alert('Network Error: ' + e))
+                .finally(() => {
+                    btn.innerHTML = origText;
+                    btn.disabled = false;
                 });
             },
             exportData: () => { const csv = Papa.unparse(state.data); const a = document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURI(csv); a.download='biodiversity.csv'; a.click(); },
@@ -946,50 +965,6 @@
                     document.getElementById('inp-affected-lng').value = node.lng;
                     document.getElementById('origin-suggestions').classList.add('hidden');
                 }
-            }
-        };
-
-        const geoEditor = {
-            map: null, layer: null, points: [], markers: [],
-            start: () => {
-                ui.closeModal('input-modal'); 
-                document.getElementById('geo-editor').classList.remove('hidden');
-                
-                // Initialize map if it doesn't exist
-                if(!geoEditor.map) {
-                    geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
-                    geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
-                }
-                
-                // Clear previous drawings
-                geoEditor.points = []; 
-                geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m)); 
-                geoEditor.markers = [];
-                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
-                
-                // Important: Invalidate size after container becomes visible
-                setTimeout(() => geoEditor.map.invalidateSize(), 300);
-            },
-            addPoint: (latlng) => {
-                const m = L.marker(latlng, { draggable: true }).addTo(geoEditor.map);
-                m.on('drag', () => geoEditor.updatePoly());
-                geoEditor.markers.push(m);
-                geoEditor.updatePoly();
-            },
-            updatePoly: () => {
-                geoEditor.points = geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
-                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
-                if(geoEditor.points.length > 2) geoEditor.layer = L.polygon(geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(geoEditor.map);
-                else if(geoEditor.points.length > 1) geoEditor.layer = L.polyline(geoEditor.points, {color:'#9333ea'}).addTo(geoEditor.map);
-            },
-            finish: () => {
-                if(geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(geoEditor.points);
-                geoEditor.cancel();
-            },
-            cancel: () => { 
-                document.getElementById('geo-editor').classList.add('hidden'); 
-                ui.openModal('input-modal'); 
             }
         };
 
