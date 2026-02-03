@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Biodiversity: Citizenship Science</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --primary-blue: #0077D4;
+            --secondary-blue: #0ea5e9;
+            --accent-gold: #F59E0B;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(226, 232, 240, 0.8);
+            --text-main: #1e293b;
+        }
+        
+        body { background-color: #f8fafc; color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+        /* Components */
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .section-view { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .section-view.active { display: flex; opacity: 1; }
+        .z-modal { z-index: 2000; }
+        .z-picker { z-index: 3000; }
+        .picker-mode { cursor: crosshair !important; }
+        
+        /* Markers & Tooltips */
+        .custom-tooltip {
+            background: white; border: 1px solid var(--primary-blue); color: var(--primary-blue); 
+            border-radius: 6px; font-weight: bold; padding: 6px 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 11px;
+        }
+        .leaflet-tooltip-top:before { display: none; }
+        path.leaflet-interactive { transition: stroke 0.3s ease-out, stroke-width 0.3s ease-out; }
+
+        /* Carousel/Tabs Styles */
+        .tab-btn { border-bottom: 3px solid transparent; color: #64748b; }
+        .tab-btn:hover { color: var(--primary-blue); }
+        .tab-btn.active { border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); }
+        .carousel-slide { display: none; animation: fadeIn 0.4s ease-out; }
+        .carousel-slide.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col bg-slate-50">
+
+    <!-- 1. LANDING PAGE -->
+    <div id="landing-page" class="section-view active h-full w-full relative z-50 bg-slate-50 items-center justify-center flex-col">
+        <div class="absolute inset-0 z-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')] bg-cover bg-center"></div>
+        <div class="absolute inset-0 z-0 bg-gradient-to-b from-slate-50/70 via-slate-50/90 to-slate-50"></div>
+
+        <div class="z-10 text-center space-y-8 glass-panel p-16 rounded-3xl max-w-3xl border-t border-blue-200 shadow-2xl mx-4 flex flex-col items-center backdrop-blur-xl">
+            <div class="mb-2 w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-inner mx-auto"><i class="fas fa-globe-americas text-4xl"></i></div>
+            <h1 class="text-5xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-emerald-600 mb-2 leading-tight">Global Biodiversity</h1>
+            <p class="text-xl text-slate-500 tracking-[0.2em] uppercase font-light">Citizenship Science Initiative</p>
+            
+            <div id="loading-container" class="mt-8 flex justify-center h-12 items-center">
+                <i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl"></i>
+                <span class="ml-3 text-blue-600 font-mono text-sm">Synchronizing Database...</span>
+            </div>
+
+            <div id="error-container" class="hidden mt-4 bg-red-50 border border-red-200 p-4 rounded-xl text-sm text-red-600">
+                <i class="fas fa-wifi mr-2"></i> Connection Failed. <button onclick="location.reload()" class="ml-2 underline font-bold">Retry</button>
+            </div>
+
+            <div id="entry-buttons" class="hidden flex-col items-center justify-center gap-4 mt-8 w-full">
+                <button onclick="app.enterAsGuest()" class="w-64 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition transform hover:scale-105 mx-auto">
+                    EXPLORE MAP <i class="fas fa-map-marked-alt"></i>
+                </button>
+                <button onclick="app.enterAsContributor()" class="text-xs text-slate-500 hover:text-blue-600 underline mt-2 flex items-center gap-1"><i class="fas fa-lock"></i> Contributor Login</button>
+            </div>
+            
+            <div id="dataset-info" class="hidden mt-8 pt-4 border-t border-slate-200 w-full text-center">
+                <div class="text-[10px] text-slate-400 font-mono uppercase">v5.1 (Hi-Contrast) • <span id="record-count" class="text-blue-600 font-bold">0</span> Records Found</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MAIN APP -->
+    <div id="main-app" class="section-view h-full w-full overflow-hidden flex-row relative">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-white border-r border-slate-200 flex flex-col justify-between z-40 shadow-xl relative">
+            <div>
+                <div class="h-24 flex flex-col items-center justify-center border-b border-slate-100">
+                    <div class="text-xl font-black text-slate-800 tracking-tighter">BIO<span class="text-blue-600">SCIENCE</span></div>
+                    <div class="text-[10px] text-slate-400 tracking-widest uppercase">Citizenship Data</div>
+                </div>
+                <nav class="p-4 space-y-2">
+                    <button onclick="app.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Analytics</button>
+                    <button onclick="app.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
+                </nav>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+                <div id="auth-status-ui" class="mb-4">
+                    <!-- Guest Mode -->
+                    <div id="status-guest" class="w-full">
+                        <div class="p-2 bg-slate-200 text-slate-500 text-center rounded-lg border border-slate-300 mb-2 text-[10px] font-bold tracking-wider">VIEW ONLY</div>
+                        <button onclick="app.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login as Contributor</button>
+                    </div>
+                    <!-- Admin Mode -->
+                    <div id="status-admin" class="hidden w-full">
+                        <div class="p-2 bg-green-100 text-green-700 text-center rounded-lg border border-green-200 mb-3 text-[10px] font-bold tracking-wider">CONTRIBUTOR</div>
+                        <button onclick="app.initiateAddEntry()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
+                        <button onclick="app.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
+                    </div>
+                </div>
+                <button onclick="app.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export CSV</button>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="flex-1 relative overflow-hidden bg-slate-50 flex flex-col">
+            <!-- PICKER NOTIFICATION -->
+            <div id="picker-notification" class="absolute top-6 left-1/2 -translate-x-1/2 z-[3000] hidden flex-col items-center w-auto">
+                <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border-2 border-white animate-pulse cursor-pointer hover:bg-blue-700 transition" onclick="app.cancelPicker()">
+                    <i class="fas fa-crosshairs"></i> <span class="text-sm font-bold" id="picker-msg">Select Location</span> <div class="bg-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs"><i class="fas fa-times"></i></div>
+                </div>
+                <div class="mt-2 text-[10px] text-slate-500 bg-white/80 px-2 py-1 rounded backdrop-blur">Click anywhere on the map</div>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div id="view-dashboard" class="absolute inset-0 p-8 overflow-y-auto hidden scroll-smooth">
+                <header class="flex justify-between items-end pb-6 border-b border-slate-200 mb-8">
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-800">Observation Dashboard</h2>
+                        <p class="text-slate-500 text-sm mt-1">Real-time monitoring of biodiversity data points.</p>
+                    </div>
+                </header>
+                
+                <!-- KPIs -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-blue-500 flex flex-col justify-center">
+                        <div class="text-3xl font-black text-slate-800" id="kpi-total">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Total Species</div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-emerald-500 flex flex-col justify-center">
+                        <div class="text-3xl font-black text-slate-800" id="kpi-countries">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Countries</div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-orange-500 flex flex-col justify-center">
+                        <div class="text-3xl font-black text-slate-800" id="kpi-edges">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Interactions</div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-red-500 flex flex-col justify-center">
+                        <div class="text-3xl font-black text-slate-800" id="kpi-unesco">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Threatened</div>
+                    </div>
+                </div>
+
+                <!-- CHARTS -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Chart 1: Donut (UNESCO Status) -->
+                    <div class="glass-panel p-6 rounded-3xl border border-slate-200 bg-white flex flex-col min-h-[350px]">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6 pb-2 border-b border-slate-100">Conservation Status (IUCN)</h3>
+                        <div class="relative w-full h-64 flex justify-center"><canvas id="chart-status"></canvas></div>
+                    </div>
+                    <!-- Chart 2: Curved Line (Trend) -->
+                    <div class="glass-panel p-6 rounded-3xl border border-slate-200 bg-white flex flex-col min-h-[350px]">
+                        <div class="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Data Submission Trend</h3>
+                            <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold">Live</span>
+                        </div>
+                        <div class="relative w-full h-64"><canvas id="chart-trend"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="glass-panel rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm mb-12">
+                    <div class="p-5 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-4 justify-between items-center">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2"><i class="fas fa-list text-blue-500"></i> Database</h3>
+                        <div class="relative">
+                            <input type="text" id="search-input" placeholder="Search data..." class="pl-9 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:border-blue-500 outline-none transition focus:ring-2 focus:ring-blue-100">
+                            <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-slate-600 text-sm">
+                            <thead class="bg-white text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
+                                <tr>
+                                    <th class="p-4">ID</th>
+                                    <th class="p-4">Species Name</th>
+                                    <th class="p-4">Origin</th>
+                                    <th class="p-4">Affected By</th>
+                                    <th class="p-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 bg-white border-t border-slate-100 flex justify-between items-center">
+                        <span class="text-xs text-slate-400 font-mono" id="pagination-info">Showing 0-0</span>
+                        <div class="flex gap-2">
+                            <button id="btn-prev" onclick="dashboard.changePage(-1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Prev</button>
+                            <button id="btn-next" onclick="dashboard.changePage(1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAP -->
+            <div id="view-map" class="absolute inset-0 hidden">
+                <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
+                
+                <!-- Map Controls -->
+                <div class="absolute top-6 left-6 z-[400] flex flex-col gap-2">
+                    <div class="relative shadow-xl">
+                        <input type="text" id="map-search" placeholder="Find species on map..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="app.updateMapFilter(this.value)">
+                        <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
+                    </div>
+                </div>
+                <div class="absolute top-6 right-6 z-[400]">
+                    <button onclick="mapLogic.resetZoom()" class="w-10 h-10 bg-white rounded-xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition"><i class="fas fa-compress-arrows-alt"></i></button>
+                </div>
+                
+                <!-- Legend -->
+                <div class="absolute bottom-8 left-8 z-[400] glass-panel p-4 rounded-xl shadow-2xl bg-white/95 text-xs border border-slate-200">
+                    <div class="font-bold text-slate-500 mb-2 uppercase tracking-wider text-[10px]">Ecological Network</div>
+                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#0077D4] shadow-sm"></span> <span class="font-medium">Biodiversity / Species</span></div>
+                    <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#F59E0B] shadow-sm"></span> <span class="font-medium">Affected By (Factor)</span></div>
+                    <div class="flex items-center gap-2"><span class="w-6 h-0 border-t-2 border-dashed border-slate-600"></span> <span class="font-medium">Interaction Path</span></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- LOGIN -->
+    <div id="login-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="glass-panel w-96 p-8 rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600"><i class="fas fa-user-shield text-xl"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Contributor Access</h3>
+                <p class="text-xs text-slate-500 mt-1">Please log in to manage data.</p>
+            </div>
+            <input type="text" id="login-user" placeholder="Username" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
+            <input type="password" id="login-pass" placeholder="Password" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
+            <button onclick="app.login()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">Login</button>
+            <button onclick="ui.closeModal('login-modal')" class="w-full mt-4 text-slate-400 text-xs hover:text-slate-600 transition">Cancel</button>
+        </div>
+    </div>
+
+    <!-- DETAIL MODAL -->
+    <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+        <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl border border-slate-200 shadow-2xl flex flex-col relative overflow-hidden">
+            <!-- Header -->
+            <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg"><i class="fas fa-leaf"></i></div>
+                    <div>
+                        <h2 id="detail-title" class="text-xl font-black text-slate-800 leading-tight">Species Name</h2>
+                        <p id="detail-subtitle" class="text-xs text-slate-500 italic font-serif">Latin Name</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="dt-admin-actions" class="hidden">
+                        <button onclick="app.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
+                    </div>
+                    <button onclick="ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <!-- Content Area (Split View) -->
+            <div class="flex-1 overflow-hidden flex flex-col lg:flex-row bg-slate-50">
+                <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+                    <!-- Tabs -->
+                    <div class="flex border-b border-slate-200 bg-white sticky top-0 z-10 px-8">
+                        <button onclick="ui.switchSlide(0)" class="tab-btn active px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Overview</button>
+                        <button onclick="ui.switchSlide(1)" class="tab-btn px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Details</button>
+                        <button onclick="ui.switchSlide(2)" class="tab-btn px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Interaction</button>
+                        <button onclick="ui.switchSlide(3)" class="tab-btn px-4 py-4 text-xs font-bold tracking-wide uppercase transition">Science</button>
+                    </div>
+
+                    <div class="p-8">
+                        <!-- Slide 0: Overview -->
+                        <div id="slide-0" class="carousel-slide active space-y-6">
+                            <div class="relative rounded-2xl overflow-hidden shadow-lg group bg-slate-900 aspect-video lg:aspect-[21/9]">
+                                <img id="dt-image" src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition duration-500">
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                                <div class="absolute bottom-0 left-0 p-6 w-full">
+                                    <h1 id="dt-card-title" class="text-3xl font-black text-white mb-1 shadow-black drop-shadow-md">Species</h1>
+                                    <p id="dt-card-latin" class="text-lg text-white/80 italic font-serif mb-3">Latin</p>
+                                    <div class="flex gap-2">
+                                        <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
+                                        <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded-md text-[10px] font-bold backdrop-blur-sm shadow-sm">Endangered</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slide 1: Details -->
+                        <div id="slide-1" class="carousel-slide space-y-6">
+                            <div class="bg-blue-50 p-5 rounded-xl border border-blue-100 flex items-center gap-4">
+                                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm text-xl"><i class="fas fa-building"></i></div>
+                                <div>
+                                    <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Preservation Organization</div>
+                                    <div id="dt-contact" class="font-bold text-slate-700 text-lg">Organization Name</div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Description</h3>
+                                <div class="max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                    <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description.</p>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
+                                <div id="dt-links" class="space-y-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- Slide 2: Interaction -->
+                        <div id="slide-2" class="carousel-slide">
+                            <div class="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm text-center relative overflow-hidden h-full flex flex-col justify-center items-center">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-blue-500"></div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-10 tracking-widest">Ecological Connection</h3>
+                                <div class="flex flex-col items-center gap-6 w-full max-w-md">
+                                    <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 w-full relative">
+                                        <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-cube"></i></div>
+                                        <div id="dt-aff-name" class="font-bold text-slate-800 text-xl mt-2">Factor Name</div>
+                                        <div id="dt-aff-latin" class="text-sm text-slate-500 italic">Latin Name</div>
+                                        <div class="mt-2 text-[10px] text-orange-600 font-bold uppercase tracking-wider">Affecting Factor</div>
+                                    </div>
+                                    <div class="h-12 border-l-2 border-dashed border-slate-300 relative">
+                                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 shadow-sm whitespace-nowrap" id="dt-type">Interaction Type</div>
+                                    </div>
+                                    <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 w-full relative">
+                                        <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center border-4 border-white shadow-sm"><i class="fas fa-leaf"></i></div>
+                                        <div id="dt-local-name-2" class="font-bold text-slate-800 text-xl mt-2">Species Name</div>
+                                        <div id="dt-latin-name-2" class="text-sm text-slate-500 italic">Latin Name</div>
+                                        <div class="mt-2 text-[10px] text-blue-600 font-bold uppercase tracking-wider">Affected Species</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slide 3: Science & GIS -->
+                        <div id="slide-3" class="carousel-slide space-y-6">
+                            <div class="bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative group aspect-video">
+                                <div id="dt-youtube" class="w-full h-full flex items-center justify-center text-slate-500 flex-col gap-2">
+                                    <i class="fab fa-youtube text-4xl opacity-50"></i>
+                                    <span class="text-xs">No Video Documentation</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative h-64">
+                                <div id="detail-geo-map" class="w-full h-full"></div>
+                                <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white">GIS Habitat Layer</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INPUT MODAL -->
+    <div id="input-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="glass-panel w-full max-w-4xl h-[90vh] rounded-3xl flex flex-col relative bg-white shadow-2xl">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                <div>
+                    <h3 id="input-title" class="text-xl font-bold text-slate-800">Manage Data</h3>
+                    <p class="text-xs text-slate-500">Edit or Add new observation entry.</p>
+                </div>
+                <button onclick="ui.closeModal('input-modal')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="p-8 overflow-y-auto custom-scrollbar space-y-6 flex-1 bg-white">
+                <input type="hidden" id="inp-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Local Name</label><input type="text" id="inp-local-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="e.g. Komodo Dragon"></div>
+                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Latin Name</label><input type="text" id="inp-latin-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm italic" placeholder="e.g. Varanus komodoensis"></div>
+                </div>
+                
+                <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></div>
+
+                <!-- Blue Location Box -->
+                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button onclick="app.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Point</button><button onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Draw GIS</button></div></div>
+                    <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-lat" placeholder="Latitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"><input type="text" id="inp-lng" placeholder="Longitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"></div>
+                    <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-blue-200 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON (Auto-filled)" readonly></textarea>
+                </div>
+                
+                <div><label class="text-xs text-slate-500 font-bold block mb-1">Description</label><textarea id="inp-desc" rows="3" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></textarea></div>
+
+                <div class="grid grid-cols-2 gap-6">
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Status (IUCN)</label><input type="text" id="inp-unesco" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="e.g. Endangered"></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Organization (Contact)</label><input type="text" id="inp-contact" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Image URL</label><input type="text" id="inp-image" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="https://..."></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">YouTube URL</label><input type="text" id="inp-youtube" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="https://..."></div>
+                </div>
+                <div><label class="text-xs text-slate-500 font-bold block mb-1">Research Links (Comma separated)</label><input type="text" id="inp-research" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm"></div>
+                
+                <!-- Orange Location Box -->
+                <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button onclick="app.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Location</button></div>
+                    <div class="relative mb-4"><input type="text" id="inp-affected-local" placeholder="Factor Name (e.g. Palm Oil, Bamboo)" class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:border-orange-500 transition outline-none" oninput="app.handleOriginSearch(this.value)"><div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-50 max-h-40 overflow-y-auto shadow-xl"></div></div>
+                    <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-affected-latin" placeholder="Latin Name (if species)" class="bg-white border border-orange-200 rounded-xl p-3 text-xs italic"><input type="text" id="inp-affected-country" placeholder="Country" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"></div>
+                    <div class="grid grid-cols-2 gap-4"><input type="text" id="inp-affected-lat" placeholder="Lat" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"><input type="text" id="inp-affected-lng" placeholder="Lng" class="bg-white border-orange-200 rounded-xl p-3 text-xs"></div>
+                    <div class="mt-4"><label class="text-xs text-slate-500 font-bold block mb-1">Interaction Type</label><input type="text" id="inp-conn-type" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 focus:border-blue-500 transition outline-none text-sm" placeholder="e.g. Predation, Habitat Loss"></div>
+                </div>
+            </div>
+            
+            <div class="p-6 border-t border-slate-200 bg-slate-50 rounded-b-3xl flex justify-between items-center">
+                <button id="btn-delete" onclick="app.deleteData()" class="hidden px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl font-bold text-xs border border-red-100 transition"><i class="fas fa-trash mr-2"></i> Delete Entry</button>
+                <div class="flex gap-4 ml-auto">
+                    <button onclick="ui.closeModal('input-modal')" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition">Cancel</button>
+                    <button onclick="app.saveData()" id="btn-save" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GEO EDITOR -->
+    <div id="geo-editor" class="fixed inset-0 z-picker hidden bg-slate-100">
+        <div id="geo-map" class="w-full h-full"></div>
+        <div class="absolute top-6 left-1/2 -translate-x-1/2 z-[3100] bg-white px-6 py-3 rounded-full shadow-xl flex gap-4 border border-slate-200">
+            <span class="font-bold text-purple-600 flex items-center gap-2"><i class="fas fa-draw-polygon"></i> DRAWING MODE</span>
+            <div class="h-6 w-px bg-slate-200"></div>
+            <button onclick="geoEditor.finish()" class="text-green-600 font-bold hover:text-green-700">Save</button>
+            <button onclick="geoEditor.cancel()" class="text-slate-400 hover:text-slate-600">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyORDZAAgE5HTduFgMB6tFnk-lvKCObL-kDcbLMEiNfUtKTO2qmYhXufn0JR3_iBgii4A/exec';
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQcKtxqi1W_5A25VJ6BkA4yPmkwjbfmAM-LSTQH2f76DN8j85fMEODzOEKs83hMkC9iZxbShNpK2xo/pub?output=csv';
+        const state = { data: [], role: 'guest', editId: null, pickerTarget: null, currentDetail: null, filter: { search: '' }, pagination: { page: 1, limit: 10 } };
+
+        function robustParse(val) {
+            if (!val) return null;
+            let str = String(val).trim();
+            if ((str.match(/\./g) || []).length > 1) str = str.replace(/\./g, ''); 
+            else if (str.includes(',') && str.includes('.')) str = str.replace(/\./g, '').replace(',', '.'); 
+            else if (str.includes(',')) str = str.replace(',', '.'); 
+            let n = parseFloat(str);
+            if (isNaN(n)) return null;
+            while (Math.abs(n) > 180) { n = n / 10; }
+            return n;
+        }
+
+        function extractYoutubeEmbed(url) {
+            if (!url) return '';
+            if (url.trim().startsWith('<iframe')) return url.replace(/width="[^"]*"/g, 'width="100%"').replace(/height="[^"]*"/g, 'height="100%"');
+            let id = null;
+            if(url.includes('v=')) id = url.split('v=')[1].split('&')[0];
+            else if(url.includes('youtu.be/')) id = url.split('youtu.be/')[1];
+            if(id) return `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen class="w-full h-full"></iframe>`;
+            return '';
+        }
+
+        function transformData(item) {
+             const get = (k) => item[Object.keys(item).find(x=>x.toLowerCase()===k.toLowerCase())];
+             return {
+                id: get('id'), 
+                local_name: get('local_name') || get('food_name'), // Fallback
+                latin_name: get('latin_name'), 
+                country: get('country'),
+                lat: robustParse(get('lat')), lng: robustParse(get('lng')),
+                
+                // Enhanced Robust Parsing for Affected By (Try multiple keys)
+                affectedby_local_name: get('affectedby_local_name') || get('affected_by_local_name') || get('origin_food_name'), 
+                affectedby_latin_name: get('affectedby_latin_name'),
+                affectedby_country: get('affectedby_country') || get('origin_country'), 
+                affectedby_lat: robustParse(get('affectedby_lat') || get('origin_lat')), 
+                affectedby_lng: robustParse(get('affectedby_lng') || get('origin_lng')),
+                
+                connection_type: get('connection_type'), contact: get('Contact'),
+                youtube_url: get('youtube_url'), image_url: get('image_url'), description: get('description'), 
+                geometry_json: get('GEOMETRY_JSON'), unesco_status: get('unesco_status'), research_links: get('research_links')
+            };
+        }
+
+        const ui = {
+            renderAuth: () => {
+                const isGuest = state.role !== 'admin';
+                document.getElementById('status-guest').classList.toggle('hidden', !isGuest);
+                document.getElementById('status-admin').classList.toggle('hidden', isGuest);
+            },
+            loaded: () => {
+                document.getElementById('loading-container').classList.add('hidden');
+                document.getElementById('entry-buttons').classList.remove('hidden');
+                document.getElementById('dataset-info').classList.remove('hidden');
+                document.getElementById('record-count').innerText = state.data.length;
+            },
+            openModal: (id) => document.getElementById(id).classList.remove('hidden'),
+            closeModal: (id) => document.getElementById(id).classList.add('hidden'),
+            switchSlide: (idx) => {
+                document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+                document.querySelectorAll('.carousel-slide').forEach((s, i) => s.classList.toggle('active', i === idx));
+                if(idx === 3 && state.currentDetail && state.currentDetail.geometry_json) {
+                    setTimeout(() => { if(window.detailMap) window.detailMap.invalidateSize(); }, 200);
+                }
+            }
+        };
+
+        const mapLogic = {
+            map: null, layers: [], 
+            init: () => {
+                mapLogic.map = L.map('map-container', { zoomControl: false }).setView([20, 0], 2);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapLogic.map);
+                L.control.zoom({ position: 'topright' }).addTo(mapLogic.map);
+            },
+            resize: () => setTimeout(() => mapLogic.map.invalidateSize(), 200),
+            resetZoom: () => mapLogic.map.setView([20, 0], 2),
+            render: () => { 
+                mapLogic.layers.forEach(l => mapLogic.map.removeLayer(l)); mapLogic.layers = [];
+                const search = state.filter.search.toLowerCase();
+                const filtered = state.data.filter(d => d.local_name && d.local_name.toLowerCase().includes(search));
+                
+                // 1. Draw Lines & Orange Nodes FIRST (So they are under Blue Nodes)
+                filtered.forEach(d => {
+                    if (!d.lat || !d.lng) return;
+                    if (d.affectedby_lat && d.affectedby_lng) {
+                        const line = L.polyline([[d.affectedby_lat, d.affectedby_lng], [d.lat, d.lng]], { color: '#475569', weight: 2, dashArray: '6, 6' }).addTo(mapLogic.map);
+                        line.on('mouseover', function() {
+                            this.setStyle({ color: '#0077D4', weight: 4, opacity: 1, dashArray: null });
+                            this.bindTooltip(`${d.affectedby_local_name} ➔ ${d.local_name}`, { sticky: true, direction: 'top', className: 'custom-tooltip' }).openTooltip();
+                        });
+                        line.on('mouseout', function() {
+                            this.setStyle({ color: '#475569', weight: 2, dashArray: '6, 6' });
+                            this.closeTooltip();
+                        });
+
+                        const orange = L.circleMarker([d.affectedby_lat, d.affectedby_lng], { color: '#F59E0B', fillColor: '#F59E0B', fillOpacity: 0.9, radius: 5 }).addTo(mapLogic.map);
+                        orange.bindTooltip(`Factor: ${d.affectedby_local_name}`, {className: 'custom-tooltip'});
+                        mapLogic.layers.push(line, orange);
+                    }
+                });
+
+                // 2. Draw Blue Nodes LAST (Top Layer)
+                filtered.forEach(d => {
+                    if (!d.lat || !d.lng) return;
+                    const m = L.circleMarker([d.lat, d.lng], { color: '#0077D4', fillColor: '#0077D4', fillOpacity: 1, radius: 7 }).addTo(mapLogic.map);
+                    m.on('click', () => dashboard.showDetail(d));
+                    m.bindTooltip(d.local_name, {className: 'custom-tooltip'});
+                    mapLogic.layers.push(m);
+                });
+            },
+            enablePicker: (cb) => {
+                mapLogic.map.getContainer().classList.add('picker-mode');
+                mapLogic.pickerHandler = (e) => {
+                    if (mapLogic.pickerMarker) mapLogic.map.removeLayer(mapLogic.pickerMarker);
+                    mapLogic.pickerMarker = L.circleMarker(e.latlng, { color: state.pickerTarget==='main'?'#0077D4':'#F59E0B', radius: 8 }).addTo(mapLogic.map);
+                    cb(e.latlng.lat, e.latlng.lng);
+                };
+                mapLogic.map.on('click', mapLogic.pickerHandler);
+            },
+            disablePicker: () => {
+                mapLogic.map.getContainer().classList.remove('picker-mode');
+                if (mapLogic.pickerHandler) mapLogic.map.off('click', mapLogic.pickerHandler);
+                if (mapLogic.pickerMarker) mapLogic.map.removeLayer(mapLogic.pickerMarker);
+            }
+        };
+
+        const dashboard = {
+            chartStatus: null, chartTrend: null,
+            init: () => { dashboard.render(); dashboard.listeners(); },
+            render: () => {
+                const ctx1 = document.getElementById('chart-status')?.getContext('2d');
+                const ctx2 = document.getElementById('chart-trend')?.getContext('2d');
+                if (!ctx1 || !ctx2) return;
+
+                const total = state.data.length;
+                const countries = new Set(state.data.map(d=>d.country)).size;
+                const edges = state.data.filter(d=>d.affectedby_local_name).length;
+                const threatened = state.data.filter(d=>d.unesco_status && (d.unesco_status.toLowerCase().includes('endangered') || d.unesco_status.toLowerCase().includes('critical'))).length;
+                
+                ['total', 'countries', 'edges', 'unesco'].forEach((k,i) => {
+                    document.getElementById('kpi-'+k).innerText = [total, countries, edges, threatened][i];
+                });
+
+                const statuses = {}; 
+                state.data.forEach(d => { const s = d.unesco_status || 'Unknown'; statuses[s] = (statuses[s]||0)+1; });
+                
+                if(dashboard.chartStatus) dashboard.chartStatus.destroy();
+                dashboard.chartStatus = new Chart(ctx1, { 
+                    type: 'doughnut', 
+                    data: { 
+                        labels: Object.keys(statuses), 
+                        datasets: [{ data: Object.values(statuses), backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#64748B'], borderWidth: 0 }] 
+                    }, 
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } }, cutout: '60%' } 
+                });
+
+                const trendData = state.data.map((_, i) => i + 1); 
+                const trendLabels = state.data.map((_, i) => i + 1);
+                
+                if(dashboard.chartTrend) dashboard.chartTrend.destroy();
+                dashboard.chartTrend = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [{ label: 'Total', data: trendData, borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 3, tension: 0.4, pointRadius: 3, fill: true }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f1f5f9' }, beginAtZero: true }, x: { display: false } } }
+                });
+
+                dashboard.renderTable();
+            },
+            changePage: (step) => { state.pagination.page += step; dashboard.renderTable(); },
+            renderTable: () => {
+                const tbody = document.getElementById('table-body'); tbody.innerHTML = '';
+                const search = state.filter.search.toLowerCase();
+                const filtered = state.data.filter(d => d.local_name && d.local_name.toLowerCase().includes(search));
+                const start = (state.pagination.page - 1) * state.pagination.limit;
+                const pageData = filtered.slice(start, start + state.pagination.limit);
+                
+                pageData.forEach(d => {
+                    const tr = document.createElement('tr'); tr.className = "border-b border-slate-50 hover:bg-blue-50 cursor-pointer transition";
+                    tr.onclick = () => dashboard.showDetail(d);
+                    tr.innerHTML = `<td class="p-4 font-mono text-xs text-slate-400">${d.id}</td><td class="p-4"><div class="font-bold text-slate-700">${d.local_name}</div><div class="text-[10px] text-slate-400 italic">${d.latin_name}</div></td><td class="p-4 text-slate-500 text-xs">${d.country}</td><td class="p-4 text-xs text-slate-500">${d.affectedby_local_name||'-'}</td><td class="p-4 text-right"><i class="fas fa-chevron-right text-slate-300"></i></td>`;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('pagination-info').innerText = `Showing ${Math.min(start+1, filtered.length)}-${Math.min(start+state.pagination.limit, filtered.length)} of ${filtered.length}`;
+                document.getElementById('btn-prev').disabled = state.pagination.page <= 1;
+                document.getElementById('btn-next').disabled = start + state.pagination.limit >= filtered.length;
+            },
+            listeners: () => {
+                document.getElementById('search-input').addEventListener('keyup', (e)=>{ state.filter.search=e.target.value; state.pagination.page=1; dashboard.renderTable(); });
+            },
+            showDetail: (d) => {
+                state.currentDetail = d;
+                document.getElementById('detail-title').innerText = d.local_name;
+                document.getElementById('detail-subtitle').innerText = d.latin_name;
+                document.getElementById('dt-image').src = d.image_url;
+                document.getElementById('dt-card-title').innerText = d.local_name;
+                document.getElementById('dt-card-latin').innerText = d.latin_name;
+                document.getElementById('dt-country').innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${d.country}`;
+                document.getElementById('dt-status').innerText = d.unesco_status || 'Unknown';
+                document.getElementById('dt-contact').innerText = d.contact || 'No Data';
+                document.getElementById('dt-desc').innerText = d.description || 'No description available.';
+                
+                const linkContainer = document.getElementById('dt-links');
+                linkContainer.innerHTML = '';
+                if(d.research_links) {
+                    const links = d.research_links.split(/[,;]/).map(l => l.trim()).filter(l => l);
+                    links.forEach(l => {
+                        const a = document.createElement('a'); a.href = l; a.target = "_blank";
+                        a.className = "block truncate text-blue-600 hover:underline text-xs bg-slate-50 p-2 rounded mb-1 flex items-center gap-2";
+                        a.innerHTML = `<i class="fas fa-link text-slate-400"></i> ${l}`;
+                        linkContainer.appendChild(a);
+                    });
+                } else { linkContainer.innerHTML = '<span class="text-slate-400 text-xs">No links provided</span>'; }
+
+                document.getElementById('dt-aff-name').innerText = d.affectedby_local_name || 'None';
+                document.getElementById('dt-aff-latin').innerText = d.affectedby_latin_name || '';
+                document.getElementById('dt-local-name-2').innerText = d.local_name;
+                document.getElementById('dt-latin-name-2').innerText = d.latin_name;
+                document.getElementById('dt-type').innerText = d.connection_type || 'Unknown';
+                document.getElementById('dt-youtube').innerHTML = extractYoutubeEmbed(d.youtube_url);
+                const mapContainer = document.getElementById('detail-geo-map'); mapContainer.innerHTML = '';
+                if (window.detailMap) { window.detailMap.remove(); window.detailMap = null; }
+                if(d.geometry_json) {
+                    setTimeout(() => {
+                        window.detailMap = L.map('detail-geo-map', {zoomControl:false}).setView([d.lat, d.lng], 6);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.detailMap);
+                        try { const pts = JSON.parse(d.geometry_json); L.polygon(pts, {color:'#9333ea', weight:2, fillOpacity:0.4}).addTo(window.detailMap); window.detailMap.fitBounds(pts); } catch(e){}
+                    }, 300);
+                } else { mapContainer.innerHTML = '<div class="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100 text-xs">No GIS Data Available</div>'; }
+
+                document.getElementById('dt-admin-actions').classList.toggle('hidden', state.role !== 'admin');
+                ui.switchSlide(0); ui.openModal('detail-modal');
+            }
+        };
+
+        const app = {
+            init: () => {
+                ui.renderAuth();
+                window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') app.enterAsGuest(); });
+                // Refresh data logic extracted to re-use
+                app.refreshData(); 
+            },
+            refreshData: (cb) => {
+                Papa.parse(CSV_URL, {
+                    download: true, header: true, skipEmptyLines: true,
+                    complete: (res) => {
+                        if(res.data.length) { 
+                            state.data = res.data.map(transformData).filter(x => x.lat && x.lng); 
+                            if(!mapLogic.map) mapLogic.init(); 
+                            dashboard.init(); ui.loaded(); mapLogic.render(); 
+                            if(cb) cb();
+                        }
+                    }
+                });
+            },
+            enterAsGuest: () => { document.getElementById('landing-page').style.display='none'; document.getElementById('main-app').classList.add('active'); app.switchTab('dashboard'); mapLogic.resize(); },
+            enterAsContributor: () => { if(state.role==='admin') return; ui.openModal('login-modal'); },
+            login: () => {
+                const btn = document.getElementById('btn-login'); btn.innerText = 'Verifying...';
+                const form = new URLSearchParams(); 
+                form.append('action', 'login'); form.append('username', document.getElementById('login-user').value); form.append('password', document.getElementById('login-pass').value);
+                fetch(GAS_URL, { method: 'POST', body: form }).then(r=>r.json()).then(d => {
+                    if(d.status==='success') { state.role='admin'; ui.renderAuth(); ui.closeModal('login-modal'); if(document.getElementById('landing-page').style.display!=='none') app.enterAsGuest(); } 
+                    else alert(d.message);
+                }).finally(() => btn.innerText='Login');
+            },
+            logout: () => { state.role='guest'; ui.renderAuth(); alert('Logged Out'); },
+            switchTab: (t) => {
+                document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-map').classList.add('hidden');
+                document.getElementById('view-'+t).classList.remove('hidden');
+                if(t==='map') mapLogic.resize();
+                if(t==='dashboard') dashboard.render();
+            },
+            pickLocation: (target) => {
+                state.pickerTarget = target; ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden');
+                document.getElementById('picker-msg').innerText = target==='main'?'Select Species Location':'Select Factor Location';
+                mapLogic.enablePicker((lat, lng) => {
+                    if(state.pickerTarget==='main') { document.getElementById('inp-lat').value=lat.toFixed(6); document.getElementById('inp-lng').value=lng.toFixed(6); }
+                    else { document.getElementById('inp-affected-lat').value=lat.toFixed(6); document.getElementById('inp-affected-lng').value=lng.toFixed(6); }
+                    app.cancelPicker();
+                });
+            },
+            cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); mapLogic.disablePicker(); ui.openModal('input-modal'); },
+            initiateAddEntry: () => { state.editId=null; document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value=''); app.switchTab('map'); app.pickLocation('main'); },
+            openInputModal: (mode) => {
+                ui.closeModal('detail-modal'); 
+                const d = state.currentDetail;
+                if(mode==='edit' && d) {
+                    state.editId = d.id;
+                    document.getElementById('inp-local-name').value = d.local_name;
+                    document.getElementById('inp-latin-name').value = d.latin_name;
+                    document.getElementById('inp-country').value = d.country;
+                    document.getElementById('inp-lat').value = d.lat; document.getElementById('inp-lng').value = d.lng;
+                    document.getElementById('inp-desc').value = d.description;
+                    document.getElementById('inp-geometry').value = d.geometry_json || '';
+                    document.getElementById('inp-unesco').value = d.unesco_status;
+                    document.getElementById('inp-contact').value = d.contact;
+                    document.getElementById('inp-image').value = d.image_url;
+                    document.getElementById('inp-youtube').value = d.youtube_url;
+                    document.getElementById('inp-research').value = d.research_links;
+                    document.getElementById('inp-affected-local').value = d.affectedby_local_name;
+                    document.getElementById('inp-affected-latin').value = d.affectedby_latin_name;
+                    document.getElementById('inp-affected-country').value = d.affectedby_country;
+                    document.getElementById('inp-affected-lat').value = d.affectedby_lat;
+                    document.getElementById('inp-affected-lng').value = d.affectedby_lng;
+                    document.getElementById('inp-conn-type').value = d.connection_type;
+                    document.getElementById('btn-delete').classList.remove('hidden');
+                } else {
+                    document.getElementById('btn-delete').classList.add('hidden');
+                }
+                ui.openModal('input-modal');
+            },
+            saveData: () => {
+                const btn = document.getElementById('btn-save'); btn.innerText='Saving...';
+                const data = {
+                    id: state.editId || '',
+                    local_name: document.getElementById('inp-local-name').value, latin_name: document.getElementById('inp-latin-name').value,
+                    country: document.getElementById('inp-country').value, lat: document.getElementById('inp-lat').value, lng: document.getElementById('inp-lng').value,
+                    description: document.getElementById('inp-desc').value, geometry_json: document.getElementById('inp-geometry').value,
+                    unesco_status: document.getElementById('inp-unesco').value, contact: document.getElementById('inp-contact').value,
+                    image_url: document.getElementById('inp-image').value, youtube_url: document.getElementById('inp-youtube').value, research_links: document.getElementById('inp-research').value,
+                    affectedby_local_name: document.getElementById('inp-affected-local').value, affectedby_latin_name: document.getElementById('inp-affected-latin').value,
+                    affectedby_country: document.getElementById('inp-affected-country').value, affectedby_lat: document.getElementById('inp-affected-lat').value, affectedby_lng: document.getElementById('inp-affected-lng').value,
+                    connection_type: document.getElementById('inp-conn-type').value
+                };
+                const action = state.editId ? 'update' : 'insert';
+                const form = new URLSearchParams(); form.append('action', action); form.append('data', JSON.stringify(data));
+                fetch(GAS_URL, { method: 'POST', body: form }).then(r=>r.json()).then(d => {
+                    if(d.status==='success') { 
+                        alert('Saved Successfully!'); 
+                        ui.closeModal('input-modal');
+                        // Refresh data smoothly instead of full reload
+                        app.refreshData(() => {
+                            // Go back to map to see changes
+                            app.switchTab('map');
+                        });
+                    } else alert(d.message);
+                }).finally(()=>btn.innerText='Save Changes');
+            },
+            deleteData: () => {
+                if(!confirm("Delete this entry?")) return;
+                const form = new URLSearchParams(); form.append('action', 'delete'); form.append('id', state.editId);
+                fetch(GAS_URL, { method: 'POST', body: form }).then(r=>r.json()).then(d => {
+                    if(d.status==='success') { 
+                        alert('Deleted'); 
+                        ui.closeModal('input-modal'); 
+                        app.refreshData();
+                    }
+                });
+            },
+            exportData: () => { const csv = Papa.unparse(state.data); const a = document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURI(csv); a.download='biodiversity.csv'; a.click(); },
+            handleOriginSearch: (val) => {
+                const list = document.getElementById('origin-suggestions');
+                if(val.length < 2) { list.classList.add('hidden'); return; }
+                const matches = state.data.filter(d => d.local_name.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
+                if(matches.length > 0) {
+                    list.innerHTML = matches.map(m => `<div class="p-2 hover:bg-slate-100 cursor-pointer text-xs text-slate-700" onclick="app.selectOriginNode('${m.id}')">${m.local_name} (${m.country})</div>`).join('');
+                    list.classList.remove('hidden');
+                } else list.classList.add('hidden');
+            },
+            selectOriginNode: (id) => {
+                const node = state.data.find(d => d.id === id);
+                if(node) {
+                    document.getElementById('inp-affected-local').value = node.local_name;
+                    document.getElementById('inp-affected-latin').value = node.latin_name;
+                    document.getElementById('inp-affected-country').value = node.country;
+                    document.getElementById('inp-affected-lat').value = node.lat;
+                    document.getElementById('inp-affected-lng').value = node.lng;
+                    document.getElementById('origin-suggestions').classList.add('hidden');
+                }
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', app.init);
+    </script>
+</body>
+</html>
