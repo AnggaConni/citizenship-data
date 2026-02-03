@@ -845,17 +845,10 @@
                 document.getElementById('dt-local-name-sm').innerText = d.local_name;
                 document.getElementById('dt-type').innerText = d.connection_type || 'Unknown';
                 
-                const mapContainer = document.getElementById('detail-geo-map'); 
-                mapContainer.innerHTML = ''; 
-
-                if (window.detailMap) {
-                    window.detailMap.remove();
-                    window.detailMap = null;
-                }
-
+                const mapContainer = document.getElementById('detail-geo-map'); mapContainer.innerHTML = '';
+                
                 setTimeout(() => {
-                    if(!document.getElementById('detail-geo-map')) return;
-
+                    // Init map
                     window.detailMap = L.map('detail-geo-map', {zoomControl:false});
                     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.detailMap);
 
@@ -877,9 +870,12 @@
                         hasBounds = true;
                     }
 
-                    // 2. Find and Draw Source Species (Factor) - Overlap Logic - CASE INSENSITIVE FIX
+                    // 2. Find and Draw Source Species (Factor) - Overlap Logic
+                    // FIX: Case insensitive comparison
                     if(d.affectedby_local_name) {
-                        const sourceNode = state.data.find(item => item.local_name && item.local_name.toLowerCase() === d.affectedby_local_name.toLowerCase());
+                        const targetName = d.affectedby_local_name.trim().toLowerCase();
+                        const sourceNode = state.data.find(item => item.local_name && item.local_name.trim().toLowerCase() === targetName);
+                        
                         if(sourceNode && sourceNode.geometry_json) {
                             try {
                                 const pts = JSON.parse(sourceNode.geometry_json);
@@ -891,9 +887,14 @@
                         }
                     }
 
-                    if(hasBounds && bounds.isValid()) { window.detailMap.fitBounds(bounds, {padding: [20, 20]}); } 
-                    else { window.detailMap.setView([0, 0], 2); }
+                    // Fit bounds
+                    if(hasBounds && bounds.isValid()) {
+                        window.detailMap.fitBounds(bounds, {padding: [20, 20]});
+                    } else {
+                        window.detailMap.setView([0, 0], 2);
+                    }
                     
+                    // Legend Overlay
                     const legend = L.control({position: 'bottomright'});
                     legend.onAdd = function (map) {
                         const div = L.DomUtil.create('div', 'bg-white/90 p-2 rounded shadow text-[10px] border border-slate-200');
@@ -905,6 +906,7 @@
                     };
                     legend.addTo(window.detailMap);
                     
+                    // Crucial fix: Force resize calculation
                     window.detailMap.invalidateSize();
 
                 }, 400);
@@ -922,11 +924,13 @@
                 window.BioApp.refreshData(); 
             },
             refreshData: (cb) => {
-                Papa.parse(CSV_URL, {
+                // Stronger Cache Busting
+                const url = CSV_URL + '&t=' + new Date().getTime();
+                Papa.parse(url, {
                     download: true, header: true, skipEmptyLines: true,
                     complete: (res) => {
                         if(res.data.length) { 
-                            state.data = res.data.map(transformData).filter(x => x.lat && x.lng); 
+                            state.data = res.data.map(transformData); // REMOVED FILTER FOR SAFETY
                             if(!window.mapLogic.map) window.mapLogic.init(); 
                             window.dashboard.init(); window.ui.loaded(); window.mapLogic.render(); 
                             if(cb) cb();
@@ -957,8 +961,10 @@
                 window.mapLogic.render();
             },
             pickLocation: (target) => {
-                window.BioApp.switchTab('map'); // UX FIX: Auto switch to map tab
-                state.pickerTarget = target; window.ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden');
+                window.BioApp.switchTab('map'); 
+                state.pickerTarget = target; 
+                window.ui.closeModal('input-modal'); 
+                document.getElementById('picker-notification').classList.remove('hidden');
                 document.getElementById('picker-msg').innerText = target==='main'?'Select Species Location':'Select Factor Location';
                 window.mapLogic.enablePicker((lat, lng) => {
                     if(state.pickerTarget==='main') { document.getElementById('inp-lat').value=lat.toFixed(6); document.getElementById('inp-lng').value=lng.toFixed(6); }
