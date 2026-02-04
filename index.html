@@ -111,6 +111,28 @@
             animation: breath 2s infinite;
         }
 
+        /* Tabs Style */
+        .tab-btn {
+            position: relative;
+            color: #64748b;
+            font-weight: 600;
+            padding-bottom: 12px;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: #ef4444; /* Red color as in image */
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #ef4444;
+            border-radius: 3px 3px 0 0;
+        }
+
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
     </style>
@@ -232,10 +254,11 @@
                     </div>
                     <div class="glass-panel p-6 rounded-3xl border border-slate-200 bg-white flex flex-col min-h-[350px]">
                         <div class="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Data Collection Trend</h3>
-                            <span class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold">Live</span>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dependency Risk Index</h3>
+                            <span class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-[10px] font-bold">Bubble Chart</span>
                         </div>
-                        <div class="relative w-full h-64"><canvas id="chart-trend"></canvas></div>
+                        <div class="relative w-full h-64 flex justify-center"><canvas id="chart-dependency"></canvas></div>
+                        <div class="mt-2 text-[10px] text-slate-400 text-center italic">Bubble Size: Extinction Risk Level • X: Species Count • Y: Interactions</div>
                     </div>
                 </div>
 
@@ -339,91 +362,102 @@
 
     <!-- DETAIL MODAL -->
     <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
-        <div class="relative w-full max-w-6xl h-[90vh]">
+        <div class="relative w-full max-w-7xl h-[95vh]">
             <button class="rec-arrow rec-prev" onclick="window.ui.prevRecord()"><i class="fas fa-chevron-left text-xl"></i></button>
             <button class="rec-arrow rec-next" onclick="window.ui.nextRecord()"><i class="fas fa-chevron-right text-xl"></i></button>
 
             <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl h-full flex flex-col overflow-hidden relative z-10">
-                <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-md"><i class="fas fa-leaf"></i></div>
-                        <div>
-                            <h2 id="detail-title" class="text-2xl font-black text-slate-800 leading-tight">Species Name</h2>
-                            <p id="detail-subtitle" class="text-sm text-slate-500 italic font-serif">Latin Name</p>
+                <!-- Header -->
+                <div class="px-8 pt-6 pb-2 bg-white sticky top-0 z-20">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-md"><i class="fas fa-leaf"></i></div>
+                            <div>
+                                <h2 id="detail-title" class="text-2xl font-black text-slate-800 leading-tight">Species Name</h2>
+                                <p id="detail-subtitle" class="text-sm text-slate-500 italic font-serif">Latin Name</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div id="dt-admin-actions" class="hidden">
+                                <button onclick="window.BioApp.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
+                            </div>
+                            <button onclick="window.ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <div id="dt-admin-actions" class="hidden">
-                            <button onclick="window.BioApp.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
-                        </div>
-                        <button onclick="window.ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
+                    
+                    <!-- TAB NAVIGATION -->
+                    <div class="flex gap-8 border-b border-slate-200">
+                        <button onclick="window.ui.switchDetailTab('overview')" id="tab-btn-overview" class="tab-btn active text-sm">Overview</button>
+                        <button onclick="window.ui.switchDetailTab('media')" id="tab-btn-media" class="tab-btn text-sm">Multimedia & Data</button>
                     </div>
                 </div>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-slate-50">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-                        <div class="space-y-6">
-                            <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[140px] flex items-center">
-                                <div class="w-12 h-12 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-xl mr-4"><i class="fas fa-building"></i></div>
-                                <div id="contact-carousel" class="flex-1 relative overflow-hidden"></div>
-                                <button onclick="window.ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
-                                <button onclick="window.ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
-                            </div>
+                <!-- CONTENT BODY -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 relative">
+                    
+                    <!-- TAB 1: OVERVIEW -->
+                    <div id="tab-content-overview" class="p-8 space-y-6 max-w-5xl mx-auto animate-[fadeIn_0.3s]">
+                         <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[120px] flex items-center">
+                            <div class="w-10 h-10 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-lg mr-4"><i class="fas fa-building"></i></div>
+                            <div id="contact-carousel" class="flex-1 relative overflow-hidden"></div>
+                            <button onclick="window.ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
+                            <button onclick="window.ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
+                        </div>
 
-                            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                                <div class="absolute right-0 top-0 opacity-5 p-4"><i class="fas fa-project-diagram text-6xl"></i></div>
-                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Ecological Interaction</h3>
-                                <div class="flex items-center gap-4">
-                                    <div class="bg-orange-50 px-4 py-3 rounded-xl border border-orange-100 text-center flex-1">
-                                        <div class="text-[9px] text-orange-500 font-bold uppercase tracking-wide mb-1">Factor</div>
-                                        <div id="dt-aff-name" class="font-bold text-slate-700 text-sm truncate leading-tight">Factor</div>
-                                    </div>
-                                    <div class="flex-none border-t-2 border-dashed border-slate-300 relative text-center w-12">
-                                        <div id="dt-type" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-1 text-[9px] text-slate-400 font-bold border border-slate-100 rounded-full whitespace-nowrap overflow-hidden max-w-[60px] text-ellipsis">Type</div>
-                                    </div>
-                                    <div class="bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 text-center flex-1">
-                                        <div class="text-[9px] text-blue-500 font-bold uppercase tracking-wide mb-1">Species</div>
-                                        <div id="dt-local-name-sm" class="font-bold text-slate-700 text-sm truncate leading-tight">Species</div>
-                                    </div>
+                         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Ecological Interaction</h3>
+                            <div class="flex items-center gap-4">
+                                <div class="bg-orange-50 px-4 py-3 rounded-xl border border-orange-100 text-center flex-1">
+                                    <div class="text-[9px] text-orange-500 font-bold uppercase tracking-wide mb-1">Factor</div>
+                                    <div id="dt-aff-name" class="font-bold text-slate-700 text-sm truncate leading-tight">Factor</div>
                                 </div>
-                            </div>
-
-                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Description</h3>
-                                <p id="dt-desc" class="text-slate-600 text-sm leading-relaxed text-justify font-serif">No description available.</p>
-                            </div>
-
-                            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
-                                <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x"></div>
+                                <div class="flex-none border-t-2 border-dashed border-slate-300 relative text-center w-12">
+                                    <div id="dt-type" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-1 text-[9px] text-slate-400 font-bold border border-slate-100 rounded-full whitespace-nowrap overflow-hidden max-w-[60px] text-ellipsis">Type</div>
+                                </div>
+                                <div class="bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 text-center flex-1">
+                                    <div class="text-[9px] text-blue-500 font-bold uppercase tracking-wide mb-1">Species</div>
+                                    <div id="dt-local-name-sm" class="font-bold text-slate-700 text-sm truncate leading-tight">Species</div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="flex flex-col gap-6 h-full">
-                            <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="img-carousel" class="media-slider-container"></div>
-                                <button class="media-nav media-prev force-hidden" id="img-prev" onclick="window.ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
-                                <button class="media-nav media-next force-hidden" id="img-next" onclick="window.ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
-                                <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
-                                    <div class="flex gap-2">
-                                        <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
-                                        <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm">Status</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 border-b border-slate-100 pb-2">Description</h3>
+                            <p id="dt-desc" class="text-slate-700 text-base leading-loose text-justify font-serif">No description available.</p>
+                        </div>
 
-                            <div class="relative bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                                <div id="vid-carousel" class="media-slider-container"></div>
-                                <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="window.ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
-                                <button class="media-nav media-next force-hidden" id="vid-next" onclick="window.ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
-                            </div>
-
-                            <div class="flex-1 bg-slate-200 rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative min-h-[250px] relative">
-                                <div id="detail-geo-map" class="w-full h-full z-0"></div>
-                                <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white z-[100]">GIS Habitat Layer</div>
-                            </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
+                            <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x"></div>
                         </div>
                     </div>
+
+                    <!-- TAB 2: MULTIMEDIA & DATA -->
+                    <div id="tab-content-media" class="hidden p-8 space-y-8 max-w-5xl mx-auto animate-[fadeIn_0.3s]">
+                        <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
+                            <div id="img-carousel" class="media-slider-container"></div>
+                            <button class="media-nav media-prev force-hidden" id="img-prev" onclick="window.ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
+                            <button class="media-nav media-next force-hidden" id="img-next" onclick="window.ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
+                            <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
+                                <div class="flex gap-2">
+                                    <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
+                                    <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm">Status</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
+                            <div id="vid-carousel" class="media-slider-container"></div>
+                            <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="window.ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
+                            <button class="media-nav media-next force-hidden" id="vid-next" onclick="window.ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+
+                        <div class="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative h-[500px] w-full">
+                            <div id="detail-geo-map" class="w-full h-full z-0"></div>
+                            <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white z-[100]">GIS Multi-Layer View</div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -560,6 +594,28 @@
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
             closeModal: (id) => document.getElementById(id).classList.add('hidden'),
             
+            switchDetailTab: (tabId) => {
+                // Update buttons
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById('tab-btn-' + tabId).classList.add('active');
+                
+                // Update content visibility
+                document.getElementById('tab-content-overview').classList.add('hidden');
+                document.getElementById('tab-content-media').classList.add('hidden');
+                document.getElementById('tab-content-' + tabId).classList.remove('hidden');
+
+                // If switching to media, resize map and fit bounds
+                if(tabId === 'media' && window.detailMap) {
+                    setTimeout(() => {
+                        window.detailMap.invalidateSize();
+                        // Re-fit bounds if we have them
+                        if(window.detailBounds && window.detailBounds.isValid()) {
+                            window.detailMap.fitBounds(window.detailBounds, {padding: [50, 50], maxZoom: 10});
+                        }
+                    }, 100);
+                }
+            },
+
             renderMedia: (type) => {
                 const container = document.getElementById(type === 'img' ? 'img-carousel' : (type==='vid'?'vid-carousel':'contact-carousel'));
                 const prevBtn = document.getElementById(type === 'img' ? 'img-prev' : (type==='vid'?'vid-prev':'contact-prev'));
@@ -741,11 +797,11 @@
         };
 
         window.dashboard = {
-            chartStatus: null, chartTrend: null,
+            chartStatus: null, chartDependency: null,
             init: () => { window.dashboard.render(); window.dashboard.listeners(); },
             render: () => {
                 const ctx1 = document.getElementById('chart-status')?.getContext('2d');
-                const ctx2 = document.getElementById('chart-trend')?.getContext('2d');
+                const ctx2 = document.getElementById('chart-dependency')?.getContext('2d');
                 if (!ctx1 || !ctx2) return;
 
                 const total = state.data.length;
@@ -755,6 +811,7 @@
                 
                 ['total', 'countries', 'edges', 'unesco'].forEach((k,i) => document.getElementById('kpi-'+k).innerText = [total, countries, edges, threatened][i]);
 
+                // 1. Status Chart
                 const statuses = {}; state.data.forEach(d => { const s = d.unesco_status || 'Unknown'; statuses[s] = (statuses[s]||0)+1; });
                 if(window.dashboard.chartStatus) window.dashboard.chartStatus.destroy();
                 window.dashboard.chartStatus = new Chart(ctx1, { 
@@ -763,12 +820,75 @@
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } }, cutout: '60%' } 
                 });
 
-                const trendData = state.data.map((_, i) => i + 1); const trendLabels = state.data.map((_, i) => i + 1);
-                if(window.dashboard.chartTrend) window.dashboard.chartTrend.destroy();
-                window.dashboard.chartTrend = new Chart(ctx2, {
-                    type: 'line', data: { labels: trendLabels, datasets: [{ label: 'Total', data: trendData, borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 3, tension: 0.4, pointRadius: 3, fill: true }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f1f5f9' }, beginAtZero: true }, x: { display: false } } }
+                // 2. Dependency Risk Index (Bubble Chart)
+                // Logic: X = Species Count, Y = Interaction Count, R = Critical Count, Color = Country
+                const countryData = {};
+                state.data.forEach(d => {
+                    if(!d.country) return;
+                    const c = d.country;
+                    if(!countryData[c]) countryData[c] = { species:0, interactions:0, critical:0 };
+                    
+                    countryData[c].species++;
+                    if(d.affectedby_local_name) countryData[c].interactions++;
+                    if(d.unesco_status && (d.unesco_status.toLowerCase().includes('critical') || d.unesco_status.toLowerCase().includes('endangered'))) {
+                        countryData[c].critical++;
+                    }
                 });
+
+                const bubbleData = Object.keys(countryData).map(country => {
+                    const item = countryData[country];
+                    return {
+                        x: item.species,
+                        y: item.interactions,
+                        r: Math.max(5, item.critical * 3), // Scale bubble
+                        country: country
+                    };
+                });
+
+                // Generate random colors for countries
+                const colors = bubbleData.map(() => `hsla(${Math.random() * 360}, 70%, 50%, 0.6)`);
+
+                if(window.dashboard.chartDependency) window.dashboard.chartDependency.destroy();
+                window.dashboard.chartDependency = new Chart(ctx2, {
+                    type: 'bubble',
+                    data: {
+                        datasets: [{
+                            label: 'Dependency Risk',
+                            data: bubbleData,
+                            backgroundColor: colors,
+                            borderColor: colors.map(c => c.replace('0.6', '1')),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => {
+                                        const raw = ctx.raw;
+                                        return `${raw.country}: Species: ${raw.x}, Interactions: ${raw.y}, High Risk: ${Math.floor(raw.r/3)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                title: { display: true, text: 'Total Species (X)' },
+                                grid: { color: '#f1f5f9' },
+                                beginAtZero: true
+                            },
+                            y: { 
+                                title: { display: true, text: 'Interactions (Y)' },
+                                grid: { color: '#f1f5f9' },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
                 window.dashboard.renderTable();
             },
             changePage: (step) => { state.pagination.page += step; window.dashboard.renderTable(); },
@@ -848,68 +968,72 @@
                 const mapContainer = document.getElementById('detail-geo-map'); mapContainer.innerHTML = '';
                 
                 setTimeout(() => {
-                    // Init map
+                    // Init map if container exists
+                    if(!document.getElementById('detail-geo-map')) return;
+                    
+                    // Check if map instance already exists
+                    if (window.detailMap) {
+                        window.detailMap.remove();
+                        window.detailMap = null;
+                    }
+
                     window.detailMap = L.map('detail-geo-map', {zoomControl:false});
                     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.detailMap);
 
                     const bounds = L.latLngBounds([]);
                     let hasBounds = false;
+                    const layersAdded = new Set();
 
-                    // 1. Draw Current Species (Target)
-                    if(d.geometry_json) {
-                        try {
-                            const pts = JSON.parse(d.geometry_json);
-                            const poly = L.polygon(pts, {color:'#9333ea', weight:2, fillOpacity:0.4}).addTo(window.detailMap);
-                            poly.bindTooltip("Target: " + d.local_name, {sticky:true});
+                    const addPoly = (node, color, isTarget) => {
+                         if(!node || !node.geometry_json || layersAdded.has(node.id)) return;
+                         try {
+                            const pts = JSON.parse(node.geometry_json);
+                            const style = isTarget ? {color:'#9333ea', weight:3, fillOpacity:0.5} : {color: color, weight:2, fillOpacity:0.3, dashArray:'5,5'};
+                            const poly = L.polygon(pts, style).addTo(window.detailMap);
+                            poly.bindTooltip((isTarget ? "Target: " : "Linked: ") + node.local_name, {sticky:true});
                             bounds.extend(poly.getBounds());
                             hasBounds = true;
-                        } catch(e){}
-                    } else if(d.lat && d.lng) {
-                        L.marker([d.lat, d.lng]).addTo(window.detailMap);
-                        bounds.extend([d.lat, d.lng]);
-                        hasBounds = true;
+                            layersAdded.add(node.id);
+                         } catch(e){}
+                    };
+
+                    // 1. Draw Target
+                    addPoly(d, '#9333ea', true);
+                    if(!layersAdded.has(d.id) && d.lat && d.lng) {
+                         L.marker([d.lat, d.lng]).addTo(window.detailMap);
+                         bounds.extend([d.lat, d.lng]);
+                         hasBounds = true;
                     }
 
-                    // 2. Find and Draw Source Species (Factor) - Overlap Logic
-                    // FIX: Case insensitive comparison
-                    if(d.affectedby_local_name) {
-                        const targetName = d.affectedby_local_name.trim().toLowerCase();
-                        const sourceNode = state.data.find(item => item.local_name && item.local_name.trim().toLowerCase() === targetName);
-                        
-                        if(sourceNode && sourceNode.geometry_json) {
-                            try {
-                                const pts = JSON.parse(sourceNode.geometry_json);
-                                const poly = L.polygon(pts, {color:'#F59E0B', weight:2, fillOpacity:0.4, dashArray: '5,5'}).addTo(window.detailMap);
-                                poly.bindTooltip("Factor: " + sourceNode.local_name, {sticky:true});
-                                bounds.extend(poly.getBounds());
-                                hasBounds = true;
-                            } catch(e){}
-                        }
+                    // 2. Recursive Chain Finder (Max depth 3 for safety)
+                    let current = d;
+                    const palette = ['#F59E0B', '#10B981', '#3B82F6'];
+                    for(let i=0; i<3; i++) {
+                        if(!current.affectedby_local_name) break;
+                        const targetName = current.affectedby_local_name.trim().toLowerCase();
+                        const nextNode = state.data.find(item => item.local_name && item.local_name.trim().toLowerCase() === targetName);
+                        if(nextNode) {
+                            addPoly(nextNode, palette[i % palette.length], false);
+                            current = nextNode;
+                        } else break;
                     }
 
-                    // Fit bounds
+                    // Save bounds globally
+                    window.detailBounds = bounds;
+
+                    // Fit bounds logic with constraints
                     if(hasBounds && bounds.isValid()) {
-                        window.detailMap.fitBounds(bounds, {padding: [20, 20]});
+                        window.detailMap.fitBounds(bounds, {padding: [50, 50], maxZoom: 10});
                     } else {
                         window.detailMap.setView([0, 0], 2);
                     }
                     
-                    // Legend Overlay
-                    const legend = L.control({position: 'bottomright'});
-                    legend.onAdd = function (map) {
-                        const div = L.DomUtil.create('div', 'bg-white/90 p-2 rounded shadow text-[10px] border border-slate-200');
-                        div.innerHTML = `
-                            <div class="flex items-center gap-2 mb-1"><span class="w-3 h-3 bg-[#9333ea] opacity-50 border border-[#9333ea]"></span> Target (${d.local_name})</div>
-                            <div class="flex items-center gap-2"><span class="w-3 h-3 bg-[#F59E0B] opacity-50 border border-[#F59E0B] border-dashed"></span> Factor/Habitat</div>
-                        `;
-                        return div;
-                    };
-                    legend.addTo(window.detailMap);
-                    
-                    // Crucial fix: Force resize calculation
                     window.detailMap.invalidateSize();
 
                 }, 400);
+
+                // Reset to first tab
+                window.ui.switchDetailTab('overview');
 
                 document.getElementById('dt-admin-actions').classList.toggle('hidden', state.role !== 'admin');
                 window.ui.openModal('detail-modal');
