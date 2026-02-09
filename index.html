@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Biodiversity by Angga Conni Saputra 2026</title>
+    <title>Global Biodiversity & Biosphere 2026</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -16,158 +15,86 @@
     <!-- Custom Styles -->
     <style>
         :root {
-            --primary-blue: #0077D4;
-            --secondary-blue: #0ea5e9;
-            --accent-gold: #F59E0B;
-            --glass-bg: rgba(255, 255, 255, 0.98);
-            --glass-border: rgba(226, 232, 240, 0.8);
+            --primary-blue: #0077D4; --secondary-blue: #0ea5e9; --accent-gold: #F59E0B;
+            --bio-green: #10B981; --bio-dark: #047857;
+            --glass-bg: rgba(255, 255, 255, 0.98); --glass-border: rgba(226, 232, 240, 0.8);
             --text-main: #1e293b;
         }
-        
         body { background-color: #f8fafc; color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; }
-
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-        /* Components */
-        .glass-panel {
-            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
+        .glass-panel { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .section-view { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
         .section-view.active { display: flex; opacity: 1; }
-        .z-modal { z-index: 3000; }
-        .z-picker { z-index: 4000; }
+        .z-modal { z-index: 2000; } .z-picker { z-index: 3000; }
         .picker-mode { cursor: crosshair !important; }
         
         /* Markers & Tooltips */
-        .custom-tooltip {
-            background: white; border: 1px solid var(--primary-blue); color: var(--primary-blue); 
-            border-radius: 6px; font-weight: bold; padding: 6px 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 11px;
-        }
+        .custom-tooltip { background: white; border: 1px solid var(--primary-blue); color: var(--primary-blue); border-radius: 6px; font-weight: bold; padding: 6px 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 11px; }
+        .bio-tooltip { border-color: var(--bio-green); color: var(--bio-dark); }
         .leaflet-tooltip-top:before { display: none; }
-        path.leaflet-interactive { transition: stroke 0.3s ease-out, stroke-width 0.3s ease-out; }
 
-        /* GIS Marker (CSS Based) */
-        .geo-marker-icon {
-            background-color: transparent; 
-            width: 14px !important; height: 14px !important; margin-left: -7px !important; margin-top: -7px !important;
-            cursor: move;
-        }
-
-        /* Media Slider (Generic) */
-        .media-slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
-        .media-slide { display: none; width: 100%; height: 100%; }
-        .media-slide.active { display: block; animation: fadeIn 0.3s; }
+        /* GIS Markers */
+        .geo-marker-icon { background-color: var(--primary-blue); border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0, 119, 212, 0.5); }
+        .bio-marker-icon { background-color: var(--bio-green); border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
         
-        .media-nav {
+        /* Carousel Navigation */
+        .nav-btn {
             position: absolute; top: 50%; transform: translateY(-50%);
-            width: 28px; height: 28px; background: rgba(0,0,0,0.6); color: white;
+            width: 32px; height: 32px; background: rgba(0,0,0,0.6); color: white;
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; z-index: 10; transition: background 0.2s;
+            cursor: pointer; transition: all 0.2s; z-index: 20; border: 1px solid rgba(255,255,255,0.3);
         }
-        .media-nav:hover { background: rgba(0,0,0,0.9); }
-        .media-prev { left: 8px; }
-        .media-next { right: 8px; }
-        
-        /* Utility for toggling visibility */
+        .nav-btn:hover { background: var(--primary-blue); border-color: transparent; }
+        .nav-prev { left: 10px; } .nav-next { right: 10px; }
         .force-hidden { display: none !important; }
 
-        /* Contact Carousel Specifics */
-        .contact-slide { display: none; animation: slideIn 0.3s ease-out; }
-        .contact-slide.active { display: block; }
-        
-        /* Research Link Card */
-        .res-card {
-            flex: 0 0 auto; width: 220px; 
-            background: white; border: 1px solid #e2e8f0; border-radius: 12px;
-            padding: 12px; transition: all 0.2s; cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between;
-        }
-        .res-card:hover { border-color: var(--primary-blue); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 119, 212, 0.15); }
+        /* Rich Text Toolbar */
+        .rt-toolbar { display: flex; gap: 4px; padding: 4px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; border-radius: 8px 8px 0 0; }
+        .rt-btn { padding: 4px 8px; font-size: 10px; font-weight: bold; background: white; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; color: #475569; }
+        .rt-btn:hover { background: #e2e8f0; color: #1e293b; }
 
-        /* Record Nav Arrows (Floating) */
-        .rec-arrow {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            width: 48px; height: 48px; border-radius: 50%;
-            background: white; border: 1px solid #e2e8f0;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            color: #64748b; transition: all 0.2s; z-index: 50;
-        }
-        .rec-arrow:hover { background: var(--primary-blue); color: white; border-color: var(--primary-blue); transform: translateY(-50%) scale(1.1); }
-        .rec-prev { left: -24px; }
-        .rec-next { right: -24px; }
-
-        /* Mascot Breathing Animation */
-        @keyframes breath {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-        .mascot-btn {
-            animation: breath 2s infinite;
-        }
-
-        /* Tabs Style */
-        .tab-btn {
-            position: relative;
-            color: #64748b;
-            font-weight: 600;
-            padding-bottom: 12px;
-            transition: all 0.3s;
-        }
-        .tab-btn.active {
-            color: #ef4444; /* Red color as in image */
-        }
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: #ef4444;
-            border-radius: 3px 3px 0 0;
-        }
-
+        @keyframes breath { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } }
+        .mascot-btn { animation: breath 2s infinite; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+
+        /* Map Badge */
+        .map-badge {
+            position: absolute; bottom: 20px; right: 20px;
+            background: rgba(255,255,255,0.95); padding: 8px 12px;
+            border-radius: 8px; font-size: 11px; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); color: #475569;
+            z-index: 1000; border: 1px solid #cbd5e1;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-slate-50">
 
     <!-- 1. LANDING PAGE -->
     <div id="landing-page" class="section-view active h-full w-full relative z-50 bg-slate-900 items-center justify-center flex-col">
-        <!-- HD Biosphere Background -->
         <div class="absolute inset-0 z-0 opacity-90 bg-[url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=85')] bg-cover bg-center"></div>
         <div class="absolute inset-0 z-0 bg-gradient-to-b from-black/30 via-black/50 to-slate-900"></div>
 
         <div class="z-10 text-center space-y-8 glass-panel p-16 rounded-3xl max-w-3xl border-t border-white/20 shadow-2xl mx-4 flex flex-col items-center backdrop-blur-xl bg-white/10">
-            <div class="mb-2 w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-white shadow-inner mx-auto border border-white/30 backdrop-blur-md"><i class="fas fa-leaf text-5xl"></i></div>
-            <h1 class="text-5xl md:text-7xl font-black text-white mb-2 leading-tight drop-shadow-lg">Global Biodiversity</h1>
-            <p class="text-xl text-emerald-200 tracking-[0.3em] uppercase font-light drop-shadow">Citizenship Science Initiative</p>
+            <div class="mb-2 w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-white shadow-inner mx-auto border border-white/30 backdrop-blur-md"><i class="fas fa-globe-asia text-5xl"></i></div>
+            <h1 class="text-4xl md:text-6xl font-black text-white mb-2 leading-tight drop-shadow-lg">Global Biodiversity<br><span class="text-emerald-400 text-3xl md:text-5xl">& Biosphere Reserves</span></h1>
+            <p class="text-xl text-emerald-200 tracking-[0.3em] uppercase font-light drop-shadow">Integrated Ecosystem Data</p>
             
             <div id="loading-container" class="mt-8 flex justify-center h-12 items-center">
                 <i class="fas fa-circle-notch fa-spin text-white text-3xl"></i>
-                <span class="ml-3 text-white font-mono text-sm">Connecting to Ecosystem...</span>
-            </div>
-
-            <div id="error-container" class="hidden mt-4 bg-red-500/80 border border-red-400 p-4 rounded-xl text-sm text-white">
-                <i class="fas fa-wifi mr-2"></i> Connection Failed. <button onclick="location.reload()" class="ml-2 underline font-bold">Retry</button>
+                <span class="ml-3 text-white font-mono text-sm">Synchronizing Data Layers...</span>
             </div>
 
             <div id="entry-buttons" class="hidden flex-col items-center justify-center gap-4 mt-8 w-full">
-                <button onclick="window.BioApp.enterAsGuest()" class="w-72 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-3 transition transform hover:scale-105 mx-auto border border-emerald-400">
-                    ENTER BIOSPHERE <i class="fas fa-arrow-right"></i>
+                <button onclick="BioApp.enterAsGuest()" class="w-72 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold text-lg shadow-xl shadow-emerald-900/50 flex items-center justify-center gap-3 transition transform hover:scale-105 mx-auto border border-emerald-400">
+                    EXPLORE MAP <i class="fas fa-arrow-right"></i>
                 </button>
-                <button onclick="window.BioApp.enterAsContributor()" class="text-xs text-emerald-200 hover:text-white underline mt-2 flex items-center gap-1"><i class="fas fa-user-lock"></i> Contributor Access</button>
-            </div>
-            
-            <div id="dataset-info" class="hidden mt-8 pt-4 border-t border-white/10 w-full text-center">
-                <div class="text-[10px] text-emerald-200 font-mono uppercase tracking-widest">Designed by Angga Conni Saputra 2026 • <span id="record-count" class="text-white font-bold">0</span> Species</div>
+                <button onclick="BioApp.enterAsContributor()" class="text-xs text-emerald-200 hover:text-white underline mt-2 flex items-center gap-1"><i class="fas fa-user-lock"></i> Contributor Login</button>
             </div>
         </div>
     </div>
@@ -178,36 +105,27 @@
         <aside class="w-72 bg-white border-r border-slate-200 flex flex-col justify-between z-40 shadow-xl relative">
             <div>
                 <div class="h-28 flex flex-col items-center justify-center border-b border-slate-100 bg-gradient-to-br from-emerald-50 to-white p-4 text-center">
-                    <div class="text-xl font-black text-slate-800 tracking-tighter leading-none">GLOBAL<br><span class="text-emerald-600">BIODIVERSITY</span></div>
-                    <div class="text-[9px] text-slate-400 tracking-widest uppercase mt-2 border-t border-slate-200 pt-1 w-full">Angga Conni Saputra 2026</div>
+                    <div class="text-xl font-black text-slate-800 tracking-tighter leading-none">BIO<span class="text-emerald-600">SPHERE</span></div>
+                    <div class="text-[9px] text-slate-400 tracking-widest uppercase mt-2">Data Management System</div>
                 </div>
                 <nav class="p-4 space-y-2">
-                    <button onclick="window.BioApp.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Analytics</button>
-                    <button onclick="window.BioApp.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
+                    <button onclick="BioApp.switchTab('map')" id="nav-map" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold bg-blue-50 text-blue-600"><i class="fas fa-map w-8 text-center"></i> Global Map</button>
+                    <button onclick="BioApp.switchTab('dashboard')" id="nav-dashboard" class="w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold"><i class="fas fa-chart-pie w-8 text-center"></i> Database & Stats</button>
                 </nav>
             </div>
             <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2">
                 <div id="auth-status-ui" class="mb-2">
                     <div id="status-guest" class="w-full">
-                        <div class="p-2 bg-slate-200 text-slate-500 text-center rounded-lg border border-slate-300 mb-2 text-[10px] font-bold tracking-wider">VIEW ONLY</div>
-                        <button onclick="window.BioApp.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login Contributor</button>
+                        <div class="p-2 bg-slate-200 text-slate-500 text-center rounded-lg border border-slate-300 mb-2 text-[10px] font-bold tracking-wider">GUEST MODE</div>
+                        <button onclick="BioApp.enterAsContributor()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition text-center shadow-md">Login</button>
                     </div>
                     <div id="status-admin" class="hidden w-full">
-                        <div class="p-2 bg-emerald-100 text-emerald-700 text-center rounded-lg border border-emerald-200 mb-3 text-[10px] font-bold tracking-wider">ADMIN ACCESS</div>
-                        <button onclick="window.BioApp.initiateAddEntry()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
-                        <button onclick="window.BioApp.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
+                        <div class="p-2 bg-emerald-100 text-emerald-700 text-center rounded-lg border border-emerald-200 mb-3 text-[10px] font-bold tracking-wider">ADMIN</div>
+                        <button onclick="BioApp.showAddChoice()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition mb-2 shadow-md"><i class="fas fa-plus mr-1"></i> Add Data</button>
+                        <button onclick="BioApp.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
                     </div>
                 </div>
-                <button onclick="window.BioApp.exportData()" class="w-full mt-3 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-bold border border-slate-200 flex items-center justify-center gap-2"><i class="fas fa-download"></i> Export Data</button>
-                
-                <!-- MASCOT HELP BUTTON -->
-                <div class="mt-4 flex justify-center">
-                    <button onclick="window.ui.openModal('help-modal')" class="mascot-btn w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white hover:bg-emerald-600 transition relative group">
-                        <i class="fas fa-paw text-2xl"></i>
-                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white">?</span>
-                        <div class="absolute bottom-full mb-2 hidden group-hover:block whitespace-nowrap bg-slate-800 text-white text-xs px-2 py-1 rounded">Help / Bantuan</div>
-                    </button>
-                </div>
+                <button onclick="ui.openModal('help-modal')" class="mascot-btn w-full py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition flex justify-center items-center gap-2"><i class="fas fa-paw"></i> Help / Guide</button>
             </div>
         </aside>
 
@@ -215,251 +133,144 @@
         <main class="flex-1 relative overflow-hidden bg-slate-50 flex flex-col">
             <!-- PICKER NOTIFICATION -->
             <div id="picker-notification" class="absolute top-6 left-1/2 -translate-x-1/2 z-[3000] hidden flex-col items-center w-auto">
-                <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border-2 border-white animate-pulse cursor-pointer hover:bg-blue-700 transition" onclick="window.BioApp.cancelPicker()">
+                <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border-2 border-white animate-pulse cursor-pointer hover:bg-blue-700 transition" onclick="BioApp.cancelPicker()">
                     <i class="fas fa-crosshairs"></i> <span class="text-sm font-bold" id="picker-msg">Select Location</span> <div class="bg-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs"><i class="fas fa-times"></i></div>
                 </div>
-                <div class="mt-2 text-[10px] text-slate-500 bg-white/80 px-2 py-1 rounded backdrop-blur border border-slate-200">Click anywhere on the map to set point</div>
             </div>
 
-            <!-- DASHBOARD -->
-            <div id="view-dashboard" class="absolute inset-0 p-8 overflow-y-auto hidden scroll-smooth">
-                <header class="flex justify-between items-end pb-6 border-b border-slate-200 mb-8">
-                    <div>
-                        <h2 class="text-3xl font-black text-slate-800">Biodiversity Analytics</h2>
-                        <p class="text-slate-500 text-sm mt-1">Real-time monitoring of global species data.</p>
-                    </div>
-                </header>
-                
-                <!-- KPIs -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-blue-500 flex flex-col justify-center">
-                        <div class="text-3xl font-black text-slate-800" id="kpi-total">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Total Species</div>
-                    </div>
-                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-emerald-500 flex flex-col justify-center">
-                        <div class="text-3xl font-black text-slate-800" id="kpi-countries">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Countries</div>
-                    </div>
-                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-orange-500 flex flex-col justify-center">
-                        <div class="text-3xl font-black text-slate-800" id="kpi-edges">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Interactions</div>
-                    </div>
-                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-red-500 flex flex-col justify-center">
-                        <div class="text-3xl font-black text-slate-800" id="kpi-unesco">0</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Threatened</div>
-                    </div>
-                </div>
-
-                <!-- CHARTS -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <div class="glass-panel p-6 rounded-3xl border border-slate-200 bg-white flex flex-col min-h-[350px]">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6 pb-2 border-b border-slate-100">Conservation Status (IUCN)</h3>
-                        <div class="relative w-full h-64 flex justify-center"><canvas id="chart-status"></canvas></div>
-                    </div>
-                    <div class="glass-panel p-6 rounded-3xl border border-slate-200 bg-white flex flex-col min-h-[350px]">
-                        <div class="flex justify-between items-center mb-6 pb-2 border-b border-slate-100">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dependency Risk Index</h3>
-                            <span class="px-2 py-1 bg-amber-50 text-amber-600 rounded text-[10px] font-bold">Bubble Chart</span>
-                        </div>
-                        <div class="relative w-full h-64 flex justify-center"><canvas id="chart-dependency"></canvas></div>
-                        <div class="mt-2 text-[10px] text-slate-400 text-center italic">Bubble Size: Extinction Risk Level • X: Species Count • Y: Interactions</div>
-                    </div>
-                </div>
-
-                <!-- Table -->
-                <div class="glass-panel rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm mb-12">
-                    <div class="p-5 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-4 justify-between items-center">
-                        <h3 class="font-bold text-slate-700 flex items-center gap-2"><i class="fas fa-list text-blue-500"></i> Database</h3>
-                        <div class="relative">
-                            <input type="text" id="search-input" placeholder="Search data..." class="pl-9 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:border-blue-500 outline-none transition focus:ring-2 focus:ring-blue-100">
-                            <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-slate-600 text-sm">
-                            <thead class="bg-white text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-100">
-                                <tr><th class="p-4">ID</th><th class="p-4">Species Name</th><th class="p-4">Origin</th><th class="p-4">Affected By</th><th class="p-4 text-right">Action</th></tr>
-                            </thead>
-                            <tbody id="table-body" class="divide-y divide-slate-50"></tbody>
-                        </table>
-                    </div>
-                    <div class="p-4 bg-white border-t border-slate-100 flex justify-between items-center">
-                        <span class="text-xs text-slate-400 font-mono" id="pagination-info">Showing 0-0</span>
-                        <div class="flex gap-2">
-                            <button id="btn-prev" onclick="window.dashboard.changePage(-1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Prev</button>
-                            <button id="btn-next" onclick="window.dashboard.changePage(1)" class="px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded text-xs font-bold text-slate-600 transition">Next</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MAP -->
-            <div id="view-map" class="absolute inset-0 hidden">
+            <!-- MAP VIEW -->
+            <div id="view-map" class="absolute inset-0">
                 <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
+                
+                <!-- Search -->
                 <div class="absolute top-6 left-6 z-[400] flex flex-col gap-2">
                     <div class="relative shadow-xl">
-                        <input type="text" id="map-search" placeholder="Find species, status, country..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-72 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="window.BioApp.updateMapFilter(this.value)">
+                        <input type="text" id="map-search" placeholder="Search Biodiversity or Biosphere..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-80 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="BioApp.updateMapFilter(this.value)">
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                     </div>
                 </div>
-                <div class="absolute top-6 right-6 z-[400]">
-                    <button onclick="window.mapLogic.resetZoom()" class="w-10 h-10 bg-white rounded-xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition"><i class="fas fa-compress-arrows-alt"></i></button>
+
+                <!-- Legend -->
+                <div class="absolute bottom-8 left-8 z-[400] glass-panel p-4 rounded-xl shadow-2xl bg-white/95 text-xs border border-slate-200 space-y-2">
+                    <div class="font-bold text-slate-500 mb-2 uppercase tracking-wider text-[10px]">Layer Stack</div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#0077D4] border border-white shadow"></span> <span class="font-bold text-blue-700">Biodiversity (Point)</span></div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#F59E0B] border border-white shadow"></span> <span class="font-medium text-orange-600">Factors (Orange)</span></div>
+                    <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-[#10B981] opacity-50 border border-[#10B981]"></span> <span class="font-bold text-emerald-700">Biosphere Zones</span></div>
+                    <div class="flex items-center gap-2"><span class="w-6 h-0 border-t-2 border-dashed border-slate-500"></span> <span class="font-medium">Interaction</span></div>
                 </div>
-                <div class="absolute bottom-8 left-8 z-[400] glass-panel p-4 rounded-xl shadow-2xl bg-white/95 text-xs border border-slate-200">
-                    <div class="font-bold text-slate-500 mb-2 uppercase tracking-wider text-[10px]">Ecological Network</div>
-                    <div class="flex items-center gap-2 mb-1.5"><span class="w-3 h-3 rounded-full bg-[#0077D4] border-2 border-white shadow-sm"></span> <span class="font-medium">Biodiversity / Species</span></div>
-                    <div class="flex items-center gap-2 mb-1.5"><span class="w-3 h-3 rounded-full bg-[#F59E0B] border-2 border-white shadow-sm"></span> <span class="font-medium">Affected By (Factor)</span></div>
-                    <div class="flex items-center gap-2"><span class="w-6 h-0 border-t-2 border-dashed border-slate-600"></span> <span class="font-medium">Interaction Path</span></div>
+            </div>
+
+            <!-- DASHBOARD VIEW -->
+            <div id="view-dashboard" class="absolute inset-0 p-8 overflow-y-auto hidden bg-slate-50">
+                 <header class="flex justify-between items-end pb-6 border-b border-slate-200 mb-8">
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-800">Analytics Dashboard</h2>
+                        <p class="text-slate-500 text-sm mt-1">Combined data for Biodiversity and Biosphere Reserves.</p>
+                    </div>
+                </header>
+                
+                <!-- KPI CARDS -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-blue-500 flex justify-between items-center shadow-sm">
+                        <div>
+                            <div class="text-3xl font-black text-slate-800" id="kpi-nodes">0</div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mt-1">Total Biodiversity</div>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500"><i class="fas fa-leaf text-xl"></i></div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-emerald-500 flex justify-between items-center shadow-sm">
+                        <div>
+                            <div class="text-3xl font-black text-slate-800" id="kpi-bio">0</div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mt-1">Biosphere Reserves</div>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500"><i class="fas fa-globe text-xl"></i></div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl bg-white border-l-4 border-orange-500 flex justify-between items-center shadow-sm">
+                        <div>
+                            <div class="text-3xl font-black text-slate-800" id="kpi-countries">0</div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mt-1">Participating Countries</div>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500"><i class="fas fa-flag text-xl"></i></div>
+                    </div>
+                </div>
+
+                <!-- CHARTS AREA -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="glass-panel p-6 rounded-2xl bg-white shadow-sm border border-slate-100">
+                        <h4 class="text-sm font-bold text-slate-700 mb-4 border-b border-slate-100 pb-2">Status Distribution</h4>
+                        <div class="h-64 w-full">
+                            <canvas id="chart-status"></canvas>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl bg-white shadow-sm border border-slate-100">
+                        <h4 class="text-sm font-bold text-slate-700 mb-4 border-b border-slate-100 pb-2">Top Countries by Data</h4>
+                        <div class="h-64 w-full">
+                            <canvas id="chart-country"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TABLE SECTION -->
+                <div class="glass-panel rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex flex-col">
+                    <!-- Table Filters Header -->
+                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div class="font-bold text-slate-700">Data Overview</div>
+                        
+                        <!-- Filters -->
+                        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                            <input type="text" id="filter-search" placeholder="Search name..." class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-500 w-full md:w-48" oninput="BioApp.updateDashboard(true)">
+                            
+                            <select id="filter-type" class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none w-full md:w-32" onchange="BioApp.updateDashboard(true)">
+                                <option value="all">All Types</option>
+                                <option value="biodiversity">Biodiversity</option>
+                                <option value="biosphere">Biosphere</option>
+                            </select>
+
+                            <select id="filter-country" class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none w-full md:w-32" onchange="BioApp.updateDashboard(true)">
+                                <option value="all">All Countries</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto min-h-[400px]">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-white text-slate-400 uppercase font-bold border-b border-slate-100 sticky top-0">
+                                <tr><th class="p-3">Type</th><th class="p-3">Name</th><th class="p-3">Country</th><th class="p-3">Status</th></tr>
+                            </thead>
+                            <tbody id="dash-table-body" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Footer -->
+                    <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                        <span class="text-xs text-slate-500" id="pagination-info">Showing 0-0 of 0</span>
+                        <div class="flex gap-2">
+                            <button onclick="BioApp.prevPage()" id="btn-prev" class="px-3 py-1 bg-white border border-slate-300 rounded text-xs hover:bg-slate-100 disabled:opacity-50 font-bold">Previous</button>
+                            <button onclick="BioApp.nextPage()" id="btn-next" class="px-3 py-1 bg-white border border-slate-300 rounded text-xs hover:bg-slate-100 disabled:opacity-50 font-bold">Next</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- MODALS -->
-    <!-- LOGIN -->
-    <div id="login-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-        <div class="glass-panel w-96 p-8 rounded-3xl border border-slate-200 bg-white shadow-2xl">
-            <div class="text-center mb-6">
-                <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600"><i class="fas fa-user-shield text-xl"></i></div>
-                <h3 class="text-xl font-bold text-slate-800">Contributor Access</h3>
-                <p class="text-xs text-slate-500 mt-1">Log in to manage database.</p>
+    <!-- CHOICE MODAL -->
+    <div id="choice-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="glass-panel w-96 p-8 rounded-3xl bg-white shadow-2xl text-center">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Select Data Type</h3>
+            <div class="space-y-3">
+                <button onclick="BioApp.initAdd('nodes')" class="w-full py-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl flex items-center justify-center gap-3 text-blue-700 font-bold transition">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center"><i class="fas fa-leaf"></i></div>
+                    Add Biodiversity
+                </button>
+                <button onclick="BioApp.initAdd('biosphere')" class="w-full py-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl flex items-center justify-center gap-3 text-emerald-700 font-bold transition">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center"><i class="fas fa-globe"></i></div>
+                    Add Biosphere Reserve
+                </button>
             </div>
-            <input type="text" id="login-user" placeholder="Username" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
-            <input type="password" id="login-pass" placeholder="Password" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6 outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
-            <button onclick="window.BioApp.login()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">Login</button>
-            <button onclick="window.ui.closeModal('login-modal')" class="w-full mt-4 text-slate-400 text-xs hover:text-slate-600 transition">Cancel</button>
-        </div>
-    </div>
-
-    <!-- HELP MODAL -->
-    <div id="help-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
-        <div class="glass-panel w-full max-w-2xl rounded-3xl bg-white shadow-2xl p-8 relative">
-            <button onclick="window.ui.closeModal('help-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600"><i class="fas fa-paw text-3xl"></i></div>
-                <h2 class="text-2xl font-black text-slate-800">Citizenship Science Guide</h2>
-                <p class="text-sm text-slate-500">Panduan Sains Warga</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
-                <div>
-                    <h3 class="font-bold text-blue-600 mb-2 uppercase tracking-wide"><i class="fas fa-map-marked-alt mr-2"></i>Exploring / Menjelajah</h3>
-                    <ul class="space-y-2 text-slate-600">
-                        <li><strong>Blue Nodes</strong>: Recorded species. Click to view details.<br><span class="italic text-slate-400">Titik Biru: Spesies tercatat. Klik untuk detail.</span></li>
-                        <li><strong>Orange Nodes</strong>: Factors affecting the species (food, threats).<br><span class="italic text-slate-400">Titik Oranye: Faktor yang mempengaruhi (makanan, ancaman).</span></li>
-                        <li><strong>Dashed Lines</strong>: Ecological interactions.<br><span class="italic text-slate-400">Garis Putus: Hubungan ekologis.</span></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold text-emerald-600 mb-2 uppercase tracking-wide"><i class="fas fa-edit mr-2"></i>Contributing / Berkontribusi</h3>
-                    <ul class="space-y-2 text-slate-600">
-                        <li><strong>Login</strong>: Access required to add/edit data.<br><span class="italic text-slate-400">Login: Akses diperlukan untuk tambah/ubah data.</span></li>
-                        <li><strong>Adding Data</strong>: Use "Add Data", fill details, and set coordinates.<br><span class="italic text-slate-400">Tambah Data: Gunakan "Add Data", isi detail, dan atur koordinat.</span></li>
-                        <li><strong>Auto-Link</strong>: Type in "Affected By" to link existing nodes.<br><span class="italic text-slate-400">Auto-Link: Ketik di "Affected By" untuk hubungkan titik yg ada.</span></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-8 text-center">
-                <button onclick="window.ui.closeModal('help-modal')" class="bg-emerald-600 text-white px-8 py-2 rounded-full font-bold hover:bg-emerald-700 transition">Got it / Mengerti</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- DETAIL MODAL -->
-    <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
-        <div class="relative w-full max-w-7xl h-[95vh]">
-            <button class="rec-arrow rec-prev" onclick="window.ui.prevRecord()"><i class="fas fa-chevron-left text-xl"></i></button>
-            <button class="rec-arrow rec-next" onclick="window.ui.nextRecord()"><i class="fas fa-chevron-right text-xl"></i></button>
-
-            <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl h-full flex flex-col overflow-hidden relative z-10">
-                <!-- Header -->
-                <div class="px-8 pt-6 pb-2 bg-white sticky top-0 z-20">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-md"><i class="fas fa-leaf"></i></div>
-                            <div>
-                                <h2 id="detail-title" class="text-2xl font-black text-slate-800 leading-tight">Species Name</h2>
-                                <p id="detail-subtitle" class="text-sm text-slate-500 italic font-serif">Latin Name</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <div id="dt-admin-actions" class="hidden">
-                                <button onclick="window.BioApp.openInputModal('edit')" class="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition"><i class="fas fa-edit mr-1"></i> Edit</button>
-                            </div>
-                            <button onclick="window.ui.closeModal('detail-modal')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
-                        </div>
-                    </div>
-                    
-                    <!-- TAB NAVIGATION -->
-                    <div class="flex gap-8 border-b border-slate-200">
-                        <button onclick="window.ui.switchDetailTab('overview')" id="tab-btn-overview" class="tab-btn active text-sm">Overview</button>
-                        <button onclick="window.ui.switchDetailTab('media')" id="tab-btn-media" class="tab-btn text-sm">Multimedia & Data</button>
-                    </div>
-                </div>
-
-                <!-- CONTENT BODY -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 relative">
-                    
-                    <!-- TAB 1: OVERVIEW -->
-                    <div id="tab-content-overview" class="p-8 space-y-6 max-w-5xl mx-auto animate-[fadeIn_0.3s]">
-                         <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 relative group overflow-hidden min-h-[120px] flex items-center">
-                            <div class="w-10 h-10 bg-white rounded-full flex-none flex items-center justify-center text-blue-600 shadow-sm text-lg mr-4"><i class="fas fa-building"></i></div>
-                            <div id="contact-carousel" class="flex-1 relative overflow-hidden"></div>
-                            <button onclick="window.ui.prevMedia('contact')" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-prev"><i class="fas fa-chevron-left"></i></button>
-                            <button onclick="window.ui.nextMedia('contact')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-blue-200 text-blue-600 text-xs flex items-center justify-center hover:bg-blue-300 transition force-hidden" id="contact-next"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-
-                         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Ecological Interaction</h3>
-                            <div class="flex items-center gap-4">
-                                <div class="bg-orange-50 px-4 py-3 rounded-xl border border-orange-100 text-center flex-1">
-                                    <div class="text-[9px] text-orange-500 font-bold uppercase tracking-wide mb-1">Factor</div>
-                                    <div id="dt-aff-name" class="font-bold text-slate-700 text-sm truncate leading-tight">Factor</div>
-                                </div>
-                                <div class="flex-none border-t-2 border-dashed border-slate-300 relative text-center w-12">
-                                    <div id="dt-type" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-1 text-[9px] text-slate-400 font-bold border border-slate-100 rounded-full whitespace-nowrap overflow-hidden max-w-[60px] text-ellipsis">Type</div>
-                                </div>
-                                <div class="bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 text-center flex-1">
-                                    <div class="text-[9px] text-blue-500 font-bold uppercase tracking-wide mb-1">Species</div>
-                                    <div id="dt-local-name-sm" class="font-bold text-slate-700 text-sm truncate leading-tight">Species</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 border-b border-slate-100 pb-2">Description</h3>
-                            <p id="dt-desc" class="text-slate-700 text-base leading-loose text-justify font-serif">No description available.</p>
-                        </div>
-
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 border-b border-slate-100 pb-2">Research Sources</h3>
-                            <div id="dt-links" class="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x"></div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 2: MULTIMEDIA & DATA -->
-                    <div id="tab-content-media" class="hidden p-8 space-y-8 max-w-5xl mx-auto animate-[fadeIn_0.3s]">
-                        <div class="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                            <div id="img-carousel" class="media-slider-container"></div>
-                            <button class="media-nav media-prev force-hidden" id="img-prev" onclick="window.ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
-                            <button class="media-nav media-next force-hidden" id="img-next" onclick="window.ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
-                            <div class="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/80 to-transparent w-full pointer-events-none">
-                                <div class="flex gap-2">
-                                    <span id="dt-country" class="bg-blue-600/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm"><i class="fas fa-map-marker-alt mr-1"></i> Country</span>
-                                    <span id="dt-status" class="bg-red-500/90 text-white px-3 py-1 rounded text-[10px] font-bold backdrop-blur-sm">Status</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="relative bg-black rounded-2xl overflow-hidden shadow-lg border border-slate-300 aspect-video group">
-                            <div id="vid-carousel" class="media-slider-container"></div>
-                            <button class="media-nav media-prev force-hidden" id="vid-prev" onclick="window.ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
-                            <button class="media-nav media-next force-hidden" id="vid-next" onclick="window.ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-
-                        <div class="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-300 relative h-[500px] w-full">
-                            <div id="detail-geo-map" class="w-full h-full z-0"></div>
-                            <div class="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-md text-[10px] font-bold text-purple-600 shadow-sm pointer-events-none border border-white z-[100]">GIS Multi-Layer View</div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+            <button onclick="ui.closeModal('choice-modal')" class="mt-6 text-slate-400 hover:text-slate-600 text-xs font-bold">Cancel</button>
         </div>
     </div>
 
@@ -468,756 +279,813 @@
         <div class="glass-panel w-full max-w-4xl h-[90vh] rounded-3xl flex flex-col relative bg-white shadow-2xl">
             <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl">
                 <div>
-                    <h3 id="input-title" class="text-xl font-bold text-slate-800">Manage Data</h3>
-                    <p class="text-xs text-slate-500">Separators: Comma (,) for lists, Pipe (|) for contact details.</p>
+                    <h3 id="input-title" class="text-xl font-bold text-slate-800">Add Entry</h3>
+                    <p class="text-xs text-slate-500" id="input-subtitle">Filling data...</p>
                 </div>
-                <button onclick="window.ui.closeModal('input-modal')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+                <button onclick="ui.closeModal('input-modal')" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
             </div>
             
             <div class="p-8 overflow-y-auto custom-scrollbar space-y-6 flex-1 bg-white">
                 <input type="hidden" id="inp-id">
+                <input type="hidden" id="inp-type"> <!-- 'nodes' or 'biosphere' -->
+
+                <!-- SHARED FIELDS -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Local Name</label><input type="text" id="inp-local-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
-                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Latin Name</label><input type="text" id="inp-latin-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm italic"></div>
+                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Name (Biodiversity / Biosphere)</label><input type="text" id="inp-name" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm focus:border-blue-500 outline-none"></div>
+                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
                 </div>
-                <div><label class="text-xs text-slate-500 font-bold block mb-1">Country</label><input type="text" id="inp-country" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
-                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-blue-600 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Species Location</label><div class="flex gap-2"><button type="button" onclick="window.BioApp.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Set Point</button><button type="button" onclick="window.geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition z-10 relative">Draw GIS</button></div></div>
-                    <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-lat" placeholder="Latitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"><input type="text" id="inp-lng" placeholder="Longitude" class="bg-white border border-blue-200 rounded-xl p-3 text-xs"></div>
-                    <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-blue-200 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON" readonly></textarea>
+
+                <!-- LOCATION & GEO -->
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="text-sm text-slate-700 font-bold flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Location & Geometry</label>
+                        <div class="flex gap-2">
+                            <button id="btn-set-point" type="button" onclick="BioApp.pickLocation('main')" class="text-[10px] bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Set Point</button>
+                            <button id="btn-draw-area" type="button" onclick="geoEditor.start()" class="text-[10px] bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-white font-bold transition">Draw Area (GIS)</button>
+                        </div>
+                    </div>
+                    <div id="coord-inputs" class="grid grid-cols-2 gap-4 mb-4">
+                        <input type="text" id="inp-lat" placeholder="Latitude" class="bg-white border border-slate-300 rounded-xl p-3 text-xs">
+                        <input type="text" id="inp-lng" placeholder="Longitude" class="bg-white border border-slate-300 rounded-xl p-3 text-xs">
+                    </div>
+                    <textarea id="inp-geometry" rows="1" class="w-full bg-white border border-slate-300 rounded-xl p-3 text-slate-400 text-[10px] font-mono" placeholder="GIS Geometry JSON" readonly></textarea>
                 </div>
-                <div><label class="text-xs text-slate-500 font-bold block mb-1">Description</label><textarea id="inp-desc" rows="3" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></textarea></div>
-                <div class="grid grid-cols-2 gap-6">
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Status (IUCN)</label><input type="text" id="inp-unesco" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Organization (Name | Web | Phone)</label><input type="text" id="inp-contact" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm" placeholder="Org 1 | web | tel, Org 2 | web | tel"></div>
+
+                <!-- NODES SPECIFIC -->
+                <div id="section-nodes" class="space-y-6 border-l-4 border-blue-500 pl-4 bg-blue-50/50 p-4 rounded-r-xl">
+                    <div class="text-xs font-bold text-blue-500 uppercase">Biodiversity Specific</div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div><label class="text-xs text-slate-500 font-bold block mb-1">Latin Name</label><input type="text" id="inp-latin" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm italic"></div>
+                        <div><label class="text-xs text-slate-500 font-bold block mb-1">Status (IUCN)</label><input type="text" id="inp-nodes-status" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                    </div>
+                    <div><label class="text-xs text-slate-500 font-bold block mb-1">Contact / Organization</label><input type="text" id="inp-contact" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm" placeholder="Org | Web | Phone"></div>
+                    
+                    <!-- Orange Box (Auto Link) -->
+                    <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 relative">
+                        <div class="flex justify-between items-center mb-2"><label class="text-xs text-orange-600 font-bold"><i class="fas fa-cube"></i> Affected By (Other Biodiversity)</label><button type="button" onclick="BioApp.pickLocation('origin')" class="text-[9px] bg-orange-500 text-white px-2 py-1 rounded">Set Loc</button></div>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                             <input type="text" id="inp-aff-name" placeholder="Name (Comma separated)" class="w-full rounded p-2 text-xs border border-orange-200">
+                             <input type="text" id="inp-conn-type" placeholder="Interaction Type" class="w-full rounded p-2 text-xs border border-orange-200">
+                        </div>
+                        <div class="hidden"><input id="inp-aff-lat"><input id="inp-aff-lng"><input id="inp-aff-latin"><input id="inp-aff-country"></div>
+                    </div>
                 </div>
-                <div class="grid grid-cols-2 gap-6">
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Images (Comma separated)</label><input type="text" id="inp-image" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
-                      <div><label class="text-xs text-slate-500 font-bold block mb-1">YouTube IDs (Comma sep)</label><input type="text" id="inp-youtube" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+
+                <!-- BIOSPHERE SPECIFIC -->
+                <div id="section-biosphere" class="hidden space-y-6 border-l-4 border-emerald-500 pl-4 bg-emerald-50/50 p-4 rounded-r-xl">
+                    <div class="text-xs font-bold text-emerald-500 uppercase">Biosphere Reserve Specific</div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div><label class="text-xs text-slate-500 font-bold block mb-1">Region</label><input type="text" id="inp-region" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                        <div><label class="text-xs text-slate-500 font-bold block mb-1">UNESCO Year</label><input type="text" id="inp-year" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div><label class="text-xs text-slate-500 font-bold block mb-1">Status (e.g. Active)</label><input type="text" id="inp-bio-status" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                        <div><label class="text-xs text-slate-500 font-bold block mb-1">Area Total (Ha)</label><input type="text" id="inp-area" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+                    </div>
                 </div>
-                <div><label class="text-xs text-slate-500 font-bold block mb-1">Research Links (Comma separated)</label><input type="text" id="inp-research" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
-                
-                <div class="bg-orange-50 p-6 rounded-2xl border border-orange-100 shadow-sm relative">
-                    <div class="flex justify-between items-center mb-4"><label class="text-sm text-orange-600 font-bold flex items-center gap-2"><i class="fas fa-cube"></i> Affected By (Factor)</label><button type="button" onclick="window.BioApp.pickLocation('origin')" class="text-[10px] bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg text-white font-bold transition relative z-10">Set Location</button></div>
-                    <div class="relative mb-4"><input type="text" id="inp-affected-local" placeholder="Search existing species..." class="w-full rounded-xl p-3 text-sm shadow-sm border border-orange-200 focus:ring-2 focus:ring-orange-200 transition outline-none" oninput="window.BioApp.handleOriginSearch(this.value)"><div id="origin-suggestions" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl z-[9999] max-h-40 overflow-y-auto shadow-2xl"></div></div>
-                    <div class="grid grid-cols-2 gap-4 mb-4"><input type="text" id="inp-affected-latin" placeholder="Latin" class="bg-white border border-orange-200 rounded-xl p-3 text-xs italic"><input type="text" id="inp-affected-country" placeholder="Country" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"></div>
-                    <div class="grid grid-cols-2 gap-4"><input type="text" id="inp-affected-lat" placeholder="Lat" class="bg-white border border-orange-200 rounded-xl p-3 text-xs"><input type="text" id="inp-affected-lng" placeholder="Lng" class="bg-white border-orange-200 rounded-xl p-3 text-xs"></div>
-                    <div class="mt-4"><label class="text-xs text-slate-500 font-bold block mb-1">Interaction Type</label><input type="text" id="inp-conn-type" class="w-full rounded-xl p-3 shadow-sm border border-slate-200 text-sm"></div>
+
+                <!-- DESCRIPTION (Rich Text-ish) -->
+                <div>
+                    <label class="text-xs text-slate-500 font-bold block mb-1">Description</label>
+                    <div class="w-full rounded-xl border border-slate-200 overflow-hidden shadow-sm focus-within:ring-2 ring-blue-100">
+                        <div class="rt-toolbar">
+                            <button type="button" class="rt-btn font-bold" onclick="BioApp.insertTag('<b>', '</b>')">B</button>
+                            <button type="button" class="rt-btn italic" onclick="BioApp.insertTag('<i>', '</i>')">I</button>
+                            <button type="button" class="rt-btn" onclick="BioApp.insertTag('<h3>', '</h3>')">H3</button>
+                            <button type="button" class="rt-btn" onclick="BioApp.insertTag('<ul>\n<li>', '</li>\n</ul>')">List</button>
+                            <button type="button" class="rt-btn" onclick="BioApp.insertTag('<br>', '')">Enter</button>
+                        </div>
+                        <textarea id="inp-desc" rows="4" class="w-full p-3 text-sm outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- MEDIA -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Image URLs (,)</label><input type="text" id="inp-image" class="w-full rounded-xl p-2 border border-slate-200 text-xs"></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">YouTube URLs (,)</label><input type="text" id="inp-youtube" class="w-full rounded-xl p-2 border border-slate-200 text-xs"></div>
+                      <div><label class="text-xs text-slate-500 font-bold block mb-1">Research Links (,)</label><input type="text" id="inp-links" class="w-full rounded-xl p-2 border border-slate-200 text-xs"></div>
                 </div>
             </div>
             
             <div class="p-6 border-t border-slate-200 bg-slate-50 rounded-b-3xl flex justify-between items-center">
-                <button id="btn-delete" onclick="window.BioApp.deleteData()" class="hidden px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl font-bold text-xs border border-red-100 transition"><i class="fas fa-trash mr-2"></i> Delete Entry</button>
+                <button id="btn-delete" onclick="BioApp.deleteData()" class="hidden text-red-500 text-xs font-bold hover:underline">Delete Entry</button>
                 <div class="flex gap-4 ml-auto">
-                    <button onclick="window.ui.closeModal('input-modal')" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-700 transition">Cancel</button>
-                    <button onclick="window.BioApp.saveData()" id="btn-save" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition transform active:scale-95">Save Changes</button>
+                    <button onclick="ui.closeModal('input-modal')" class="px-6 py-2 text-slate-500 font-bold hover:text-slate-700">Cancel</button>
+                    <button onclick="BioApp.saveData()" id="btn-save" class="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg">Save</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- GEO EDITOR -->
-    <div id="geo-editor" class="fixed inset-0 z-picker hidden bg-slate-100 z-[3000]">
-        <div id="geo-map" class="w-full h-full relative z-[3001]"></div>
-        <div class="absolute top-6 left-1/2 -translate-x-1/2 z-[3100] bg-white px-6 py-3 rounded-full shadow-xl flex gap-4 border border-slate-200">
-            <span class="font-bold text-purple-600 flex items-center gap-2"><i class="fas fa-draw-polygon"></i> DRAWING MODE</span>
-            <div class="h-6 w-px bg-slate-200"></div>
-            <button onclick="window.geoEditor.finish()" class="text-green-600 font-bold hover:text-green-700">Save</button>
-            <button onclick="window.geoEditor.cancel()" class="text-slate-400 hover:text-slate-600">Cancel</button>
+    <!-- DETAIL MODAL (Redesigned) -->
+    <div id="detail-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+        <div class="glass-panel w-full max-w-5xl h-[90vh] rounded-3xl flex flex-col relative bg-white shadow-2xl overflow-hidden">
+            <button onclick="ui.closeModal('detail-modal')" class="absolute top-4 right-4 z-50 w-8 h-8 bg-slate-100 rounded-full hover:bg-red-100 text-slate-400 hover:text-red-500 flex items-center justify-center transition shadow"><i class="fas fa-times"></i></button>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 h-full">
+                <!-- LEFT: IMAGE CAROUSEL (HERO) -->
+                <div class="bg-black relative group h-1/2 md:h-full overflow-hidden">
+                    <div id="img-carousel" class="w-full h-full relative"></div>
+                    <!-- Arrows -->
+                    <button id="img-prev" class="nav-btn nav-prev force-hidden" onclick="ui.prevMedia('img')"><i class="fas fa-chevron-left"></i></button>
+                    <button id="img-next" class="nav-btn nav-next force-hidden" onclick="ui.nextMedia('img')"><i class="fas fa-chevron-right"></i></button>
+                    
+                    <!-- Overlay Text -->
+                    <div class="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none">
+                        <div class="flex gap-2 mb-2">
+                             <span id="dt-tag-type" class="px-2 py-1 rounded text-[9px] font-bold bg-blue-600 text-white shadow">BIODIVERSITY</span>
+                             <span id="dt-tag-country" class="px-2 py-1 rounded text-[9px] font-bold bg-white/20 text-white backdrop-blur shadow">COUNTRY</span>
+                        </div>
+                        <h2 id="dt-title" class="text-3xl font-black text-white leading-tight drop-shadow-md">Title</h2>
+                        <p id="dt-subtitle" class="text-slate-300 italic text-sm mt-1">Subtitle</p>
+                    </div>
+                </div>
+
+                <!-- RIGHT: INFO & SCROLLABLE -->
+                <div class="p-8 overflow-y-auto bg-slate-50 h-1/2 md:h-full custom-scrollbar">
+                    <div id="dt-admin-btn" class="hidden mb-4"><button onclick="BioApp.editCurrent()" class="text-[10px] bg-amber-100 text-amber-600 px-3 py-1 rounded-full font-bold hover:bg-amber-200 border border-amber-200">EDIT DATA</button></div>
+                    
+                    <!-- 1. YOUTUBE CAROUSEL -->
+                    <div id="vid-section" class="mb-6 hidden">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">Media & Observation</div>
+                        <div class="relative bg-black rounded-xl overflow-hidden shadow-lg aspect-video border border-slate-200">
+                            <div id="vid-carousel" class="w-full h-full relative"></div>
+                            <button id="vid-prev" class="nav-btn nav-prev force-hidden" onclick="ui.prevMedia('vid')"><i class="fas fa-chevron-left"></i></button>
+                            <button id="vid-next" class="nav-btn nav-next force-hidden" onclick="ui.nextMedia('vid')"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- 2. DESCRIPTION -->
+                    <div class="prose prose-sm text-slate-600 mb-6 border-b border-slate-200 pb-6">
+                        <h3 class="text-xs font-bold text-slate-800 uppercase mb-2">Description</h3>
+                        <div id="dt-desc" class="whitespace-pre-wrap leading-relaxed text-justify">Description goes here...</div>
+                    </div>
+
+                    <!-- 3. DETAIL MAP (MULTI-LAYER / GIS) -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase">Geographic Context</h3>
+                            <span id="map-legend-label" class="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">GIS Multi-Layer View</span>
+                        </div>
+                        <div id="detail-mini-map" class="w-full h-48 bg-slate-200 rounded-xl overflow-hidden shadow-inner border border-slate-300 z-0 relative">
+                             <div class="map-badge">
+                                 <div class="flex items-center"><span class="legend-dot bg-[#9333ea]"></span> Current</div>
+                                 <div class="flex items-center"><span class="legend-dot bg-[#F59E0B]"></span> Factor</div>
+                             </div>
+                        </div>
+                        <div class="mt-2 text-[10px] text-slate-400 italic" id="map-context-note">
+                            *Layers: Orange (Habitat/Factor) vs Purple (Current Species Area).
+                        </div>
+                    </div>
+
+                    <!-- EXTRA INFO -->
+                    <div id="dt-extra-info" class="grid grid-cols-2 gap-4 mb-6 text-xs text-slate-500 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- LINKS -->
+                    <div id="dt-links-area" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GEO EDITOR (Simple) -->
+    <div id="geo-editor" class="fixed inset-0 z-picker hidden bg-slate-100">
+        <div id="geo-map" class="w-full h-full"></div>
+        <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg flex gap-4 text-xs font-bold">
+            <span class="text-purple-600">DRAWING MODE</span>
+            <button onclick="geoEditor.finish()" class="text-green-600">Save</button>
+            <button onclick="geoEditor.cancel()" class="text-slate-400">Cancel</button>
+        </div>
+    </div>
+
+    <!-- LOGIN MODAL -->
+    <div id="login-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="glass-panel w-80 p-6 rounded-2xl bg-white shadow-xl">
+            <h3 class="font-bold text-center mb-4">Contributor Login</h3>
+            <input id="login-user" class="w-full mb-2 p-2 border rounded text-sm" placeholder="Username">
+            <input id="login-pass" type="password" class="w-full mb-4 p-2 border rounded text-sm" placeholder="Password">
+            <button onclick="BioApp.login()" id="btn-login" class="w-full bg-blue-600 text-white py-2 rounded font-bold text-sm">Login</button>
+            <button onclick="ui.closeModal('login-modal')" class="w-full mt-2 text-xs text-slate-400">Cancel</button>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="help-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="glass-panel w-full max-w-2xl p-8 rounded-3xl bg-white shadow-xl relative">
+            <button onclick="ui.closeModal('help-modal')" class="absolute top-4 right-4 text-slate-400"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-black mb-4 text-emerald-600">Map Legend & Guide</h2>
+            <div class="grid grid-cols-2 gap-8 text-sm">
+                <div>
+                    <h3 class="font-bold mb-2 border-b">Layers</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-600 rounded-full"></div> <strong>Blue Points:</strong> Biodiversity Species.</li>
+                        <li class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-400 opacity-50 border border-blue-600"></div> <strong>Blue Area:</strong> Biodiversity Distribution (GIS).</li>
+                        <li class="flex items-center gap-2"><div class="w-3 h-3 bg-orange-500 rounded-full"></div> <strong>Orange Points:</strong> Factors (Food/Threats).</li>
+                        <li class="flex items-center gap-2"><div class="w-3 h-3 bg-emerald-500 opacity-50 border border-emerald-600"></div> <strong>Green Areas:</strong> Biosphere Reserves.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold mb-2 border-b">Controls</h3>
+                    <ul class="space-y-2 text-slate-600">
+                        <li><strong>Click:</strong> View details of any node or area.</li>
+                        <li><strong>Add Data:</strong> Admin only.</li>
+                        <li><strong>GIS Drawing:</strong> Available for Biosphere and Biodiversity.</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzgkaqhigU7Pd09c27Hgk786dVEcFIozA_hXEwesA2_ePrl1884GW3KB7Zj7Ve_IwqImQ/exec';
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQcKtxqi1W_5A25VJ6BkA4yPmkwjbfmAM-LSTQH2f76DN8j85fMEODzOEKs83hMkC9iZxbShNpK2xo/pub?output=csv';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbyPcj0LRu6shW1AyITqvM0b9QMhsxYGReyM8WUhMSYZuvuqJeLt7XXp7J8qpOtYYVQJQA/exec';
+
         const state = { 
-            data: [], role: 'guest', editId: null, pickerTarget: null, currentDetail: null, filter: { search: '' }, pagination: { page: 1, limit: 10 }, 
-            media: { imgIdx: 0, vidIdx: 0, contactIdx: 0, images: [], videos: [], contacts: [] } 
+            nodes: [], biosphere: [], role: 'guest', currentDetail: null, currentType: null,
+            inputMode: 'nodes',
+            media: { imgIdx: 0, vidIdx: 0, images: [], videos: [] },
+            charts: { status: null, country: null },
+            pagination: { currentPage: 1, itemsPerPage: 15 }, // ADDED PAGINATION STATE
+            filters: { search: '', type: 'all', country: 'all' } // ADDED FILTER STATE
         };
 
-        function robustParse(val) {
-            if (!val) return null;
-            let str = String(val).trim();
-            if ((str.match(/\./g) || []).length > 1) str = str.replace(/\./g, ''); 
-            else if (str.includes(',') && str.includes('.')) str = str.replace(/\./g, '').replace(',', '.'); 
-            else if (str.includes(',')) str = str.replace(',', '.'); 
-            let n = parseFloat(str);
-            if (isNaN(n)) return null;
-            while (Math.abs(n) > 180) { n = n / 10; }
-            return n;
+        // Simple XSS Sanitizer for Rich Text
+        function sanitizeHTML(str) {
+            if (!str) return '';
+            return str
+                .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gm, "")
+                .replace(/on\w+="[^"]*"/g, "")
+                .replace(/javascript:/g, "");
         }
 
-        function extractYoutubeEmbed(url) {
-            if (!url) return '';
-            if (url.trim().startsWith('<iframe')) return url.replace(/width="[^"]*"/g, 'width="100%"').replace(/height="[^"]*"/g, 'height="100%"');
-            let id = null;
-            if(url.includes('v=')) id = url.split('v=')[1].split('&')[0];
-            else if(url.includes('youtu.be/')) id = url.split('youtu.be/')[1];
-            else id = url;
-            if(id) return `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen class="w-full h-full"></iframe>`;
-            return '';
-        }
-
-        function transformData(item) {
-             const get = (k) => item[Object.keys(item).find(x=>x.toLowerCase()===k.toLowerCase())];
-             return {
-                id: get('id'), 
-                local_name: get('local_name') || get('food_name'), 
-                latin_name: get('latin_name'), 
-                country: get('country'),
-                lat: robustParse(get('lat')), lng: robustParse(get('lng')),
-                affectedby_local_name: get('affectedby_local_name') || get('affected_by_local_name') || get('origin_food_name'), 
-                affectedby_latin_name: get('affectedby_latin_name'),
-                affectedby_country: get('affectedby_country') || get('origin_country'), 
-                affectedby_lat: robustParse(get('affectedby_lat')), 
-                affectedby_lng: robustParse(get('affectedby_lng')),
-                connection_type: get('connection_type'), contact: get('Contact'),
-                youtube_url: get('youtube_url'), image_url: get('image_url'), description: get('description'), 
-                geometry_json: get('GEOMETRY_JSON'), unesco_status: get('unesco_status'), research_links: get('research_links')
-            };
-        }
-
-        window.ui = {}; window.mapLogic = {}; window.dashboard = {}; window.geoEditor = {}; window.BioApp = {};
-
-        window.ui = {
-            renderAuth: () => {
-                const isGuest = state.role !== 'admin';
-                document.getElementById('status-guest').classList.toggle('hidden', !isGuest);
-                document.getElementById('status-admin').classList.toggle('hidden', isGuest);
-            },
-            loaded: () => {
-                document.getElementById('loading-container').classList.add('hidden');
-                document.getElementById('entry-buttons').classList.remove('hidden');
-                document.getElementById('dataset-info').classList.remove('hidden');
-                document.getElementById('record-count').innerText = state.data.length;
-            },
+        const ui = {
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
             closeModal: (id) => document.getElementById(id).classList.add('hidden'),
-            
-            switchDetailTab: (tabId) => {
-                // Update buttons
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.getElementById('tab-btn-' + tabId).classList.add('active');
-                
-                // Update content visibility
-                document.getElementById('tab-content-overview').classList.add('hidden');
-                document.getElementById('tab-content-media').classList.add('hidden');
-                document.getElementById('tab-content-' + tabId).classList.remove('hidden');
+            renderAuth: () => {
+                const isAdmin = state.role === 'admin';
+                const guestEl = document.getElementById('status-guest');
+                const adminEl = document.getElementById('status-admin');
+                const adminBtn = document.getElementById('dt-admin-btn');
 
-                // If switching to media, resize map and fit bounds
-                if(tabId === 'media' && window.detailMap) {
-                    setTimeout(() => {
-                        window.detailMap.invalidateSize();
-                        // Re-fit bounds if we have them
-                        if(window.detailBounds && window.detailBounds.isValid()) {
-                            window.detailMap.fitBounds(window.detailBounds, {padding: [50, 50], maxZoom: 10});
-                        }
-                    }, 100);
-                }
+                if(guestEl) guestEl.classList.toggle('hidden', isAdmin);
+                if(adminEl) adminEl.classList.toggle('hidden', !isAdmin);
+                if(adminBtn) adminBtn.classList.toggle('hidden', !isAdmin);
             },
-
+            
+            // --- MEDIA CAROUSEL LOGIC ---
             renderMedia: (type) => {
-                const container = document.getElementById(type === 'img' ? 'img-carousel' : (type==='vid'?'vid-carousel':'contact-carousel'));
-                const prevBtn = document.getElementById(type === 'img' ? 'img-prev' : (type==='vid'?'vid-prev':'contact-prev'));
-                const nextBtn = document.getElementById(type === 'img' ? 'img-next' : (type==='vid'?'vid-next':'contact-next'));
+                const isImg = type === 'img';
+                const items = isImg ? state.media.images : state.media.videos;
+                const idx = isImg ? state.media.imgIdx : state.media.vidIdx;
+                const container = document.getElementById(isImg ? 'img-carousel' : 'vid-carousel');
+                const prev = document.getElementById(isImg ? 'img-prev' : 'vid-prev');
+                const next = document.getElementById(isImg ? 'img-next' : 'vid-next');
+
                 container.innerHTML = '';
-                
-                let items, idx;
-                if(type === 'img') { items = state.media.images; idx = state.media.imgIdx; }
-                else if(type === 'vid') { items = state.media.videos; idx = state.media.vidIdx; }
-                else { items = state.media.contacts; idx = state.media.contactIdx; }
-                
-                if (items.length === 0) {
-                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center text-slate-400 text-xs">No Data</div>`;
-                    prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden');
+                if(items.length === 0) {
+                    container.innerHTML = `<div class="w-full h-full flex items-center justify-center text-slate-500 text-xs flex-col"><i class="fas fa-${isImg?'image':'video'} text-2xl mb-2 opacity-50"></i>No ${isImg?'Images':'Videos'}</div>`;
+                    prev.classList.add('force-hidden'); next.classList.add('force-hidden');
                     return;
                 }
 
-                if (items.length > 1) { prevBtn.classList.remove('force-hidden'); nextBtn.classList.remove('force-hidden'); } 
-                else { prevBtn.classList.add('force-hidden'); nextBtn.classList.add('force-hidden'); }
+                // Show/Hide Arrows
+                if(items.length > 1) { prev.classList.remove('force-hidden'); next.classList.remove('force-hidden'); } 
+                else { prev.classList.add('force-hidden'); next.classList.add('force-hidden'); }
 
-                if (type === 'img') {
+                // Render Content
+                if(isImg) {
                     const img = document.createElement('img');
-                    img.src = items[idx]; img.className = "w-full h-full object-cover animate-[fadeIn_0.3s]";
+                    img.src = items[idx];
+                    img.className = "w-full h-full object-cover fade-in";
+                    img.onerror = () => { img.src = 'https://via.placeholder.com/400x300?text=No+Image'; };
                     container.appendChild(img);
-                } else if (type === 'vid') {
-                    const vidDiv = document.createElement('div');
-                    vidDiv.className = "w-full h-full animate-[fadeIn_0.3s]";
-                    vidDiv.innerHTML = extractYoutubeEmbed(items[idx]);
-                    container.appendChild(vidDiv);
-                } else if (type === 'contact') {
-                    const details = items[idx].split('|').map(s => s.trim());
-                    const div = document.createElement('div');
-                    div.className = "contact-slide active";
-                    div.innerHTML = `
-                        <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Preservation Organization ${items.length>1 ? `(${idx+1}/${items.length})` : ''}</div>
-                        <div class="font-bold text-slate-800 text-lg leading-tight">${details[0] || 'Unknown'}</div>
-                        ${details[1] ? `<div class="text-xs text-blue-500 truncate mt-1"><a href="https://${details[1].replace(/^https?:\/\//, '')}" target="_blank" class="hover:underline"><i class="fas fa-link mr-1"></i>${details[1]}</a></div>` : ''}
-                        ${details[2] ? `<div class="text-xs text-slate-500 mt-0.5"><i class="fas fa-phone mr-1"></i> ${details[2]}</div>` : ''}
-                    `;
-                    container.appendChild(div);
+                } else {
+                    const vidId = items[idx].includes('v=') ? items[idx].split('v=')[1] : items[idx];
+                    container.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen class="fade-in w-full h-full"></iframe>`;
                 }
             },
             nextMedia: (type) => {
-                if (type === 'img') state.media.imgIdx = (state.media.imgIdx + 1) % state.media.images.length;
-                else if (type === 'vid') state.media.vidIdx = (state.media.vidIdx + 1) % state.media.videos.length;
-                else state.media.contactIdx = (state.media.contactIdx + 1) % state.media.contacts.length;
-                window.ui.renderMedia(type);
+                const isImg = type === 'img';
+                const len = isImg ? state.media.images.length : state.media.videos.length;
+                if(isImg) state.media.imgIdx = (state.media.imgIdx + 1) % len;
+                else state.media.vidIdx = (state.media.vidIdx + 1) % len;
+                ui.renderMedia(type);
             },
             prevMedia: (type) => {
-                if (type === 'img') state.media.imgIdx = (state.media.imgIdx - 1 + state.media.images.length) % state.media.images.length;
-                else if (type === 'vid') state.media.vidIdx = (state.media.vidIdx - 1 + state.media.videos.length) % state.media.videos.length;
-                else state.media.contactIdx = (state.media.contactIdx - 1 + state.media.contacts.length) % state.media.contacts.length;
-                window.ui.renderMedia(type);
-            },
-            nextRecord: () => {
-                const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
-                window.dashboard.showDetail(state.data[(idx + 1) % state.data.length]);
-            },
-            prevRecord: () => {
-                const idx = state.data.findIndex(d => d.id === state.currentDetail.id);
-                window.dashboard.showDetail(state.data[(idx - 1 + state.data.length) % state.data.length]);
+                const isImg = type === 'img';
+                const len = isImg ? state.media.images.length : state.media.videos.length;
+                if(isImg) state.media.imgIdx = (state.media.imgIdx - 1 + len) % len;
+                else state.media.vidIdx = (state.media.vidIdx - 1 + len) % len;
+                ui.renderMedia(type);
             }
         };
 
-        window.geoEditor = {
+        // --- HELPER FOR ROBUST PARSING (AUTO-FIX FOR INDONESIAN FORMAT) ---
+        function robustParse(val) {
+            if (!val) return null;
+            let str = String(val).trim();
+            
+            // Standardizing Comma to Dot
+            str = str.replace(',', '.'); 
+            
+            let n = parseFloat(str);
+            return isNaN(n) ? null : n;
+        }
+
+        function isValidLatLng(lat, lng) {
+            // Strict check for MAP rendering only
+            return lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+        }
+
+        const mapLogic = {
+            map: null, detailMap: null, layers: [],
+            palette: ['#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1'],
+            init: () => {
+                mapLogic.map = L.map('map-container', {zoomControl: false}).setView([0,0], 2);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapLogic.map);
+                L.control.zoom({position: 'topright'}).addTo(mapLogic.map);
+                // Panes for stacking order
+                mapLogic.map.createPane('biospherePane').style.zIndex = 400; // Bottom
+                mapLogic.map.createPane('linesPane').style.zIndex = 450;
+                mapLogic.map.createPane('nodesPolyPane').style.zIndex = 460; // New: Nodes GIS
+                mapLogic.map.createPane('orangePane').style.zIndex = 500;
+                mapLogic.map.createPane('nodesPane').style.zIndex = 600; // Top
+            },
+            initDetailMap: () => {
+                if(mapLogic.detailMap) { mapLogic.detailMap.remove(); }
+                mapLogic.detailMap = L.map('detail-mini-map', {zoomControl: false});
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapLogic.detailMap);
+            },
+            render: () => {
+                mapLogic.layers.forEach(l => mapLogic.map.removeLayer(l));
+                mapLogic.layers = [];
+                const search = document.getElementById('map-search').value.toLowerCase();
+
+                // 1. RENDER BIOSPHERE (Green Polygons)
+                state.biosphere.forEach(b => {
+                    if(search && !b.name_bio.toLowerCase().includes(search) && !b.country.toLowerCase().includes(search)) return;
+                    let layer;
+                    const geo = b.geo_json || b.geometry_json;
+                    if(geo) {
+                        try {
+                            const pts = JSON.parse(geo);
+                            layer = L.polygon(pts, { pane: 'biospherePane', color: '#10B981', weight: 1, fillOpacity: 0.4 });
+                        } catch(e) {}
+                    }
+                    if(layer) {
+                        layer.addTo(mapLogic.map);
+                        layer.on('click', () => BioApp.showDetail(b, 'biosphere'));
+                        layer.bindTooltip(b.name_bio, {className: 'custom-tooltip bio-tooltip', direction: 'center', permanent: false});
+                        mapLogic.layers.push(layer);
+                    }
+                });
+
+                // 2. RENDER NODES (Biodiversity)
+                state.nodes.forEach(n => {
+                    // Check Search
+                    if(search && !n.local_name.toLowerCase().includes(search)) return;
+                    
+                    // CRITICAL FIX: Only render on MAP if lat/lng is valid.
+                    // But we still allow them in the Dashboard list even if invalid.
+                    if(!isValidLatLng(n.lat, n.lng)) return;
+
+                    // Draw Lines to Factors (Orange)
+                    if(isValidLatLng(n.affectedby_lat, n.affectedby_lng)) {
+                        const line = L.polyline([[n.affectedby_lat, n.affectedby_lng], [n.lat, n.lng]], { pane: 'linesPane', color: '#64748b', weight: 1, dashArray: '4,4' }).addTo(mapLogic.map);
+                        const orange = L.marker([n.affectedby_lat, n.affectedby_lng], { pane: 'orangePane', icon: L.divIcon({ className: 'geo-marker-icon', html: '<div style="background:#F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white;"></div>', iconSize: [10,10] }) }).addTo(mapLogic.map);
+                        orange.bindTooltip(n.affectedby_local_name || 'Factor', {className: 'custom-tooltip'});
+                        mapLogic.layers.push(line, orange);
+                    }
+
+                    const marker = L.marker([n.lat, n.lng], { pane: 'nodesPane', icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14,14] }) }).addTo(mapLogic.map);
+                    marker.on('click', () => BioApp.showDetail(n, 'nodes'));
+                    marker.bindTooltip(n.local_name, {className: 'custom-tooltip'});
+                    mapLogic.layers.push(marker);
+                });
+            }
+        };
+
+        const geoEditor = {
             map: null, layer: null, points: [], markers: [],
             start: () => {
-                window.ui.closeModal('input-modal'); 
+                ui.closeModal('input-modal');
                 document.getElementById('geo-editor').classList.remove('hidden');
-                
-                if(!window.geoEditor.map) {
-                    window.geoEditor.map = L.map('geo-map', { zoomControl: false }).setView([0,0], 2);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.geoEditor.map);
-                    window.geoEditor.map.on('click', e => window.geoEditor.addPoint(e.latlng));
+                if(!geoEditor.map) {
+                    geoEditor.map = L.map('geo-map', {zoomControl: false}).setView([0,0], 2);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(geoEditor.map);
+                    geoEditor.map.on('click', e => geoEditor.addPoint(e.latlng));
                 }
-                
-                window.geoEditor.points = []; 
-                window.geoEditor.markers.forEach(m => window.geoEditor.map.removeLayer(m)); 
-                window.geoEditor.markers = [];
-                if(window.geoEditor.layer) window.geoEditor.map.removeLayer(window.geoEditor.layer);
-                
-                setTimeout(() => window.geoEditor.map.invalidateSize(), 300);
+                setTimeout(()=>geoEditor.map.invalidateSize(), 200);
+                geoEditor.reset();
+                const existing = document.getElementById('inp-geometry').value;
+                if(existing) { try { const pts = JSON.parse(existing); pts.forEach(p => geoEditor.addPoint({lat: p[0], lng: p[1]})); } catch(e){} }
+            },
+            reset: () => {
+                geoEditor.points = [];
+                geoEditor.markers.forEach(m => geoEditor.map.removeLayer(m));
+                geoEditor.markers = [];
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
             },
             addPoint: (latlng) => {
-                const m = L.marker(latlng, { 
-                    draggable: true,
-                    icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12], html: '<div style="width:100%; height:100%; background-color:#0077D4; border:2px solid white; border-radius:50%;"></div>' }) 
-                }).addTo(window.geoEditor.map);
-                m.on('drag', () => window.geoEditor.updatePoly());
-                window.geoEditor.markers.push(m);
-                window.geoEditor.updatePoly();
+                const m = L.marker(latlng, {draggable: true}).addTo(geoEditor.map);
+                m.on('drag', () => geoEditor.updatePoly());
+                geoEditor.markers.push(m);
+                geoEditor.updatePoly();
             },
             updatePoly: () => {
-                window.geoEditor.points = window.geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
-                if(window.geoEditor.layer) window.geoEditor.map.removeLayer(window.geoEditor.layer);
-                if(window.geoEditor.points.length > 2) window.geoEditor.layer = L.polygon(window.geoEditor.points, {color:'#9333ea', fillOpacity:0.3}).addTo(window.geoEditor.map);
-                else if(window.geoEditor.points.length > 1) window.geoEditor.layer = L.polyline(window.geoEditor.points, {color:'#9333ea'}).addTo(window.geoEditor.map);
+                geoEditor.points = geoEditor.markers.map(m => [m.getLatLng().lat, m.getLatLng().lng]);
+                if(geoEditor.layer) geoEditor.map.removeLayer(geoEditor.layer);
+                if(geoEditor.points.length > 2) geoEditor.layer = L.polygon(geoEditor.points, {color:'#9333ea'}).addTo(geoEditor.map);
             },
             finish: () => {
-                if(window.geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(window.geoEditor.points);
-                window.geoEditor.cancel();
+                if(geoEditor.points.length > 0) document.getElementById('inp-geometry').value = JSON.stringify(geoEditor.points);
+                geoEditor.cancel();
             },
-            cancel: () => { 
-                document.getElementById('geo-editor').classList.add('hidden'); 
-                window.ui.openModal('input-modal'); 
+            cancel: () => {
+                document.getElementById('geo-editor').classList.add('hidden');
+                ui.openModal('input-modal');
             }
         };
 
-        window.mapLogic = {
-            map: null, layers: [], 
-            init: () => {
-                window.mapLogic.map = L.map('map-container', { zoomControl: false }).setView([20, 0], 2);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.mapLogic.map);
-                L.control.zoom({ position: 'topright' }).addTo(window.mapLogic.map);
-                
-                window.mapLogic.map.createPane('blueNodes');
-                window.mapLogic.map.getPane('blueNodes').style.zIndex = 650;
-            },
-            resize: () => setTimeout(() => window.mapLogic.map.invalidateSize(), 200),
-            resetZoom: () => window.mapLogic.map.setView([20, 0], 2),
-            render: () => { 
-                window.mapLogic.layers.forEach(l => window.mapLogic.map.removeLayer(l)); 
-                window.mapLogic.layers = [];
-                const search = state.filter.search.toLowerCase();
-                
-                const filtered = state.data.filter(d => {
-                    if (!search) return true;
-                    return (d.local_name && d.local_name.toLowerCase().includes(search)) ||
-                           (d.latin_name && d.latin_name.toLowerCase().includes(search)) ||
-                           (d.country && d.country.toLowerCase().includes(search)) ||
-                           (d.unesco_status && d.unesco_status.toLowerCase().includes(search));
-                });
-                
-                filtered.forEach(d => {
-                    if (!d.lat || !d.lng) return;
-                    if (d.affectedby_lat && d.affectedby_lng) {
-                        const line = L.polyline([[d.affectedby_lat, d.affectedby_lng], [d.lat, d.lng]], { color: '#475569', weight: 2, dashArray: '6, 6' }).addTo(window.mapLogic.map);
-                        line.on('mouseover', function() { this.setStyle({ color: '#0077D4', weight: 4, dashArray: null }); });
-                        line.on('mouseout', function() { this.setStyle({ color: '#475569', weight: 2, dashArray: '6, 6' }); });
+        const BioApp = {
+            init: () => { ui.renderAuth(); BioApp.fetchData(); },
+            fetchData: () => {
+                fetch(GAS_URL).then(r => r.json()).then(d => {
+                    if(d.status === 'success') {
+                        // FIX: Do NOT filter nodes here. Map all of them.
+                        // We use robustParse to attempt fixing the "1.530.251" issue
+                        state.nodes = d.nodes.map(n => { 
+                            n.lat = robustParse(n.lat); 
+                            n.lng = robustParse(n.lng); 
+                            n.affectedby_lat = robustParse(n.affectedby_lat); 
+                            n.affectedby_lng = robustParse(n.affectedby_lng); 
+                            return n; 
+                        }); 
+                        // Removed .filter(...) so all data shows in Dashboard
                         
-                        const orange = L.marker([d.affectedby_lat, d.affectedby_lng], { 
-                             icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [12, 12], html: `<div style="background-color: #F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);"></div>` })
-                        }).addTo(window.mapLogic.map);
-                        orange.bindTooltip(`Factor: ${d.affectedby_local_name}`, {className: 'custom-tooltip'});
-                        window.mapLogic.layers.push(line, orange);
-                    }
-                });
+                        state.biosphere = d.biosphere;
+                        document.getElementById('loading-container').classList.add('hidden');
+                        document.getElementById('entry-buttons').classList.remove('hidden');
+                        
+                        // Populate Filters
+                        BioApp.populateFilters();
 
-                filtered.forEach(d => {
-                    if (!d.lat || !d.lng) return;
-                    const m = L.marker([d.lat, d.lng], { 
-                        pane: 'blueNodes', 
-                        icon: L.divIcon({
-                            className: 'blue-node-icon',
-                            html: `<div style="background-color: #0077D4; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3);"></div>`,
-                            iconSize: [14, 14],
-                            iconAnchor: [7, 7]
-                        })
-                    }).addTo(window.mapLogic.map);
-                    m.on('click', () => window.dashboard.showDetail(d));
-                    m.bindTooltip(d.local_name, {className: 'custom-tooltip'});
-                    window.mapLogic.layers.push(m);
-                });
-            },
-            enablePicker: (cb) => {
-                window.mapLogic.map.getContainer().classList.add('picker-mode');
-                window.mapLogic.pickerHandler = (e) => {
-                    if (window.mapLogic.pickerMarker) window.mapLogic.map.removeLayer(window.mapLogic.pickerMarker);
-                    window.mapLogic.pickerMarker = L.circleMarker(e.latlng, { color: state.pickerTarget==='main'?'#0077D4':'#F59E0B', radius: 8 }).addTo(window.mapLogic.map);
-                    cb(e.latlng.lat, e.latlng.lng);
-                };
-                window.mapLogic.map.on('click', window.mapLogic.pickerHandler);
-            },
-            disablePicker: () => {
-                window.mapLogic.map.getContainer().classList.remove('picker-mode');
-                if (window.mapLogic.pickerHandler) window.mapLogic.map.off('click', window.mapLogic.pickerHandler);
-                if (window.mapLogic.pickerMarker) window.mapLogic.map.removeLayer(window.mapLogic.pickerMarker);
-            }
-        };
-
-        window.dashboard = {
-            chartStatus: null, chartDependency: null,
-            init: () => { window.dashboard.render(); window.dashboard.listeners(); },
-            render: () => {
-                const ctx1 = document.getElementById('chart-status')?.getContext('2d');
-                const ctx2 = document.getElementById('chart-dependency')?.getContext('2d');
-                if (!ctx1 || !ctx2) return;
-
-                const total = state.data.length;
-                const countries = new Set(state.data.map(d=>d.country)).size;
-                const edges = state.data.filter(d=>d.affectedby_local_name).length;
-                const threatened = state.data.filter(d=>d.unesco_status && (d.unesco_status.toLowerCase().includes('endangered') || d.unesco_status.toLowerCase().includes('critical'))).length;
-                
-                ['total', 'countries', 'edges', 'unesco'].forEach((k,i) => document.getElementById('kpi-'+k).innerText = [total, countries, edges, threatened][i]);
-
-                // 1. Status Chart
-                const statuses = {}; state.data.forEach(d => { const s = d.unesco_status || 'Unknown'; statuses[s] = (statuses[s]||0)+1; });
-                if(window.dashboard.chartStatus) window.dashboard.chartStatus.destroy();
-                window.dashboard.chartStatus = new Chart(ctx1, { 
-                    type: 'doughnut', 
-                    data: { labels: Object.keys(statuses), datasets: [{ data: Object.values(statuses), backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#64748B'], borderWidth: 0 }] }, 
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } }, cutout: '60%' } 
-                });
-
-                // 2. Dependency Risk Index (Bubble Chart)
-                // Logic: X = Species Count, Y = Interaction Count, R = Critical Count, Color = Country
-                const countryData = {};
-                state.data.forEach(d => {
-                    if(!d.country) return;
-                    const c = d.country;
-                    if(!countryData[c]) countryData[c] = { species:0, interactions:0, critical:0 };
-                    
-                    countryData[c].species++;
-                    if(d.affectedby_local_name) countryData[c].interactions++;
-                    if(d.unesco_status && (d.unesco_status.toLowerCase().includes('critical') || d.unesco_status.toLowerCase().includes('endangered'))) {
-                        countryData[c].critical++;
-                    }
-                });
-
-                const bubbleData = Object.keys(countryData).map(country => {
-                    const item = countryData[country];
-                    return {
-                        x: item.species,
-                        y: item.interactions,
-                        r: Math.max(5, item.critical * 3), // Scale bubble
-                        country: country
-                    };
-                });
-
-                // Generate random colors for countries
-                const colors = bubbleData.map(() => `hsla(${Math.random() * 360}, 70%, 50%, 0.6)`);
-
-                if(window.dashboard.chartDependency) window.dashboard.chartDependency.destroy();
-                window.dashboard.chartDependency = new Chart(ctx2, {
-                    type: 'bubble',
-                    data: {
-                        datasets: [{
-                            label: 'Dependency Risk',
-                            data: bubbleData,
-                            backgroundColor: colors,
-                            borderColor: colors.map(c => c.replace('0.6', '1')),
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: (ctx) => {
-                                        const raw = ctx.raw;
-                                        return `${raw.country}: Species: ${raw.x}, Interactions: ${raw.y}, High Risk: ${Math.floor(raw.r/3)}`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { 
-                                title: { display: true, text: 'Total Species (X)' },
-                                grid: { color: '#f1f5f9' },
-                                beginAtZero: true
-                            },
-                            y: { 
-                                title: { display: true, text: 'Interactions (Y)' },
-                                grid: { color: '#f1f5f9' },
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-
-                window.dashboard.renderTable();
-            },
-            changePage: (step) => { state.pagination.page += step; window.dashboard.renderTable(); },
-            renderTable: () => {
-                const tbody = document.getElementById('table-body'); tbody.innerHTML = '';
-                const search = state.filter.search.toLowerCase();
-                const filtered = state.data.filter(d => {
-                    if (!search) return true;
-                    return (d.local_name && d.local_name.toLowerCase().includes(search)) ||
-                           (d.latin_name && d.latin_name.toLowerCase().includes(search)) ||
-                           (d.country && d.country.toLowerCase().includes(search)) ||
-                           (d.unesco_status && d.unesco_status.toLowerCase().includes(search));
-                });
-                
-                const start = (state.pagination.page - 1) * state.pagination.limit;
-                const pageData = filtered.slice(start, start + state.pagination.limit);
-                
-                pageData.forEach(d => {
-                    const tr = document.createElement('tr'); tr.className = "border-b border-slate-50 hover:bg-blue-50 cursor-pointer transition";
-                    tr.onclick = () => window.dashboard.showDetail(d);
-                    tr.innerHTML = `<td class="p-4 font-mono text-xs text-slate-400">${d.id}</td><td class="p-4"><div class="font-bold text-slate-700">${d.local_name}</div><div class="text-[10px] text-slate-400 italic">${d.latin_name}</div></td><td class="p-4 text-slate-500 text-xs">${d.country}</td><td class="p-4 text-xs text-slate-500">${d.affectedby_local_name||'-'}</td><td class="p-4 text-right"><i class="fas fa-chevron-right text-slate-300"></i></td>`;
-                    tbody.appendChild(tr);
-                });
-                document.getElementById('pagination-info').innerText = `Showing ${Math.min(start+1, filtered.length)}-${Math.min(start+state.pagination.limit, filtered.length)} of ${filtered.length}`;
-                document.getElementById('btn-prev').disabled = state.pagination.page <= 1;
-                document.getElementById('btn-next').disabled = start + state.pagination.limit >= filtered.length;
-            },
-            listeners: () => {
-                document.getElementById('search-input').addEventListener('keyup', (e)=>{ 
-                    state.filter.search = e.target.value.toLowerCase(); 
-                    state.pagination.page = 1; 
-                    window.dashboard.renderTable(); 
-                });
-            },
-            showDetail: (d) => {
-                state.currentDetail = d;
-                document.getElementById('detail-title').innerText = d.local_name;
-                document.getElementById('detail-subtitle').innerText = d.latin_name;
-                
-                state.media.images = d.image_url ? d.image_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
-                state.media.videos = d.youtube_url ? d.youtube_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
-                state.media.contacts = d.contact ? d.contact.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
-                state.media.imgIdx = 0; state.media.vidIdx = 0; state.media.contactIdx = 0;
-                
-                window.ui.renderMedia('img');
-                window.ui.renderMedia('vid');
-                window.ui.renderMedia('contact'); 
-
-                document.getElementById('dt-country').innerHTML = `<i class="fas fa-map-marker-alt mr-1"></i> ${d.country}`;
-                document.getElementById('dt-status').innerText = d.unesco_status || 'Unknown';
-                document.getElementById('dt-desc').innerText = d.description || 'No description available.';
-                
-                const linkContainer = document.getElementById('dt-links');
-                linkContainer.innerHTML = '';
-                if(d.research_links) {
-                    const links = d.research_links.split(/[,;]/).map(l => l.trim()).filter(l => l);
-                    links.forEach(l => {
-                        const div = document.createElement('div');
-                        div.className = 'res-card group';
-                        div.innerHTML = `
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs"><i class="fas fa-book-open"></i></div>
-                                <div class="text-[10px] font-bold text-slate-400 uppercase">Source</div>
-                            </div>
-                            <div class="text-xs font-medium text-slate-700 truncate">${l}</div>
-                            <div class="text-[10px] text-blue-500 mt-2 font-bold group-hover:underline">OPEN LINK <i class="fas fa-external-link-alt ml-1"></i></div>
-                        `;
-                        div.onclick = () => window.open(l, '_blank');
-                        linkContainer.appendChild(div);
-                    });
-                } else { linkContainer.innerHTML = '<span class="text-slate-400 text-xs italic">No research links provided.</span>'; }
-
-                document.getElementById('dt-aff-name').innerText = d.affectedby_local_name || 'None';
-                document.getElementById('dt-local-name-sm').innerText = d.local_name;
-                document.getElementById('dt-type').innerText = d.connection_type || 'Unknown';
-                
-                const mapContainer = document.getElementById('detail-geo-map'); mapContainer.innerHTML = '';
-                
-                setTimeout(() => {
-                    // Init map if container exists
-                    if(!document.getElementById('detail-geo-map')) return;
-                    
-                    // Check if map instance already exists
-                    if (window.detailMap) {
-                        window.detailMap.remove();
-                        window.detailMap = null;
-                    }
-
-                    window.detailMap = L.map('detail-geo-map', {zoomControl:false});
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(window.detailMap);
-
-                    const bounds = L.latLngBounds([]);
-                    let hasBounds = false;
-                    const layersAdded = new Set();
-
-                    const addPoly = (node, color, isTarget) => {
-                         if(!node || !node.geometry_json || layersAdded.has(node.id)) return;
-                         try {
-                            const pts = JSON.parse(node.geometry_json);
-                            const style = isTarget ? {color:'#9333ea', weight:3, fillOpacity:0.5} : {color: color, weight:2, fillOpacity:0.3, dashArray:'5,5'};
-                            const poly = L.polygon(pts, style).addTo(window.detailMap);
-                            poly.bindTooltip((isTarget ? "Target: " : "Linked: ") + node.local_name, {sticky:true});
-                            bounds.extend(poly.getBounds());
-                            hasBounds = true;
-                            layersAdded.add(node.id);
-                         } catch(e){}
-                    };
-
-                    // 1. Draw Target
-                    addPoly(d, '#9333ea', true);
-                    if(!layersAdded.has(d.id) && d.lat && d.lng) {
-                         L.marker([d.lat, d.lng]).addTo(window.detailMap);
-                         bounds.extend([d.lat, d.lng]);
-                         hasBounds = true;
-                    }
-
-                    // 2. Recursive Chain Finder (Max depth 3 for safety)
-                    let current = d;
-                    const palette = ['#F59E0B', '#10B981', '#3B82F6'];
-                    for(let i=0; i<3; i++) {
-                        if(!current.affectedby_local_name) break;
-                        const targetName = current.affectedby_local_name.trim().toLowerCase();
-                        const nextNode = state.data.find(item => item.local_name && item.local_name.trim().toLowerCase() === targetName);
-                        if(nextNode) {
-                            addPoly(nextNode, palette[i % palette.length], false);
-                            current = nextNode;
-                        } else break;
-                    }
-
-                    // Save bounds globally
-                    window.detailBounds = bounds;
-
-                    // Fit bounds logic with constraints
-                    if(hasBounds && bounds.isValid()) {
-                        window.detailMap.fitBounds(bounds, {padding: [50, 50], maxZoom: 10});
-                    } else {
-                        window.detailMap.setView([0, 0], 2);
-                    }
-                    
-                    window.detailMap.invalidateSize();
-
-                }, 400);
-
-                // Reset to first tab
-                window.ui.switchDetailTab('overview');
-
-                document.getElementById('dt-admin-actions').classList.toggle('hidden', state.role !== 'admin');
-                window.ui.openModal('detail-modal');
-            }
-        };
-
-        // --- MAIN APP MODULE ---
-        window.BioApp = {
-            init: () => {
-                window.ui.renderAuth();
-                window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && document.getElementById('landing-page').style.display !== 'none') window.BioApp.enterAsGuest(); });
-                window.BioApp.refreshData(); 
-            },
-            refreshData: (cb) => {
-                // Stronger Cache Busting
-                const url = CSV_URL + '&t=' + new Date().getTime();
-                Papa.parse(url, {
-                    download: true, header: true, skipEmptyLines: true,
-                    complete: (res) => {
-                        if(res.data.length) { 
-                            state.data = res.data.map(transformData); // REMOVED FILTER FOR SAFETY
-                            if(!window.mapLogic.map) window.mapLogic.init(); 
-                            window.dashboard.init(); window.ui.loaded(); window.mapLogic.render(); 
-                            if(cb) cb();
-                        }
+                        if(!mapLogic.map) mapLogic.init();
+                        mapLogic.render();
+                        BioApp.updateDashboard();
                     }
                 });
             },
-            enterAsGuest: () => { document.getElementById('landing-page').style.display='none'; document.getElementById('main-app').classList.add('active'); window.BioApp.switchTab('dashboard'); window.mapLogic.resize(); },
-            enterAsContributor: () => { if(state.role==='admin') return; window.ui.openModal('login-modal'); },
+            populateFilters: () => {
+                const countries = new Set([...state.nodes.map(x=>x.country), ...state.biosphere.map(x=>x.country)]);
+                const sel = document.getElementById('filter-country');
+                sel.innerHTML = '<option value="all">All Countries</option>';
+                Array.from(countries).sort().forEach(c => {
+                    if(c) sel.innerHTML += `<option value="${c}">${c}</option>`;
+                });
+            },
+            enterAsGuest: () => { document.getElementById('landing-page').style.display = 'none'; document.getElementById('main-app').classList.add('active'); setTimeout(()=>mapLogic.map.invalidateSize(), 500); },
+            enterAsContributor: () => ui.openModal('login-modal'),
             login: () => {
-                const btn = document.getElementById('btn-login'); btn.innerText = 'Verifying...';
-                const form = new URLSearchParams(); 
-                form.append('action', 'login'); form.append('username', document.getElementById('login-user').value); form.append('password', document.getElementById('login-pass').value);
-                fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }).then(r=>r.json()).then(d => {
-                    if(d.status==='success') { state.role='admin'; window.ui.renderAuth(); window.ui.closeModal('login-modal'); if(document.getElementById('landing-page').style.display!=='none') window.BioApp.enterAsGuest(); } 
+                const btn = document.getElementById('btn-login'); btn.innerText = 'Checking...';
+                const f = new URLSearchParams(); f.append('action','login'); f.append('username', document.getElementById('login-user').value); f.append('password', document.getElementById('login-pass').value);
+                fetch(GAS_URL, {method:'POST', body:f}).then(r=>r.json()).then(d=>{
+                    if(d.status==='success') { state.role='admin'; ui.closeModal('login-modal'); ui.renderAuth(); if(document.getElementById('landing-page').style.display!=='none') BioApp.enterAsGuest(); }
                     else alert(d.message);
-                }).finally(() => btn.innerText='Login');
+                }).finally(()=>btn.innerText='Login');
             },
-            logout: () => { state.role='guest'; window.ui.renderAuth(); alert('Logged Out'); },
+            logout: () => { state.role='guest'; ui.renderAuth(); alert('Logged Out'); },
             switchTab: (t) => {
-                document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-map').classList.add('hidden');
-                document.getElementById('view-'+t).classList.remove('hidden');
-                if(t==='map') window.mapLogic.resize();
-                if(t==='dashboard') window.dashboard.render();
+                document.getElementById('view-map').classList.toggle('hidden', t!=='map');
+                document.getElementById('view-dashboard').classList.toggle('hidden', t!=='dashboard');
+                document.getElementById('nav-map').className = t==='map' ? "w-full text-left p-3 rounded-xl flex items-center text-sm font-bold bg-blue-50 text-blue-600" : "w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold";
+                document.getElementById('nav-dashboard').className = t==='dashboard' ? "w-full text-left p-3 rounded-xl flex items-center text-sm font-bold bg-blue-50 text-blue-600" : "w-full text-left p-3 rounded-xl hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-bold";
+                if(t==='map') setTimeout(()=>mapLogic.map.invalidateSize(), 200);
             },
-            updateMapFilter: (val) => {
-                state.filter.search = val.toLowerCase();
-                window.mapLogic.render();
+            updateMapFilter: () => mapLogic.render(),
+            showAddChoice: () => ui.openModal('choice-modal'),
+            initAdd: (type) => { ui.closeModal('choice-modal'); state.currentDetail = null; state.inputMode = type; BioApp.resetInputForm(); ui.openModal('input-modal'); },
+            resetInputForm: () => {
+                document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value='');
+                const isBio = state.inputMode === 'biosphere';
+                
+                // Toggle Specific Sections
+                document.getElementById('section-nodes').classList.toggle('hidden', isBio);
+                document.getElementById('section-biosphere').classList.toggle('hidden', !isBio);
+                
+                // Title
+                document.getElementById('input-title').innerText = isBio ? 'Add Biosphere Reserve' : 'Add Biodiversity';
+                document.getElementById('input-title').className = isBio ? "text-xl font-bold text-emerald-600" : "text-xl font-bold text-blue-600";
+                
+                // CRUD Logic - Biosphere: Hide Lat/Lng/SetPoint. Biodiversity: Show All.
+                document.getElementById('coord-inputs').classList.toggle('hidden', isBio);
+                document.getElementById('btn-set-point').classList.toggle('hidden', isBio);
+                
+                document.getElementById('btn-delete').classList.add('hidden');
+                document.getElementById('inp-type').value = state.inputMode;
             },
-            pickLocation: (target) => {
-                window.BioApp.switchTab('map'); 
-                state.pickerTarget = target; 
-                window.ui.closeModal('input-modal'); 
-                document.getElementById('picker-notification').classList.remove('hidden');
-                document.getElementById('picker-msg').innerText = target==='main'?'Select Species Location':'Select Factor Location';
-                window.mapLogic.enablePicker((lat, lng) => {
-                    if(state.pickerTarget==='main') { document.getElementById('inp-lat').value=lat.toFixed(6); document.getElementById('inp-lng').value=lng.toFixed(6); }
-                    else { document.getElementById('inp-affected-lat').value=lat.toFixed(6); document.getElementById('inp-affected-lng').value=lng.toFixed(6); }
-                    window.BioApp.cancelPicker();
-                });
-            },
-            cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); window.mapLogic.disablePicker(); window.ui.openModal('input-modal'); },
-            initiateAddEntry: () => { state.editId=null; document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value=''); window.BioApp.switchTab('map'); window.BioApp.pickLocation('main'); },
-            openInputModal: (mode) => {
-                window.ui.closeModal('detail-modal'); 
+            editCurrent: () => {
                 const d = state.currentDetail;
-                if(mode==='edit' && d) {
-                    state.editId = d.id;
-                    document.getElementById('inp-local-name').value = d.local_name;
-                    document.getElementById('inp-latin-name').value = d.latin_name;
-                    document.getElementById('inp-country').value = d.country;
-                    document.getElementById('inp-lat').value = d.lat; document.getElementById('inp-lng').value = d.lng;
-                    document.getElementById('inp-desc').value = d.description;
-                    document.getElementById('inp-geometry').value = d.geometry_json || '';
-                    document.getElementById('inp-unesco').value = d.unesco_status;
+                const type = state.currentType;
+                state.inputMode = type;
+                BioApp.resetInputForm();
+                document.getElementById('inp-id').value = d.id;
+                document.getElementById('inp-name').value = type==='nodes' ? d.local_name : d.name_bio;
+                document.getElementById('inp-country').value = d.country;
+                document.getElementById('inp-youtube').value = d.youtube_url;
+                document.getElementById('inp-image').value = d.image_url;
+                document.getElementById('inp-links').value = d.research_links;
+                document.getElementById('inp-desc').value = d.description;
+                // CHECK BOTH PROPERTIES
+                document.getElementById('inp-geometry').value = d.geo_json || d.geometry_json; 
+                
+                if(type === 'nodes') {
+                    document.getElementById('inp-lat').value = d.lat;
+                    document.getElementById('inp-lng').value = d.lng;
+                    document.getElementById('inp-latin').value = d.latin_name;
+                    document.getElementById('inp-nodes-status').value = d.unesco_status;
                     document.getElementById('inp-contact').value = d.contact;
-                    document.getElementById('inp-image').value = d.image_url;
-                    document.getElementById('inp-youtube').value = d.youtube_url;
-                    document.getElementById('inp-research').value = d.research_links;
-                    document.getElementById('inp-affected-local').value = d.affectedby_local_name;
-                    document.getElementById('inp-affected-latin').value = d.affectedby_latin_name;
-                    document.getElementById('inp-affected-country').value = d.affectedby_country;
-                    document.getElementById('inp-affected-lat').value = d.affectedby_lat;
-                    document.getElementById('inp-affected-lng').value = d.affectedby_lng;
+                    document.getElementById('inp-aff-name').value = d.affectedby_local_name;
                     document.getElementById('inp-conn-type').value = d.connection_type;
-                    document.getElementById('btn-delete').classList.remove('hidden');
+                    document.getElementById('inp-aff-lat').value = d.affectedby_lat;
+                    document.getElementById('inp-aff-lng').value = d.affectedby_lng;
                 } else {
-                    document.getElementById('btn-delete').classList.add('hidden');
+                    document.getElementById('inp-region').value = d.region;
+                    document.getElementById('inp-year').value = d.unesco_year;
+                    document.getElementById('inp-bio-status').value = d.status;
+                    document.getElementById('inp-area').value = d.area_total_ha;
                 }
-                window.ui.openModal('input-modal');
+                document.getElementById('btn-delete').classList.remove('hidden');
+                ui.closeModal('detail-modal');
+                ui.openModal('input-modal');
+            },
+            insertTag: (open, close) => {
+                const el = document.getElementById('inp-desc');
+                const start = el.selectionStart; const end = el.selectionEnd;
+                const txt = el.value;
+                el.value = txt.substring(0, start) + open + txt.substring(start, end) + close + txt.substring(end);
+                el.focus();
+                el.selectionStart = el.selectionEnd = start + open.length + (end - start);
             },
             saveData: () => {
-                const btn = document.getElementById('btn-save'); btn.innerText='Saving...';
-                const data = {
-                    id: state.editId || '',
-                    local_name: document.getElementById('inp-local-name').value, latin_name: document.getElementById('inp-latin-name').value,
-                    country: document.getElementById('inp-country').value, 
-                    lat: parseFloat(document.getElementById('inp-lat').value), 
-                    lng: parseFloat(document.getElementById('inp-lng').value), 
-                    description: document.getElementById('inp-desc').value, geometry_json: document.getElementById('inp-geometry').value,
-                    unesco_status: document.getElementById('inp-unesco').value, contact: document.getElementById('inp-contact').value,
-                    image_url: document.getElementById('inp-image').value, youtube_url: document.getElementById('inp-youtube').value, research_links: document.getElementById('inp-research').value,
-                    affectedby_local_name: document.getElementById('inp-affected-local').value, affectedby_latin_name: document.getElementById('inp-affected-latin').value,
-                    affectedby_country: document.getElementById('inp-affected-country').value, 
-                    affectedby_lat: parseFloat(document.getElementById('inp-affected-lat').value), 
-                    affectedby_lng: parseFloat(document.getElementById('inp-affected-lng').value), 
-                    connection_type: document.getElementById('inp-conn-type').value
-                };
-                const action = state.editId ? 'update' : 'insert';
-                const form = new URLSearchParams(); form.append('action', action); form.append('data', JSON.stringify(data));
-                
-                fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }).then(r=>r.json()).then(d => {
-                    if(d.status==='success') { 
-                        alert('Saved Successfully!'); 
-                        if (action === 'insert') {
-                            data.id = d.id || 'NEW';
-                            state.data.push(data);
-                        } else {
-                            const idx = state.data.findIndex(item => item.id === state.editId);
-                            if (idx !== -1) state.data[idx] = { ...state.data[idx], ...data };
-                        }
-                        window.ui.closeModal('input-modal');
-                        window.mapLogic.render(); window.dashboard.render();
-                        document.getElementById('record-count').innerText = state.data.length;
-                    } else alert(d.message);
-                }).finally(()=>btn.innerText='Save Changes');
+                const type = state.inputMode;
+                const id = document.getElementById('inp-id').value;
+                const isBio = type === 'biosphere';
+                const payload = { id: id, country: document.getElementById('inp-country').value, description: document.getElementById('inp-desc').value, image_url: document.getElementById('inp-image').value, youtube_url: document.getElementById('inp-youtube').value, research_links: document.getElementById('inp-links').value, geo_json: document.getElementById('inp-geometry').value };
+                if(isBio) {
+                    payload.name_bio = document.getElementById('inp-name').value;
+                    payload.region = document.getElementById('inp-region').value;
+                    payload.unesco_year = document.getElementById('inp-year').value;
+                    payload.status = document.getElementById('inp-bio-status').value;
+                    payload.area_total_ha = document.getElementById('inp-area').value;
+                } else {
+                    payload.local_name = document.getElementById('inp-name').value;
+                    payload.latin_name = document.getElementById('inp-latin').value;
+                    payload.lat = document.getElementById('inp-lat').value;
+                    payload.lng = document.getElementById('inp-lng').value;
+                    payload.unesco_status = document.getElementById('inp-nodes-status').value;
+                    payload.contact = document.getElementById('inp-contact').value;
+                    payload.affectedby_local_name = document.getElementById('inp-aff-name').value;
+                    payload.connection_type = document.getElementById('inp-conn-type').value;
+                    payload.affectedby_lat = document.getElementById('inp-aff-lat').value;
+                    payload.affectedby_lng = document.getElementById('inp-aff-lng').value;
+                }
+                const btn = document.getElementById('btn-save'); btn.innerText = 'Saving...';
+                const f = new URLSearchParams(); f.append('action', id ? 'update' : 'insert'); f.append('type', type); f.append('data', JSON.stringify(payload));
+                fetch(GAS_URL, {method:'POST', body:f}).then(r=>r.json()).then(d=>{
+                    if(d.status==='success') { alert('Saved!'); ui.closeModal('input-modal'); BioApp.fetchData(); } else alert(d.message);
+                }).finally(()=>btn.innerText='Save');
             },
             deleteData: () => {
-                if(!confirm("Are you sure you want to delete this data? This cannot be undone.")) return;
-                
-                const btn = document.getElementById('btn-delete');
-                const origText = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-                btn.disabled = true;
-
-                const form = new URLSearchParams(); 
-                form.append('action', 'delete'); 
-                form.append('id', state.editId);
-                
-                fetch(GAS_URL, { method: 'POST', body: form, redirect: 'follow' }) 
-                .then(r => r.json())
-                .then(d => {
-                    if(d.status==='success') { 
-                        alert('Data successfully deleted.'); 
-                        state.data = state.data.filter(item => item.id !== state.editId);
-                        window.mapLogic.render();
-                        window.dashboard.render();
-                        document.getElementById('record-count').innerText = state.data.length;
-                        window.ui.closeModal('input-modal'); 
-                    } else {
-                        alert('Delete Failed: ' + d.message);
-                    }
-                })
-                .catch(e => alert('Network Error: ' + e))
-                .finally(() => {
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
+                if(!confirm('Delete this entry?')) return;
+                const f = new URLSearchParams(); f.append('action', 'delete'); f.append('type', state.inputMode); f.append('id', document.getElementById('inp-id').value);
+                fetch(GAS_URL, {method:'POST', body:f}).then(r=>r.json()).then(d=>{
+                    if(d.status==='success') { alert('Deleted'); ui.closeModal('input-modal'); BioApp.fetchData(); } else alert(d.message);
                 });
             },
-            exportData: () => { const csv = Papa.unparse(state.data); const a = document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURI(csv); a.download='biodiversity.csv'; a.click(); },
-            handleOriginSearch: (val) => {
-                const list = document.getElementById('origin-suggestions');
-                if(val.length < 2) { list.classList.add('hidden'); return; }
-                const matches = state.data.filter(d => d.local_name.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
-                if(matches.length > 0) {
-                    list.innerHTML = matches.map(m => `<div class="p-2 hover:bg-slate-100 cursor-pointer text-xs text-slate-700" onclick="window.BioApp.selectOriginNode('${m.id}')">${m.local_name} (${m.country})</div>`).join('');
-                    list.classList.remove('hidden');
-                } else list.classList.add('hidden');
-            },
-            selectOriginNode: (id) => {
-                const node = state.data.find(d => d.id === id);
-                if(node) {
-                    document.getElementById('inp-affected-local').value = node.local_name;
-                    document.getElementById('inp-affected-latin').value = node.latin_name;
-                    document.getElementById('inp-affected-country').value = node.country;
-                    document.getElementById('inp-affected-lat').value = node.lat;
-                    document.getElementById('inp-affected-lng').value = node.lng;
-                    document.getElementById('origin-suggestions').classList.add('hidden');
+            
+            // --- DETAILS & MINI MAP LOGIC ---
+            showDetail: (d, type) => {
+                state.currentDetail = d; state.currentType = type;
+                const isBio = type === 'biosphere';
+                
+                document.getElementById('dt-tag-type').innerText = isBio ? 'BIOSPHERE' : 'BIODIVERSITY';
+                document.getElementById('dt-tag-type').className = isBio ? "px-2 py-1 rounded text-[9px] font-bold bg-emerald-600 text-white shadow" : "px-2 py-1 rounded text-[9px] font-bold bg-blue-600 text-white shadow";
+                document.getElementById('dt-title').innerText = isBio ? d.name_bio : d.local_name;
+                document.getElementById('dt-subtitle').innerText = isBio ? d.region : d.latin_name;
+                document.getElementById('dt-desc').innerHTML = sanitizeHTML(d.description || 'No description');
+
+                // Media
+                state.media.images = d.image_url ? d.image_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
+                state.media.videos = d.youtube_url ? d.youtube_url.split(/[,;]/).map(s => s.trim()).filter(s => s) : [];
+                state.media.imgIdx = 0; state.media.vidIdx = 0;
+                ui.renderMedia('img'); ui.renderMedia('vid');
+                document.getElementById('vid-section').classList.toggle('hidden', state.media.videos.length === 0);
+
+                // MAP LOGIC (OVERLAY & ZOOM FIX)
+                mapLogic.initDetailMap();
+                document.getElementById('map-legend-label').innerText = isBio ? 'Biosphere Zone' : 'Ecological Overlap';
+                const bounds = L.latLngBounds([]);
+                
+                let hasPolygon = false; // Flag to check if we have polygons
+
+                // 1. Draw Factors FIRST (Background Layers) - MULTILAYER FIX
+                if (!isBio && d.affectedby_local_name) {
+                    const factors = d.affectedby_local_name.split(',').map(s => s.trim());
+                    factors.forEach((fName, idx) => {
+                        // Case Insensitive Search
+                        const fNode = state.nodes.find(n => n.local_name.toLowerCase() === fName.toLowerCase()) || state.biosphere.find(b => b.name_bio.toLowerCase() === fName.toLowerCase());
+                        
+                        // Use Orange for all factors to match user image
+                        const color = '#F59E0B'; 
+                        // CHECK BOTH PROPERTY NAMES FOR FACTORS TOO
+                        const fGeo = fNode ? (fNode.geo_json || fNode.geometry_json) : null;
+                        
+                        if (fGeo) {
+                            try {
+                                const pts = JSON.parse(fGeo);
+                                // Style: Orange, Dashed, Transparent fill (as per image)
+                                const poly = L.polygon(pts, { color: color, weight: 2, dashArray: '5,5', fillOpacity: 0.3, fillColor: color }).addTo(mapLogic.detailMap);
+                                poly.bindTooltip(`Factor: ${fName}`, {sticky:true});
+                                bounds.extend(poly.getBounds());
+                                hasPolygon = true;
+                            } catch(e){}
+                        } else if (fNode && isValidLatLng(fNode.lat, fNode.lng)) {
+                            // Point Factor
+                            L.circleMarker([fNode.lat, fNode.lng], { color: color, radius: 6 }).addTo(mapLogic.detailMap).bindTooltip(`Factor: ${fName}`);
+                            bounds.extend([fNode.lat, fNode.lng]);
+                        }
+                    });
                 }
-            }
+
+                // 2. Draw Target Node
+                // CHECK BOTH PROPERTY NAMES
+                const targetGeo = d.geo_json || d.geometry_json;
+                if(targetGeo) {
+                    try {
+                        const pts = JSON.parse(targetGeo);
+                        // FIXED STYLE: Purple outline, transparent-ish purple fill. NO MARKER if poly exists.
+                        const poly = L.polygon(pts, {color: isBio?'#10B981':'#9333ea', weight: 3, fillOpacity: 0.4}).addTo(mapLogic.detailMap);
+                        bounds.extend(poly.getBounds());
+                        hasPolygon = true;
+                    } catch(e){}
+                } 
+                
+                // Only draw marker if NO polygon is present (to match clean look in reference image)
+                // Use isValidLatLng check before plotting
+                if(!hasPolygon && isValidLatLng(d.lat, d.lng)) {
+                    L.marker([d.lat, d.lng], {zIndexOffset: 1000}).addTo(mapLogic.detailMap);
+                    bounds.extend([d.lat, d.lng]);
+                }
+
+                // Info & Links
+                const grid = document.getElementById('dt-extra-info'); grid.innerHTML = '';
+                const addInfo = (lbl, val) => { if(val) grid.innerHTML += `<div><div class="font-bold text-slate-400 uppercase text-[10px]">${lbl}</div><div class="font-medium text-slate-700">${val}</div></div>`; };
+                addInfo('Country', d.country);
+                if(isBio) { addInfo('Established', d.unesco_year); addInfo('Status', d.status); addInfo('Area (Ha)', d.area_total_ha); }
+                else { addInfo('IUCN Status', d.unesco_status); addInfo('Affected By', d.affectedby_local_name); addInfo('Interaction', d.connection_type); }
+
+                const linkArea = document.getElementById('dt-links-area'); linkArea.innerHTML = '';
+                if(d.research_links) { d.research_links.split(',').forEach(l => { if(l.trim()) linkArea.innerHTML += `<a href="${l.trim()}" target="_blank" class="block bg-slate-100 p-2 rounded text-xs text-blue-600 truncate hover:bg-blue-50"><i class="fas fa-link mr-2"></i>Source</a>`; }); }
+
+                ui.openModal('detail-modal');
+                
+                // 3. Fit Bounds with Padding & MaxZoom Constraint (DELAYED EXECUTION FOR AUTO FIT)
+                setTimeout(() => {
+                    mapLogic.detailMap.invalidateSize();
+                    if(bounds.isValid()) {
+                        mapLogic.detailMap.fitBounds(bounds, {
+                            padding: [20, 20],
+                            maxZoom: 9, // Prevents extreme zoom in for points
+                            animate: false
+                        });
+                    } else {
+                        mapLogic.detailMap.setView([0,0], 2);
+                    }
+                }, 300);
+            },
+
+            // --- DASHBOARD LOGIC (Updated with Pagination & Filter) ---
+            updateDashboard: (resetPage = false) => {
+                // Get Filters
+                const search = document.getElementById('filter-search').value.toLowerCase();
+                const type = document.getElementById('filter-type').value;
+                const country = document.getElementById('filter-country').value;
+                
+                if (resetPage) state.pagination.currentPage = 1;
+
+                // Prepare Data
+                let all = [...state.nodes.map(x=>({...x, _type:'nodes'})), ...state.biosphere.map(x=>({...x, _type:'biosphere'}))];
+                
+                // Filter Data
+                all = all.filter(x => {
+                    const isBio = x._type === 'biosphere';
+                    const name = (isBio ? x.name_bio : x.local_name).toLowerCase();
+                    const ctry = (x.country || '').toLowerCase();
+                    
+                    if (search && !name.includes(search)) return false;
+                    if (type !== 'all' && ((type === 'biodiversity' && isBio) || (type === 'biosphere' && !isBio))) return false;
+                    if (country !== 'all' && ctry !== country.toLowerCase()) return false;
+                    return true;
+                });
+
+                // Update KPIs
+                document.getElementById('kpi-nodes').innerText = state.nodes.length;
+                document.getElementById('kpi-bio').innerText = state.biosphere.length;
+                const countries = new Set([...state.nodes.map(x=>x.country), ...state.biosphere.map(x=>x.country)]).size;
+                document.getElementById('kpi-countries').innerText = countries;
+                
+                // Render Charts (using filtered data or all data? Usually all data for stats)
+                // Let's use ALL data for charts to show global context
+                const allDataForCharts = [...state.nodes, ...state.biosphere];
+                
+                // 1. Status Chart
+                const statusCounts = {};
+                allDataForCharts.forEach(x => {
+                    const s = (x.unesco_status || x.status || 'Unknown').trim();
+                    statusCounts[s] = (statusCounts[s] || 0) + 1;
+                });
+                
+                if(state.charts.status) state.charts.status.destroy();
+                state.charts.status = new Chart(document.getElementById('chart-status'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(statusCounts),
+                        datasets: [{
+                            data: Object.values(statusCounts),
+                            backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#64748B', '#8B5CF6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } } }
+                });
+
+                // 2. Country Chart
+                const countryCounts = {};
+                allDataForCharts.forEach(x => {
+                    const c = (x.country || 'Unknown').trim();
+                    countryCounts[c] = (countryCounts[c] || 0) + 1;
+                });
+                const sortedCountries = Object.entries(countryCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+                
+                if(state.charts.country) state.charts.country.destroy();
+                state.charts.country = new Chart(document.getElementById('chart-country'), {
+                    type: 'bar',
+                    data: {
+                        labels: sortedCountries.map(x=>x[0]),
+                        datasets: [{
+                            label: 'Entries',
+                            data: sortedCountries.map(x=>x[1]),
+                            backgroundColor: '#0ea5e9',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: {display:false} }, x: { grid: {display:false} } } }
+                });
+
+                // --- PAGINATION LOGIC ---
+                const start = (state.pagination.currentPage - 1) * state.pagination.itemsPerPage;
+                const end = start + state.pagination.itemsPerPage;
+                const paginatedData = all.slice(start, end);
+                
+                // Render Table
+                const tbody = document.getElementById('dash-table-body'); tbody.innerHTML = '';
+                paginatedData.forEach(x => {
+                    const isBio = x._type === 'biosphere';
+                    const name = isBio ? x.name_bio : x.local_name;
+                    const status = isBio ? x.status : x.unesco_status;
+                    tbody.innerHTML += `<tr class="border-b border-slate-50 hover:bg-slate-100 cursor-pointer" onclick="BioApp.showDetail(state.${isBio?'biosphere':'nodes'}.find(i=>i.id=='${x.id}'), '${isBio?'biosphere':'nodes'}')"><td class="p-3"><span class="w-2 h-2 rounded-full ${isBio?'bg-emerald-500':'bg-blue-500'} inline-block mr-2"></span>${isBio?'Biosphere':'Biodiversity'}</td><td class="p-3 font-bold text-slate-700">${name}</td><td class="p-3 text-slate-500">${x.country}</td><td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-200 text-slate-600 text-[10px] font-bold">${status||'-'}</span></td></tr>`;
+                });
+
+                // Update Pagination Controls
+                document.getElementById('pagination-info').innerText = `Showing ${Math.min(start + 1, all.length)}-${Math.min(end, all.length)} of ${all.length}`;
+                document.getElementById('btn-prev').disabled = state.pagination.currentPage === 1;
+                document.getElementById('btn-next').disabled = end >= all.length;
+            },
+            nextPage: () => {
+                state.pagination.currentPage++;
+                BioApp.updateDashboard();
+            },
+            prevPage: () => {
+                if (state.pagination.currentPage > 1) {
+                    state.pagination.currentPage--;
+                    BioApp.updateDashboard();
+                }
+            },
+            pickLocation: (target) => {
+                ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden'); document.getElementById('picker-msg').innerText = "Click map to set location";
+                const handler = (e) => {
+                    const lat = e.latlng.lat.toFixed(6); const lng = e.latlng.lng.toFixed(6);
+                    if(target === 'main') { document.getElementById('inp-lat').value = lat; document.getElementById('inp-lng').value = lng; } else { document.getElementById('inp-aff-lat').value = lat; document.getElementById('inp-aff-lng').value = lng; }
+                    mapLogic.map.off('click', handler); document.getElementById('picker-notification').classList.add('hidden'); document.getElementById('map-container').classList.remove('picker-mode'); ui.openModal('input-modal');
+                };
+                mapLogic.map.on('click', handler); document.getElementById('map-container').classList.add('picker-mode');
+            },
+            cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); document.getElementById('map-container').classList.remove('picker-mode'); ui.openModal('input-modal'); }
         };
 
-        window.addEventListener('DOMContentLoaded', window.BioApp.init);
+        document.addEventListener('DOMContentLoaded', BioApp.init);
     </script>
 </body>
 </html>
