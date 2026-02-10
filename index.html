@@ -71,6 +71,12 @@
             display: flex; flex-direction: column; gap: 4px;
         }
         .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        
+        /* YouTube Play Button Overlay */
+        .yt-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.1); transition: background 0.3s; cursor: pointer; }
+        .yt-overlay:hover { background: rgba(0,0,0,0.3); }
+        .yt-btn { width: 48px; height: 48px; background: #ff0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s; }
+        .yt-overlay:hover .yt-btn { transform: scale(1.1); }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-slate-50">
@@ -453,7 +459,7 @@
     <!-- GEO EDITOR (Simple) -->
     <div id="geo-editor" class="fixed inset-0 z-picker hidden bg-slate-100">
         <div id="geo-map" class="w-full h-full"></div>
-        <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg flex gap-4 text-xs font-bold">
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg flex gap-4 text-xs font-bold z-[4000]">
             <span class="text-purple-600">DRAWING MODE</span>
             <button onclick="geoEditor.finish()" class="text-green-600">Save</button>
             <button onclick="geoEditor.cancel()" class="text-slate-400">Cancel</button>
@@ -506,8 +512,8 @@
             inputMode: 'nodes',
             media: { imgIdx: 0, vidIdx: 0, images: [], videos: [] },
             charts: { status: null, country: null },
-            pagination: { currentPage: 1, itemsPerPage: 15 }, // ADDED PAGINATION STATE
-            filters: { search: '', type: 'all', country: 'all' } // ADDED FILTER STATE
+            pagination: { currentPage: 1, itemsPerPage: 15 }, // CLIENT SIDE PAGINATION
+            filters: { search: '', type: 'all', country: 'all' }
         };
 
         // Simple XSS Sanitizer for Rich Text
@@ -561,8 +567,19 @@
                     img.onerror = () => { img.src = 'https://via.placeholder.com/400x300?text=No+Image'; };
                     container.appendChild(img);
                 } else {
+                    // FIX: LITE YOUTUBE EMBED (Thumbnail First)
                     const vidId = items[idx].includes('v=') ? items[idx].split('v=')[1] : items[idx];
-                    container.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen class="fade-in w-full h-full"></iframe>`;
+                    // Using high quality thumb
+                    const thumbUrl = `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`;
+                    
+                    container.innerHTML = `
+                        <div class="relative w-full h-full cursor-pointer group fade-in" onclick="this.innerHTML='<iframe width=\\'100%\\' height=\\'100%\\' src=\\'https://www.youtube.com/embed/${vidId}?autoplay=1\\' frameborder=\\'0\\' allow=\\'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\\' allowfullscreen></iframe>'">
+                            <img src="${thumbUrl}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/480x360?text=Video+Unavailable'">
+                            <div class="yt-overlay">
+                                <div class="yt-btn"><i class="fas fa-play text-xl ml-1"></i></div>
+                            </div>
+                        </div>
+                    `;
                 }
             },
             nextMedia: (type) => {
@@ -581,41 +598,43 @@
             }
         };
 
-        // --- HELPER FOR ROBUST PARSING (AUTO-FIX FOR INDONESIAN FORMAT) ---
+        // --- HELPER FOR ROBUST PARSING ---
         function robustParse(val) {
             if (!val) return null;
             let str = String(val).trim();
-            
-            // Standardizing Comma to Dot
             str = str.replace(',', '.'); 
-            
             let n = parseFloat(str);
             return isNaN(n) ? null : n;
         }
 
         function isValidLatLng(lat, lng) {
-            // Strict check for MAP rendering only
             return lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
         }
 
         const mapLogic = {
             map: null, detailMap: null, layers: [],
-            palette: ['#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1'],
             init: () => {
                 mapLogic.map = L.map('map-container', {zoomControl: false}).setView([0,0], 2);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapLogic.map);
                 L.control.zoom({position: 'topright'}).addTo(mapLogic.map);
-                // Panes for stacking order
-                mapLogic.map.createPane('biospherePane').style.zIndex = 400; // Bottom
+                
+                // Pane Management (Z-Index)
+                mapLogic.map.createPane('biospherePane').style.zIndex = 400; 
                 mapLogic.map.createPane('linesPane').style.zIndex = 450;
-                mapLogic.map.createPane('nodesPolyPane').style.zIndex = 460; // New: Nodes GIS
+                mapLogic.map.createPane('nodesPolyPane').style.zIndex = 460;
                 mapLogic.map.createPane('orangePane').style.zIndex = 500;
-                mapLogic.map.createPane('nodesPane').style.zIndex = 600; // Top
+                mapLogic.map.createPane('nodesPane').style.zIndex = 600; 
             },
             initDetailMap: () => {
                 if(mapLogic.detailMap) { mapLogic.detailMap.remove(); }
                 mapLogic.detailMap = L.map('detail-mini-map', {zoomControl: false});
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapLogic.detailMap);
+                
+                // FIX: Detail Map Panes for Z-Index
+                mapLogic.detailMap.createPane('factors');
+                mapLogic.detailMap.getPane('factors').style.zIndex = 400;
+                mapLogic.detailMap.createPane('current');
+                mapLogic.detailMap.getPane('current').style.zIndex = 500; // Always on top
             },
             render: () => {
                 mapLogic.layers.forEach(l => mapLogic.map.removeLayer(l));
@@ -626,7 +645,7 @@
                 state.biosphere.forEach(b => {
                     if(search && !b.name_bio.toLowerCase().includes(search) && !b.country.toLowerCase().includes(search)) return;
                     let layer;
-                    const geo = b.geo_json || b.geometry_json;
+                    const geo = b.geo_json || b.geometry_json || b.geometry || b.GEOMETRY_JSON;
                     if(geo) {
                         try {
                             const pts = JSON.parse(geo);
@@ -643,14 +662,10 @@
 
                 // 2. RENDER NODES (Biodiversity)
                 state.nodes.forEach(n => {
-                    // Check Search
                     if(search && !n.local_name.toLowerCase().includes(search)) return;
-                    
-                    // CRITICAL FIX: Only render on MAP if lat/lng is valid.
-                    // But we still allow them in the Dashboard list even if invalid.
                     if(!isValidLatLng(n.lat, n.lng)) return;
 
-                    // Draw Lines to Factors (Orange)
+                    // Lines & Factors
                     if(isValidLatLng(n.affectedby_lat, n.affectedby_lng)) {
                         const line = L.polyline([[n.affectedby_lat, n.affectedby_lng], [n.lat, n.lng]], { pane: 'linesPane', color: '#64748b', weight: 1, dashArray: '4,4' }).addTo(mapLogic.map);
                         const orange = L.marker([n.affectedby_lat, n.affectedby_lng], { pane: 'orangePane', icon: L.divIcon({ className: 'geo-marker-icon', html: '<div style="background:#F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white;"></div>', iconSize: [10,10] }) }).addTo(mapLogic.map);
@@ -711,10 +726,9 @@
         const BioApp = {
             init: () => { ui.renderAuth(); BioApp.fetchData(); },
             fetchData: () => {
-                fetch(GAS_URL).then(r => r.json()).then(d => {
+                // FIX: CACHE BUSTER ADDED (time param) to force refresh from Google Sheets
+                fetch(GAS_URL + '?t=' + new Date().getTime()).then(r => r.json()).then(d => {
                     if(d.status === 'success') {
-                        // FIX: Do NOT filter nodes here. Map all of them.
-                        // We use robustParse to attempt fixing the "1.530.251" issue
                         state.nodes = d.nodes.map(n => { 
                             n.lat = robustParse(n.lat); 
                             n.lng = robustParse(n.lng); 
@@ -722,13 +736,11 @@
                             n.affectedby_lng = robustParse(n.affectedby_lng); 
                             return n; 
                         }); 
-                        // Removed .filter(...) so all data shows in Dashboard
                         
                         state.biosphere = d.biosphere;
                         document.getElementById('loading-container').classList.add('hidden');
                         document.getElementById('entry-buttons').classList.remove('hidden');
                         
-                        // Populate Filters
                         BioApp.populateFilters();
 
                         if(!mapLogic.map) mapLogic.init();
@@ -769,19 +781,12 @@
             resetInputForm: () => {
                 document.querySelectorAll('#input-modal input, #input-modal textarea').forEach(e=>e.value='');
                 const isBio = state.inputMode === 'biosphere';
-                
-                // Toggle Specific Sections
                 document.getElementById('section-nodes').classList.toggle('hidden', isBio);
                 document.getElementById('section-biosphere').classList.toggle('hidden', !isBio);
-                
-                // Title
                 document.getElementById('input-title').innerText = isBio ? 'Add Biosphere Reserve' : 'Add Biodiversity';
                 document.getElementById('input-title').className = isBio ? "text-xl font-bold text-emerald-600" : "text-xl font-bold text-blue-600";
-                
-                // CRUD Logic - Biosphere: Hide Lat/Lng/SetPoint. Biodiversity: Show All.
                 document.getElementById('coord-inputs').classList.toggle('hidden', isBio);
                 document.getElementById('btn-set-point').classList.toggle('hidden', isBio);
-                
                 document.getElementById('btn-delete').classList.add('hidden');
                 document.getElementById('inp-type').value = state.inputMode;
             },
@@ -797,8 +802,7 @@
                 document.getElementById('inp-image').value = d.image_url;
                 document.getElementById('inp-links').value = d.research_links;
                 document.getElementById('inp-desc').value = d.description;
-                // CHECK BOTH PROPERTIES
-                document.getElementById('inp-geometry').value = d.geo_json || d.geometry_json; 
+                document.getElementById('inp-geometry').value = d.geo_json || d.geometry_json || d.geometry || d.GEOMETRY_JSON; 
                 
                 if(type === 'nodes') {
                     document.getElementById('inp-lat').value = d.lat;
@@ -865,7 +869,7 @@
                 });
             },
             
-            // --- DETAILS & MINI MAP LOGIC ---
+            // --- DETAILS & MINI MAP LOGIC (FIXED) ---
             showDetail: (d, type) => {
                 state.currentDetail = d; state.currentType = type;
                 const isBio = type === 'biosphere';
@@ -883,57 +887,64 @@
                 ui.renderMedia('img'); ui.renderMedia('vid');
                 document.getElementById('vid-section').classList.toggle('hidden', state.media.videos.length === 0);
 
-                // MAP LOGIC (OVERLAY & ZOOM FIX)
+                // MAP LOGIC
                 mapLogic.initDetailMap();
                 document.getElementById('map-legend-label').innerText = isBio ? 'Biosphere Zone' : 'Ecological Overlap';
                 const bounds = L.latLngBounds([]);
-                
-                let hasPolygon = false; // Flag to check if we have polygons
+                let hasPolygon = false; 
 
-                // 1. Draw Factors FIRST (Background Layers) - MULTILAYER FIX
+                // FIX: RENDER FACTORS ON 'factors' PANE (Z-Index 400)
                 if (!isBio && d.affectedby_local_name) {
                     const factors = d.affectedby_local_name.split(',').map(s => s.trim());
-                    factors.forEach((fName, idx) => {
-                        // Case Insensitive Search
+                    factors.forEach((fName) => {
                         const fNode = state.nodes.find(n => n.local_name.toLowerCase() === fName.toLowerCase()) || state.biosphere.find(b => b.name_bio.toLowerCase() === fName.toLowerCase());
-                        
-                        // Use Orange for all factors to match user image
                         const color = '#F59E0B'; 
-                        // CHECK BOTH PROPERTY NAMES FOR FACTORS TOO
-                        const fGeo = fNode ? (fNode.geo_json || fNode.geometry_json) : null;
+                        const fGeo = fNode ? (fNode.geo_json || fNode.geometry_json || fNode.geometry || fNode.GEOMETRY_JSON) : null;
                         
                         if (fGeo) {
                             try {
                                 const pts = JSON.parse(fGeo);
-                                // Style: Orange, Dashed, Transparent fill (as per image)
-                                const poly = L.polygon(pts, { color: color, weight: 2, dashArray: '5,5', fillOpacity: 0.3, fillColor: color }).addTo(mapLogic.detailMap);
-                                poly.bindTooltip(`Factor: ${fName}`, {sticky:true});
-                                bounds.extend(poly.getBounds());
-                                hasPolygon = true;
+                                // Detect Format
+                                const isStd = pts.type === 'Feature' || pts.type === 'FeatureCollection' || pts.type === 'Polygon' || pts.type === 'MultiPolygon' || pts.features;
+                                if(isStd) {
+                                     const gl = L.geoJSON(pts, { pane: 'factors', style: { color: color, weight: 2, dashArray: '5,5', fillOpacity: 0.3, fillColor: color } }).addTo(mapLogic.detailMap);
+                                     bounds.extend(gl.getBounds());
+                                } else {
+                                     const poly = L.polygon(pts, { pane: 'factors', color: color, weight: 2, dashArray: '5,5', fillOpacity: 0.3, fillColor: color }).addTo(mapLogic.detailMap);
+                                     bounds.extend(poly.getBounds());
+                                }
+                                hasPolygon = true; 
                             } catch(e){}
                         } else if (fNode && isValidLatLng(fNode.lat, fNode.lng)) {
-                            // Point Factor
-                            L.circleMarker([fNode.lat, fNode.lng], { color: color, radius: 6 }).addTo(mapLogic.detailMap).bindTooltip(`Factor: ${fName}`);
+                            L.circleMarker([fNode.lat, fNode.lng], { pane: 'factors', color: color, radius: 6 }).addTo(mapLogic.detailMap).bindTooltip(`Factor: ${fName}`);
                             bounds.extend([fNode.lat, fNode.lng]);
                         }
                     });
                 }
 
-                // 2. Draw Target Node
-                // CHECK BOTH PROPERTY NAMES
-                const targetGeo = d.geo_json || d.geometry_json;
+                // FIX: RENDER TARGET ON 'current' PANE (Z-Index 500 - Always Top)
+                const targetGeo = d.geo_json || d.geometry_json || d.geometry || d.GEOMETRY_JSON;
                 if(targetGeo) {
                     try {
-                        const pts = JSON.parse(targetGeo);
-                        // FIXED STYLE: Purple outline, transparent-ish purple fill. NO MARKER if poly exists.
-                        const poly = L.polygon(pts, {color: isBio?'#10B981':'#9333ea', weight: 3, fillOpacity: 0.4}).addTo(mapLogic.detailMap);
-                        bounds.extend(poly.getBounds());
-                        hasPolygon = true;
-                    } catch(e){}
-                } 
+                        const parsed = JSON.parse(targetGeo);
+                        const isStandardGeoJSON = parsed.type === 'Feature' || parsed.type === 'FeatureCollection' || parsed.type === 'Polygon' || parsed.type === 'MultiPolygon' || parsed.features;
+                        const style = { color: isBio?'#10B981':'#9333ea', weight: 3, fillOpacity: 0.4 };
+
+                        if (isStandardGeoJSON) {
+                            const gl = L.geoJSON(parsed, { pane: 'current', style: style }).addTo(mapLogic.detailMap);
+                            bounds.extend(gl.getBounds());
+                            hasPolygon = true;
+                        } else {
+                            const poly = L.polygon(parsed, { pane: 'current', ...style }).addTo(mapLogic.detailMap);
+                            bounds.extend(poly.getBounds());
+                            hasPolygon = true;
+                        }
+                    } catch(e){
+                        console.warn("Failed to parse geometry for", d.local_name, e);
+                        document.getElementById('map-context-note').innerHTML += ` <span class="text-red-500">(GeoJSON Error)</span>`;
+                    }
+                }
                 
-                // Only draw marker if NO polygon is present (to match clean look in reference image)
-                // Use isValidLatLng check before plotting
                 if(!hasPolygon && isValidLatLng(d.lat, d.lng)) {
                     L.marker([d.lat, d.lng], {zIndexOffset: 1000}).addTo(mapLogic.detailMap);
                     bounds.extend([d.lat, d.lng]);
@@ -951,105 +962,75 @@
 
                 ui.openModal('detail-modal');
                 
-                // 3. Fit Bounds with Padding & MaxZoom Constraint (DELAYED EXECUTION FOR AUTO FIT)
+                // FIX: ZOOM LOGIC FALLBACK (No more Africa!)
                 setTimeout(() => {
                     mapLogic.detailMap.invalidateSize();
                     if(bounds.isValid()) {
-                        mapLogic.detailMap.fitBounds(bounds, {
-                            padding: [20, 20],
-                            maxZoom: 9, // Prevents extreme zoom in for points
-                            animate: false
-                        });
+                        // FIX: Reduced maxZoom to 12 (was 10, then was default 18) to avoid extreme zoom in
+                        mapLogic.detailMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 12, animate: false });
+                    } else if (isValidLatLng(d.lat, d.lng)) {
+                        // Fallback to point location if polygon fails
+                        mapLogic.detailMap.setView([d.lat, d.lng], 10);
                     } else {
+                        // Only world view if absolutely no data
                         mapLogic.detailMap.setView([0,0], 2);
                     }
                 }, 300);
             },
 
-            // --- DASHBOARD LOGIC (Updated with Pagination & Filter) ---
+            // --- DASHBOARD LOGIC (With Pagination) ---
             updateDashboard: (resetPage = false) => {
-                // Get Filters
                 const search = document.getElementById('filter-search').value.toLowerCase();
                 const type = document.getElementById('filter-type').value;
                 const country = document.getElementById('filter-country').value;
                 
                 if (resetPage) state.pagination.currentPage = 1;
 
-                // Prepare Data
                 let all = [...state.nodes.map(x=>({...x, _type:'nodes'})), ...state.biosphere.map(x=>({...x, _type:'biosphere'}))];
                 
-                // Filter Data
                 all = all.filter(x => {
                     const isBio = x._type === 'biosphere';
                     const name = (isBio ? x.name_bio : x.local_name).toLowerCase();
                     const ctry = (x.country || '').toLowerCase();
-                    
                     if (search && !name.includes(search)) return false;
                     if (type !== 'all' && ((type === 'biodiversity' && isBio) || (type === 'biosphere' && !isBio))) return false;
                     if (country !== 'all' && ctry !== country.toLowerCase()) return false;
                     return true;
                 });
 
-                // Update KPIs
                 document.getElementById('kpi-nodes').innerText = state.nodes.length;
                 document.getElementById('kpi-bio').innerText = state.biosphere.length;
                 const countries = new Set([...state.nodes.map(x=>x.country), ...state.biosphere.map(x=>x.country)]).size;
                 document.getElementById('kpi-countries').innerText = countries;
                 
-                // Render Charts (using filtered data or all data? Usually all data for stats)
-                // Let's use ALL data for charts to show global context
+                // --- CHARTS (Using All Data context for global stats) ---
                 const allDataForCharts = [...state.nodes, ...state.biosphere];
-                
-                // 1. Status Chart
                 const statusCounts = {};
-                allDataForCharts.forEach(x => {
-                    const s = (x.unesco_status || x.status || 'Unknown').trim();
-                    statusCounts[s] = (statusCounts[s] || 0) + 1;
-                });
+                allDataForCharts.forEach(x => { const s = (x.unesco_status || x.status || 'Unknown').trim(); statusCounts[s] = (statusCounts[s] || 0) + 1; });
                 
                 if(state.charts.status) state.charts.status.destroy();
                 state.charts.status = new Chart(document.getElementById('chart-status'), {
                     type: 'doughnut',
-                    data: {
-                        labels: Object.keys(statusCounts),
-                        datasets: [{
-                            data: Object.values(statusCounts),
-                            backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#64748B', '#8B5CF6'],
-                            borderWidth: 0
-                        }]
-                    },
+                    data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#64748B', '#8B5CF6'], borderWidth: 0 }] },
                     options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: {size: 10} } } } }
                 });
 
-                // 2. Country Chart
                 const countryCounts = {};
-                allDataForCharts.forEach(x => {
-                    const c = (x.country || 'Unknown').trim();
-                    countryCounts[c] = (countryCounts[c] || 0) + 1;
-                });
+                allDataForCharts.forEach(x => { const c = (x.country || 'Unknown').trim(); countryCounts[c] = (countryCounts[c] || 0) + 1; });
                 const sortedCountries = Object.entries(countryCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
                 
                 if(state.charts.country) state.charts.country.destroy();
                 state.charts.country = new Chart(document.getElementById('chart-country'), {
                     type: 'bar',
-                    data: {
-                        labels: sortedCountries.map(x=>x[0]),
-                        datasets: [{
-                            label: 'Entries',
-                            data: sortedCountries.map(x=>x[1]),
-                            backgroundColor: '#0ea5e9',
-                            borderRadius: 4
-                        }]
-                    },
+                    data: { labels: sortedCountries.map(x=>x[0]), datasets: [{ label: 'Entries', data: sortedCountries.map(x=>x[1]), backgroundColor: '#0ea5e9', borderRadius: 4 }] },
                     options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: {display:false} }, x: { grid: {display:false} } } }
                 });
 
-                // --- PAGINATION LOGIC ---
+                // --- PAGINATION (Client Side) ---
                 const start = (state.pagination.currentPage - 1) * state.pagination.itemsPerPage;
                 const end = start + state.pagination.itemsPerPage;
                 const paginatedData = all.slice(start, end);
                 
-                // Render Table
                 const tbody = document.getElementById('dash-table-body'); tbody.innerHTML = '';
                 paginatedData.forEach(x => {
                     const isBio = x._type === 'biosphere';
@@ -1058,21 +1039,12 @@
                     tbody.innerHTML += `<tr class="border-b border-slate-50 hover:bg-slate-100 cursor-pointer" onclick="BioApp.showDetail(state.${isBio?'biosphere':'nodes'}.find(i=>i.id=='${x.id}'), '${isBio?'biosphere':'nodes'}')"><td class="p-3"><span class="w-2 h-2 rounded-full ${isBio?'bg-emerald-500':'bg-blue-500'} inline-block mr-2"></span>${isBio?'Biosphere':'Biodiversity'}</td><td class="p-3 font-bold text-slate-700">${name}</td><td class="p-3 text-slate-500">${x.country}</td><td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-200 text-slate-600 text-[10px] font-bold">${status||'-'}</span></td></tr>`;
                 });
 
-                // Update Pagination Controls
                 document.getElementById('pagination-info').innerText = `Showing ${Math.min(start + 1, all.length)}-${Math.min(end, all.length)} of ${all.length}`;
                 document.getElementById('btn-prev').disabled = state.pagination.currentPage === 1;
                 document.getElementById('btn-next').disabled = end >= all.length;
             },
-            nextPage: () => {
-                state.pagination.currentPage++;
-                BioApp.updateDashboard();
-            },
-            prevPage: () => {
-                if (state.pagination.currentPage > 1) {
-                    state.pagination.currentPage--;
-                    BioApp.updateDashboard();
-                }
-            },
+            nextPage: () => { state.pagination.currentPage++; BioApp.updateDashboard(); },
+            prevPage: () => { if (state.pagination.currentPage > 1) { state.pagination.currentPage--; BioApp.updateDashboard(); } },
             pickLocation: (target) => {
                 ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden'); document.getElementById('picker-msg').innerText = "Click map to set location";
                 const handler = (e) => {
