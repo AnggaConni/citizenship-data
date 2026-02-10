@@ -272,11 +272,19 @@
             <div id="view-map" class="absolute inset-0">
                 <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
                 
-                <!-- Search -->
-                <div class="absolute top-6 left-6 z-[400] flex flex-col gap-2">
+                <!-- Search & Filters Container (UPDATED) -->
+                <div class="absolute top-6 left-6 z-[400] flex flex-col gap-3">
+                    <!-- Search Bar -->
                     <div class="relative shadow-xl">
                         <input type="text" id="map-search" placeholder="Search Biodiversity or Biosphere..." class="pl-10 bg-white/90 border border-slate-200 rounded-xl px-4 py-3 text-sm w-80 backdrop-blur-md outline-none focus:ring-2 focus:ring-blue-500 transition" oninput="BioApp.updateMapFilter(this.value)">
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
+                    </div>
+
+                    <!-- Filter Buttons (NEW) -->
+                    <div class="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-1 flex border border-slate-200">
+                        <button onclick="BioApp.setLayerFilter('all')" id="btn-filter-all" class="flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-800 text-white shadow-sm transition">ALL</button>
+                        <button onclick="BioApp.setLayerFilter('nodes')" id="btn-filter-nodes" class="flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition">BIODIVERSITY</button>
+                        <button onclick="BioApp.setLayerFilter('biosphere')" id="btn-filter-biosphere" class="flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition">BIOSPHERE</button>
                     </div>
                 </div>
 
@@ -677,7 +685,8 @@
             charts: { status: null, country: null },
             pagination: { currentPage: 1, itemsPerPage: 15 }, 
             filters: { search: '', type: 'all', country: 'all' },
-            currentExportFormat: 'csv'
+            currentExportFormat: 'csv',
+            layerFilter: 'all' // Added layer filter state
         };
 
         // Simple XSS Sanitizer
@@ -848,52 +857,56 @@
                 const search = document.getElementById('map-search').value.toLowerCase();
 
                 // 1. RENDER BIOSPHERE
-                state.biosphere.forEach(b => {
-                    if(search && !b.name_bio.toLowerCase().includes(search) && !b.country.toLowerCase().includes(search)) return;
-                    let layer;
-                    let geo = BioApp.getGeometry(b);
-                    // Brute force clean: remove everything before first [ and after last ]
-                    if(geo) {
-                         const start = geo.indexOf('[');
-                         const end = geo.lastIndexOf(']');
-                         if(start !== -1 && end !== -1) {
-                             geo = geo.substring(start, end + 1);
-                         }
-                    }
+                if(state.layerFilter === 'all' || state.layerFilter === 'biosphere') {
+                    state.biosphere.forEach(b => {
+                        if(search && !b.name_bio.toLowerCase().includes(search) && !b.country.toLowerCase().includes(search)) return;
+                        let layer;
+                        let geo = BioApp.getGeometry(b);
+                        // Brute force clean: remove everything before first [ and after last ]
+                        if(geo) {
+                             const start = geo.indexOf('[');
+                             const end = geo.lastIndexOf(']');
+                             if(start !== -1 && end !== -1) {
+                                 geo = geo.substring(start, end + 1);
+                             }
+                        }
 
-                    if(geo) {
-                        try {
-                            const pts = JSON.parse(geo);
-                            layer = L.polygon(pts, { pane: 'biospherePane', color: '#10B981', weight: 1, fillOpacity: 0.4 });
-                        } catch(e) {}
-                    }
-                    if(layer) {
-                        layer.addTo(mapLogic.map);
-                        layer.on('click', () => BioApp.showDetail(b, 'biosphere'));
-                        layer.bindTooltip(b.name_bio, {className: 'custom-tooltip bio-tooltip', direction: 'center', permanent: false});
-                        mapLogic.layers.push(layer);
-                    }
-                });
+                        if(geo) {
+                            try {
+                                const pts = JSON.parse(geo);
+                                layer = L.polygon(pts, { pane: 'biospherePane', color: '#10B981', weight: 1, fillOpacity: 0.4 });
+                            } catch(e) {}
+                        }
+                        if(layer) {
+                            layer.addTo(mapLogic.map);
+                            layer.on('click', () => BioApp.showDetail(b, 'biosphere'));
+                            layer.bindTooltip(b.name_bio, {className: 'custom-tooltip bio-tooltip', direction: 'center', permanent: false});
+                            mapLogic.layers.push(layer);
+                        }
+                    });
+                }
 
                 // 2. RENDER NODES
-                state.nodes.forEach(n => {
-                    if(search && !n.local_name.toLowerCase().includes(search)) return;
-                    // Use normalized coords for Marker
-                    if(!isValidLatLng(n.lat, n.lng)) return;
+                if(state.layerFilter === 'all' || state.layerFilter === 'nodes') {
+                    state.nodes.forEach(n => {
+                        if(search && !n.local_name.toLowerCase().includes(search)) return;
+                        // Use normalized coords for Marker
+                        if(!isValidLatLng(n.lat, n.lng)) return;
 
-                    // Lines
-                    if(isValidLatLng(n.affectedby_lat, n.affectedby_lng)) {
-                        const line = L.polyline([[n.affectedby_lat, n.affectedby_lng], [n.lat, n.lng]], { pane: 'linesPane', color: '#64748b', weight: 1, dashArray: '4,4' }).addTo(mapLogic.map);
-                        const orange = L.marker([n.affectedby_lat, n.affectedby_lng], { pane: 'orangePane', icon: L.divIcon({ className: 'geo-marker-icon', html: '<div style="background:#F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white;"></div>', iconSize: [10,10] }) }).addTo(mapLogic.map);
-                        orange.bindTooltip(n.affectedby_local_name || 'Factor', {className: 'custom-tooltip'});
-                        mapLogic.layers.push(line, orange);
-                    }
+                        // Lines
+                        if(isValidLatLng(n.affectedby_lat, n.affectedby_lng)) {
+                            const line = L.polyline([[n.affectedby_lat, n.affectedby_lng], [n.lat, n.lng]], { pane: 'linesPane', color: '#64748b', weight: 1, dashArray: '4,4' }).addTo(mapLogic.map);
+                            const orange = L.marker([n.affectedby_lat, n.affectedby_lng], { pane: 'orangePane', icon: L.divIcon({ className: 'geo-marker-icon', html: '<div style="background:#F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white;"></div>', iconSize: [10,10] }) }).addTo(mapLogic.map);
+                            orange.bindTooltip(n.affectedby_local_name || 'Factor', {className: 'custom-tooltip'});
+                            mapLogic.layers.push(line, orange);
+                        }
 
-                    const marker = L.marker([n.lat, n.lng], { pane: 'nodesPane', icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14,14] }) }).addTo(mapLogic.map);
-                    marker.on('click', () => BioApp.showDetail(n, 'nodes'));
-                    marker.bindTooltip(n.local_name, {className: 'custom-tooltip'});
-                    mapLogic.layers.push(marker);
-                });
+                        const marker = L.marker([n.lat, n.lng], { pane: 'nodesPane', icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14,14] }) }).addTo(mapLogic.map);
+                        marker.on('click', () => BioApp.showDetail(n, 'nodes'));
+                        marker.bindTooltip(n.local_name, {className: 'custom-tooltip'});
+                        mapLogic.layers.push(marker);
+                    });
+                }
             }
         };
 
@@ -1036,6 +1049,27 @@
                 if(t==='map') setTimeout(()=>mapLogic.map.invalidateSize(), 200);
             },
             updateMapFilter: () => mapLogic.render(),
+            setLayerFilter: (type) => {
+                state.layerFilter = type;
+                // Update UI buttons
+                const btns = {
+                    'all': document.getElementById('btn-filter-all'),
+                    'nodes': document.getElementById('btn-filter-nodes'),
+                    'biosphere': document.getElementById('btn-filter-biosphere')
+                };
+                
+                // Reset styling
+                Object.values(btns).forEach(b => {
+                    b.className = "flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg text-slate-500 hover:bg-slate-100 transition";
+                });
+
+                // Set active styling based on type
+                if (type === 'all') btns['all'].className = "flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-800 text-white shadow-sm transition";
+                else if (type === 'nodes') btns['nodes'].className = "flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-blue-600 text-white shadow-sm transition";
+                else if (type === 'biosphere') btns['biosphere'].className = "flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-emerald-600 text-white shadow-sm transition";
+
+                mapLogic.render();
+            },
             showAddChoice: () => ui.openModal('choice-modal'),
             initAdd: (type) => { ui.closeModal('choice-modal'); state.currentDetail = null; state.inputMode = type; BioApp.resetInputForm(); ui.openModal('input-modal'); },
             resetInputForm: () => {
