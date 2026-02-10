@@ -1,107 +1,76 @@
 # 🌍 Global Biodiversity & Biosphere 2026 (BioSphere)
 
-BioSphere adalah Aplikasi Web GIS (Geographic Information System) progresif untuk memvisualisasikan, memantau, dan mengelola data keanekaragaman hayati (Biodiversity) dan Cagar Biosfer (Biosphere Reserves). Aplikasi ini dibangun dengan pendekatan serverless menggunakan Google Sheets sebagai database.
+**BioSphere** is a progressive Web GIS (Geographic Information System) application designed to visualize, monitor, and manage Biodiversity and Biosphere Reserve data. The application is built using a serverless architecture, with Google Sheets acting as the primary database.
 
-✨ Fitur Utama
+### Key Features
 
-1. 🗺️ Peta Interaktif (GIS)
+#### 1. Interactive Map (GIS)
 
-Multi-Layer Visualization: Menampilkan titik biodiversitas (biru), faktor ekologis (oranye), dan zona cagar biosfer (hijau) dalam satu peta.
+- Multi-Layer Visualization: Displays biodiversity points (blue), ecological factors (orange), and biosphere reserve zones (green) within a single interactive map.
+- GIS Drawing Tools: Built-in editor for drawing conservation areas or habitat polygons directly on the map.
+- Advanced Popups: Rich detail popups featuring image carousels, embedded YouTube videos, and anti-phishing link cards.
 
-GIS Drawing Tool: Editor bawaan untuk menggambar poligon area konservasi atau habitat langsung di atas peta.
+#### 2. Analytical Dashboard
 
-Advanced Popups: Popup detail dengan carousel gambar, video YouTube, dan "Kartu Link" anti-phishing.
+- Real-time data visualization using Chart.js (Distribution Status & Top Countries).
+- Paginated data tables with instant search.
+- Automatically generated KPI (Key Performance Indicator) statistics.
 
-2. 📊 Dashboard Analitik
+#### 3. Security & Data Integrity
 
-Visualisasi data real-time dengan Chart.js (Status Distribusi & Top Countries).
+- Contributor Mode (Login): CRUD features are restricted to authenticated users.
+- Input Validation: Basic HTML sanitization and URL validation to prevent XSS.
+- Lock Service: Prevents data conflicts during concurrent backend operations.
 
-Tabel data dengan paginasi dan pencarian instan.
+#### 4. Data Interoperability
 
-Statistik KPI (Key Performance Indicators) otomatis.
+- CSV Export: Download complete datasets for analysis.
+- DCMI Export: Supports Dublin Core metadata standard.
 
-3. 🛡️ Keamanan & Integritas Data
+### Installation & Setup
 
-Mode Kontributor (Login): Proteksi fitur CRUD (Create, Read, Update, Delete) hanya untuk pengguna terdaftar.
+#### Step 1: Prepare Google Sheets
 
-Validasi Input: Sanitasi HTML dasar dan validasi URL untuk mencegah XSS.
+Create three sheets:
 
-Lock Service: Mencegah konflik data saat penyimpanan bersamaan di backend.
+**Nodes (Biodiversity Data)**  
+Headers:
+ID, Local Name, Latin Name, Country, Lat, Lng, AffectedBy Local Name, AffectedBy Latin Name, AffectedBy Country, AffectedBy Lat, AffectedBy Lng, Connection Type, Contact, Geometry JSON, Youtube URL, UNESCO Status, Research Links, Image URL, Description
 
-4. 📤 Interoperabilitas Data
+**Biosphere (Biosphere Reserve Data)**  
+Headers:
+ID, Name Bio, Country, Region, UNESCO Year, Status, Area Total Ha, Youtube URL, Geometry JSON, Research Links, Image URL, Description
 
-Export CSV: Unduh dataset lengkap untuk analisis di Excel/SPSS.
+**Users (Authentication)**  
+Headers:
+Username, Password
 
-Export DCMI: Dukungan standar metadata Dublin Core untuk integrasi perpustakaan digital.
+#### Step 2: Deploy Backend (Google Apps Script)
 
-🛠️ Instalasi & Setup
+Extensions → Apps Script  
+Copy backend.gs → Deploy → Web App
 
-Langkah 1: Persiapan Google Sheet (Database)
+Configuration:
+- Execute as: Me
+- Who has access: Anyone
 
-Buat Spreadsheet baru di Google Drive, dan buat 3 Sheet (Tab) dengan nama persis berikut:
+#### Step 3: Configure Frontend
 
-Nodes (Untuk Data Biodiversitas)
+Edit:
 
-Header Baris 1: ID, Local Name, Latin Name, Country, Lat, Lng, AffectedBy Local Name, AffectedBy Latin Name, AffectedBy Country, AffectedBy Lat, AffectedBy Lng, Connection Type, Contact, Geometry JSON, Youtube URL, UNESCO Status, Research Links, Image URL, Description
+const GAS_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
 
-Biosphere (Untuk Data Cagar Biosfer)
+### Tech Stack
 
-Header Baris 1: ID, Name Bio, Country, Region, UNESCO Year, Status, Area Total Ha, Youtube URL, Geometry JSON, Research Links, Image URL, Description
+Frontend: HTML5, Tailwind CSS, Leaflet.js, Chart.js  
+Backend: Google Apps Script  
+Database: Google Sheets
 
-Users (Untuk Login)
+### Security Notes
 
-Header Baris 1: Username, Password
-
-Isi Data: Masukkan username dan password admin di baris ke-2 dst.
-
-Langkah 2: Deploy Backend (Google Apps Script)
-
-Di Google Sheet, klik menu Extensions > Apps Script.
-
-Hapus kode yang ada, lalu Copy-Paste kode dari file backend.gs (tersedia di bawah).
-
-Klik tombol Deploy > New Deployment.
-
-Pilih type: Web App.
-
-Konfigurasi:
-
-Description: v1
-
-Execute as: Me (Email Anda).
-
-Who has access: Anyone (Penting agar frontend bisa akses).
-
-Klik Deploy dan salin Web App URL.
-
-Langkah 3: Konfigurasi Frontend
-
-Buka file index.html.
-
-Cari variabel const GAS_URL (biasanya di bagian bawah script).
-
-Ganti URL di dalamnya dengan Web App URL yang Anda dapatkan di Langkah 2.
-
-const GAS_URL = '[https://script.google.com/macros/s/AKfycb.../exec](https://script.google.com/macros/s/AKfycb.../exec)'; 
-
-
-💻 Tech Stack
-
-Frontend: HTML5, Tailwind CSS (CDN), Leaflet.js (Maps), Chart.js (Stats), FontAwesome.
-
-Backend: Google Apps Script (Node.js environment).
-
-Database: Google Sheets.
-
-📝 Catatan Audit Keamanan
-
-Aplikasi ini telah diaudit untuk keamanan tingkat dasar hingga menengah:
-
-✅ Anti-XSS: Input deskripsi dibersihkan dari tag script berbahaya.
-
-✅ Anti-Phishing: Link eksternal ditampilkan dengan domain jelas dan menggunakan atribut rel="noopener noreferrer".
-
-✅ Concurrency: Backend menggunakan LockService untuk menangani antrian request.
+- Anti-XSS protection
+- Anti-phishing external links
+- LockService concurrency protection
 
 
 ## Google Apps Script Backend (Data API)
