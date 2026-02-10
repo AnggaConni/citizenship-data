@@ -34,17 +34,26 @@
         .section-view.active { display: flex; opacity: 1; }
         .z-modal { z-index: 2000; } .z-picker { z-index: 3000; }
         
-        /* --- FIX: PICKER MODE CSS --- */
+        /* --- FIX: PICKER MODE CSS (UPDATED FOR LAYER BLOCKING) --- */
         .picker-mode { cursor: crosshair !important; }
         
-        /* SOLUSI PENTING:
-           Saat mode picker aktif (.picker-mode ada di map-container),
-           kita buat layer biospherePane menjadi "transparan" terhadap klik mouse (pointer-events: none).
-           Jadi klik user akan tembus ke peta dasar.
+        /* SOLUSI UTAMA: 
+           Target SEMUA path (polygon/garis) dan marker yang interaktif di dalam map 
+           saat kelas .picker-mode aktif.
+           pointer-events: none !important; membuat klik tembus ke layer peta di bawahnya.
         */
-        .picker-mode .leaflet-biospherePane-pane {
+        .picker-mode path.leaflet-interactive,
+        .picker-mode .leaflet-marker-icon,
+        .picker-mode .leaflet-image-layer,
+        .picker-mode .leaflet-pane > svg path {
             pointer-events: none !important; 
-            opacity: 0.6; /* Sedikit transparan visual agar user tahu sedang mode edit */
+        }
+
+        /* Efek Visual: Buat layer vector sedikit transparan saat mode edit agar user tahu fokusnya ke peta */
+        .picker-mode .leaflet-biospherePane-pane,
+        .picker-mode .leaflet-nodesPane-pane,
+        .picker-mode .leaflet-orangePane-pane {
+            opacity: 0.5;
             transition: opacity 0.3s;
         }
 
