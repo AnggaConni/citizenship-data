@@ -186,9 +186,9 @@
             <h1 class="text-4xl md:text-6xl font-black text-white mb-2 leading-tight drop-shadow-lg">Global Biodiversity<br><span class="text-emerald-400 text-3xl md:text-5xl">& Biosphere Reserves</span></h1>
             <p class="text-xl text-emerald-200 tracking-[0.3em] uppercase font-light drop-shadow">Integrated Ecosystem Data</p>
             
-            <div id="loading-container" class="mt-8 flex justify-center h-12 items-center">
+            <div id="loading-container" class="mt-8 flex flex-col justify-center h-20 items-center">
                 <i class="fas fa-circle-notch fa-spin text-white text-3xl"></i>
-                <span class="ml-3 text-white font-mono text-sm">Synchronizing Data Layers...</span>
+                <span class="mt-3 text-white font-mono text-sm">Synchronizing Data Layers...</span>
             </div>
 
             <div id="entry-buttons" class="hidden flex-col items-center justify-center gap-4 mt-8 w-full">
@@ -644,7 +644,7 @@
     </div>
 
     <script>
-        // This is Google APP Script URL
+        // UPDATED GOOGLE APP SCRIPT URL (New Deployment)
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbygHKym3mji5_L3rDF2DGZaJMSt_Odom_RKDWTgClFwwMMv0FpAEQPdDuFugkZ4qaQzww/exec';
 
         const state = { 
@@ -951,7 +951,9 @@
                 return key ? d[key] : null;
             },
             fetchData: () => {
-                fetch(GAS_URL + '?t=' + new Date().getTime()).then(r => r.json()).then(d => {
+                fetch(GAS_URL + '?t=' + new Date().getTime())
+                .then(r => r.json())
+                .then(d => {
                     if(d.status === 'success') {
                         state.nodes = d.nodes.map(n => { 
                             // Auto-fix Magnitude errors
@@ -971,7 +973,17 @@
                         if(!mapLogic.map) mapLogic.init();
                         mapLogic.render();
                         BioApp.updateDashboard();
+                    } else {
+                        // Handle Logic Error from Script (e.g. Sheet Missing)
+                        alert('Database Error: ' + d.message);
+                        document.getElementById('loading-container').innerHTML = `<span class="text-red-400 font-bold">${d.message}</span>`;
                     }
+                })
+                .catch(e => {
+                    // Handle Network/CORS Error
+                    console.error(e);
+                    alert('Network Error: Gagal terhubung ke Google Script. Pastikan URL benar dan Deployment "Anyone".');
+                    document.getElementById('loading-container').innerHTML = `<span class="text-red-400 font-bold">Connection Failed</span>`;
                 });
             },
             populateFilters: () => {
@@ -1670,7 +1682,3 @@
     </script>
 </body>
 </html>
-
-
-
-
