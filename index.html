@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <!-- PDF Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- Custom Styles -->
     <style>
@@ -77,9 +80,101 @@
         .yt-overlay:hover { background: rgba(0,0,0,0.3); }
         .yt-btn { width: 48px; height: 48px; background: #ff0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s; }
         .yt-overlay:hover .yt-btn { transform: scale(1.1); }
+
+        /* --- LOADING OVERLAY (FIXED) --- */
+        #pdf-loading-overlay {
+            position: fixed; inset: 0; background: rgba(255, 255, 255, 0.98);
+            z-index: 9999; display: none; /* FIX: Default hidden */
+            flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        #pdf-loading-overlay.active { display: flex; } /* Toggle class */
+        
+        .loading-progress-bar {
+            width: 240px; height: 4px; background: #e2e8f0; margin-top: 20px;
+        }
+        .loading-progress-fill {
+            height: 100%; background: #000; width: 0%; transition: width 0.3s ease-out; /* Hitam Solid */
+        }
+        
+        /* --- GHOST MAPPING CONTAINER (Hidden) --- */
+        #pdf-ghost-container {
+            position: fixed; top: 0; left: -9999px;
+            width: 800px; background: white; z-index: -100;
+            padding: 40px; font-family: 'Inter', sans-serif;
+        }
+        .pdf-header { border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+        .pdf-title { font-size: 32px; font-weight: 900; color: #000; text-transform: uppercase; line-height: 1.1; margin-bottom: 5px; }
+        .pdf-subtitle { font-size: 18px; font-style: italic; color: #475569; font-weight: 500; }
+        .pdf-meta { font-size: 12px; font-weight: 800; color: #000; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .pdf-section-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #000; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 15px; margin-top: 30px; }
+        
+        /* Grid for All Pictures */
+        .pdf-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .pdf-img { width: 100%; height: 200px; object-fit: cover; border: 1px solid #000; }
+        
+        .pdf-row { display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 8px 0; font-size: 12px; }
+        .pdf-row-label { font-weight: bold; color: #334155; }
+        
+        #pdf-ghost-map { width: 100%; height: 300px; border: 1px solid #000; margin-bottom: 20px; background: #f8fafc; }
+        .pdf-desc { font-size: 12px; line-height: 1.6; color: #000; text-align: justify; white-space: pre-wrap; font-weight: 500; }
+        
+        .pdf-footer { margin-top: 50px; padding-top: 15px; border-top: 3px solid #000; font-size: 10px; color: #475569; }
+        .pdf-link { display: block; margin-bottom: 2px; color: #2563eb; text-decoration: none; font-family: monospace; }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-slate-50">
+
+    <!-- LOADING OVERLAY -->
+    <div id="pdf-loading-overlay">
+        <div class="text-3xl font-black text-black mb-1">EXPORTING PDF</div>
+        <div class="text-xs text-slate-500 font-mono uppercase tracking-widest" id="pdf-loading-text">Initializing...</div>
+        <div class="loading-progress-bar">
+            <div id="pdf-progress-fill" class="loading-progress-fill"></div>
+        </div>
+    </div>
+
+    <!-- PDF GHOST CONTAINER (OFF-SCREEN) -->
+    <div id="pdf-ghost-container">
+        <!-- HEADER -->
+        <div class="pdf-header">
+            <h1 class="pdf-title" id="pdf-out-name">Title</h1>
+            <div class="pdf-subtitle" id="pdf-out-latin">Latin Name</div>
+            <div class="pdf-meta" id="pdf-out-country">Country</div>
+        </div>
+
+        <!-- COLUMN -->
+        <div class="pdf-body">
+            <div class="pdf-section-title">Visual Documentation</div>
+            <div class="pdf-grid" id="pdf-out-images">
+                <!-- Images injected here -->
+            </div>
+
+            <div class="pdf-section-title">Ecological Interaction</div>
+            <div class="pdf-row">
+                <span class="pdf-row-label">Affected By (Local Name)</span>
+                <span id="pdf-out-aff-local">-</span>
+            </div>
+            <div class="pdf-row">
+                <span class="pdf-row-label">Affected By (Latin Name)</span>
+                <span id="pdf-out-aff-latin" class="italic">-</span>
+            </div>
+
+            <div class="pdf-section-title">Geographic Context</div>
+            <div id="pdf-ghost-map"></div>
+
+            <div class="pdf-section-title">Description</div>
+            <div class="pdf-desc" id="pdf-out-desc"></div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="pdf-footer">
+            <div style="font-weight: bold; margin-bottom: 5px; text-transform: uppercase;">Research & References</div>
+            <div id="pdf-out-links"></div>
+            <div style="margin-top: 15px; text-align: right; font-weight: bold;">GENERATED BY GLOBAL BIODIVERSITY & BIOSPHERE 2026</div>
+        </div>
+    </div>
 
     <!-- 1. LANDING PAGE -->
     <div id="landing-page" class="section-view active h-full w-full relative z-50 bg-slate-900 items-center justify-center flex-col">
@@ -434,16 +529,20 @@
                 <div class="p-8 overflow-y-auto bg-slate-50 h-1/2 md:h-full custom-scrollbar">
                     
                     <!-- ACTION BUTTONS ROW -->
-                    <div class="flex gap-2 mb-4">
+                    <div class="flex flex-wrap gap-2 mb-4">
                         <!-- EDIT BUTTON (ADMIN ONLY) -->
                         <div id="dt-admin-btn" class="hidden">
                             <button onclick="BioApp.editCurrent()" class="text-[10px] bg-amber-100 text-amber-600 px-3 py-1 rounded-full font-bold hover:bg-amber-200 border border-amber-200 flex items-center gap-1">
                                 <i class="fas fa-edit"></i> EDIT DATA
                             </button>
                         </div>
-                        <!-- EXPORT GEOJSON BUTTON (ALL USERS) -->
+                        <!-- EXPORT GEOJSON BUTTON -->
                         <button onclick="BioApp.exportCurrentGeoJSON()" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 border border-blue-200 flex items-center gap-1">
-                            <i class="fas fa-file-export"></i> EXPORT GEOJSON (ARCGIS)
+                            <i class="fas fa-file-export"></i> EXPORT GEOJSON
+                        </button>
+                        <!-- EXPORT PDF BUTTON -->
+                        <button onclick="BioApp.exportPDF()" class="text-[10px] bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold hover:bg-red-100 border border-red-200 flex items-center gap-1">
+                            <i class="fas fa-file-pdf"></i> EXPORT PDF
                         </button>
                     </div>
                     
@@ -1114,6 +1213,170 @@
 
                 const fileName = `${state.currentType}_${d.id}_gis.geojson`;
                 BioApp.downloadFile(JSON.stringify(featureCollection, null, 2), fileName, 'application/geo+json');
+            },
+
+            // --- EXPORT PDF (With Ghost Mapping) ---
+            exportPDF: async () => {
+                const d = state.currentDetail;
+                if(!d) return;
+
+                const { jsPDF } = window.jspdf;
+                const loadingEl = document.getElementById('pdf-loading-overlay');
+                const progressEl = document.getElementById('pdf-progress-fill');
+                const textEl = document.getElementById('pdf-loading-text');
+                
+                // 1. Show Loading (FIXED: Using class 'active')
+                loadingEl.classList.add('active');
+                progressEl.style.width = '10%';
+                textEl.innerText = "Preparing Document Layout...";
+
+                // 2. Populate Ghost Container
+                document.getElementById('pdf-out-name').innerText = state.currentType === 'nodes' ? d.local_name : d.name_bio;
+                document.getElementById('pdf-out-latin').innerText = state.currentType === 'nodes' ? d.latin_name : d.region;
+                document.getElementById('pdf-out-country').innerText = d.country || 'Global';
+                document.getElementById('pdf-out-desc').innerHTML = sanitizeHTML(d.description || 'No description provided.');
+                
+                // Links
+                const linkContainer = document.getElementById('pdf-out-links');
+                linkContainer.innerHTML = '';
+                if(d.research_links) {
+                    d.research_links.split(',').forEach(l => {
+                        const clean = safeURL(l);
+                        if(clean) linkContainer.innerHTML += `<a href="${clean}" class="pdf-link">${clean}</a>`;
+                    });
+                } else { linkContainer.innerHTML = 'No references available.'; }
+
+                // Affected By (Logic to find Latin Name)
+                document.getElementById('pdf-out-aff-local').innerText = d.affectedby_local_name || 'None';
+                let affLatin = 'None';
+                if(d.affectedby_local_name) {
+                    const names = d.affectedby_local_name.split(',').map(s=>s.trim());
+                    const latins = names.map(name => {
+                        const found = state.nodes.find(n => n.local_name.toLowerCase() === name.toLowerCase());
+                        return found ? found.latin_name : name; // Fallback to local name if not found
+                    });
+                    affLatin = latins.join(', ');
+                }
+                document.getElementById('pdf-out-aff-latin').innerText = affLatin;
+
+                // Images
+                const imgContainer = document.getElementById('pdf-out-images');
+                imgContainer.innerHTML = '';
+                if(d.image_url) {
+                    const imgs = d.image_url.split(/[,;]/).map(s=>s.trim()).filter(s=>s);
+                    // Take max 4 images for PDF
+                    imgs.slice(0, 4).forEach(url => {
+                        // Use proxy or crossOrigin anonymous if possible
+                        imgContainer.innerHTML += `<img src="${url}" class="pdf-img" crossorigin="anonymous" onerror="this.style.display='none'">`;
+                    });
+                }
+
+                // 3. Ghost Mapping (Render Map in Hidden Container)
+                progressEl.style.width = '30%';
+                textEl.innerText = "Rendering Ghost Map (GIS)...";
+                
+                // Clear previous ghost map
+                const ghostMapDiv = document.getElementById('pdf-ghost-map');
+                ghostMapDiv.innerHTML = ''; // Leaflet cleanup brute force (better to use remove() if storing ref)
+                // Need a unique container or re-init
+                const ghostMap = L.map('pdf-ghost-map', {zoomControl: false, attributionControl: false, preferCanvas: true});
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(ghostMap);
+
+                // Add Geometry
+                let bounds = L.latLngBounds([]);
+                let hasGeo = false;
+                const rawGeo = BioApp.getGeometry(d);
+                
+                if(rawGeo) {
+                    try {
+                        const cleanGeo = rawGeo.replace(/^(GEOMETRY_JSON|geometry_json)\s*=?\s*/i, '').trim(); 
+                        const parsed = JSON.parse(cleanGeo);
+                        // Similar render logic as main map
+                        const style = { color: '#000', weight: 2, fillOpacity: 0.2, fillColor: '#000' };
+                        if (Array.isArray(parsed)) {
+                             // Handle depths
+                             if (parsed.length > 0 && Array.isArray(parsed[0]) && parsed[0].length > 0 && Array.isArray(parsed[0][0])) {
+                                parsed.forEach(r => { const p = L.polygon(r, style).addTo(ghostMap); bounds.extend(p.getBounds()); });
+                             } else {
+                                const p = L.polygon(parsed, style).addTo(ghostMap); bounds.extend(p.getBounds());
+                             }
+                             hasGeo = true;
+                        }
+                    } catch(e) {}
+                }
+                
+                if(!hasGeo && isValidLatLng(d.lat, d.lng)) {
+                    L.marker([d.lat, d.lng]).addTo(ghostMap);
+                    ghostMap.setView([d.lat, d.lng], 9);
+                } else if (hasGeo) {
+                    ghostMap.fitBounds(bounds, {padding:[20,20]});
+                } else {
+                    ghostMap.setView([0,0], 2);
+                }
+
+                // Wait for tiles to load (crucial for screenshot)
+                await new Promise(r => setTimeout(r, 1500)); 
+
+                progressEl.style.width = '60%';
+                textEl.innerText = "Capturing High-Res Snapshot...";
+
+                // 4. Capture Canvas
+                const element = document.getElementById('pdf-ghost-container');
+                
+                // Scroll to top to ensure capture isn't affected by scroll position
+                window.scrollTo(0,0);
+
+                try {
+                    const canvas = await html2canvas(element, {
+                        useCORS: true, 
+                        scale: 2, 
+                        logging: false,
+                        windowWidth: element.scrollWidth, // Ensure full width captured
+                        windowHeight: element.scrollHeight // Ensure full height captured
+                    });
+
+                    progressEl.style.width = '80%';
+                    textEl.innerText = "Generating PDF File...";
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const pdf = new jsPDF({
+                        orientation: 'p',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    // Add first page
+                    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+                    heightLeft -= pdfHeight;
+
+                    // Add subsequent pages if content overflows (MULTI-PAGE LOGIC)
+                    while (heightLeft >= 0) {
+                        position = position - pdfHeight; // Shift image up
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+                        heightLeft -= pdfHeight;
+                    }
+
+                    progressEl.style.width = '100%';
+                    const filename = `Report_${d.local_name || d.name_bio}.pdf`;
+                    pdf.save(filename);
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Failed to generate PDF. Check console.");
+                } finally {
+                    // Cleanup
+                    ghostMap.remove();
+                    loadingEl.classList.remove('active'); // Hide overlay
+                }
             },
 
             downloadFile: (content, fileName, mimeType) => {
