@@ -604,40 +604,10 @@
             if (isNaN(n)) return null;
             
             // Only normalize really huge numbers
-            // e.g. -1140589 (7 digits) -> divide by 1M -> -1.14
-            if (Math.abs(n) > 180000) { 
+            if (Math.abs(n) > 100000) { 
                  while (Math.abs(n) > 180) n /= 10;
             }
             return n;
-        }
-
-        // --- DEEP COORDINATE NORMALIZER (RECURSIVE) ---
-        // Automatically scales down huge integer coordinates to valid decimals
-        function normalizeGeoJSONCoordinates(coords) {
-            if (!Array.isArray(coords)) return coords;
-            
-            // Base case: [x, y] point
-            if (coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
-                let x = coords[0];
-                let y = coords[1];
-                
-                // 1. Normalize Size (if HUGE integers)
-                if (Math.abs(x) > 180000) { while(Math.abs(x) > 180) x /= 10; }
-                if (Math.abs(y) > 180000) { while(Math.abs(y) > 180) y /= 10; }
-                
-                // 2. Auto-Swap logic for [Lng, Lat] vs [Lat, Lng]
-                // L.polygon requires [Lat, Lng]
-                // If x > 90 (it must be Lng) and y <= 90 (it must be Lat)
-                // Then the data is [Lng, Lat]. We must swap to [y, x] for L.polygon
-                if (Math.abs(x) > 90 && Math.abs(y) <= 90) {
-                     return [y, x]; // Swap!
-                }
-                
-                return [x, y];
-            }
-            
-            // Recursive step
-            return coords.map(normalizeGeoJSONCoordinates);
         }
 
         function isValidLatLng(lat, lng) {
@@ -663,7 +633,11 @@
                 mapLogic.detailMap = L.map('detail-mini-map', {zoomControl: false, preferCanvas: true}); // FORCE CANVAS
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapLogic.detailMap);
                 
-                // REMOVED CUSTOM PANES - Relying on order of execution + bringToFront()
+                // Detail Map Panes
+                mapLogic.detailMap.createPane('factors');
+                mapLogic.detailMap.getPane('factors').style.zIndex = 400;
+                mapLogic.detailMap.createPane('current');
+                mapLogic.detailMap.getPane('current').style.zIndex = 650; // Super top
             },
             render: () => {
                 mapLogic.layers.forEach(l => mapLogic.map.removeLayer(l));
@@ -675,12 +649,19 @@
                     if(search && !b.name_bio.toLowerCase().includes(search) && !b.country.toLowerCase().includes(search)) return;
                     let layer;
                     let geo = BioApp.getGeometry(b);
+                    // Brute force clean: remove everything before first [ and after last ]
+                    if(geo) {
+                         const start = geo.indexOf('[');
+                         const end = geo.lastIndexOf(']');
+                         if(start !== -1 && end !== -1) {
+                             geo = geo.substring(start, end + 1);
+                         }
+                    }
+
                     if(geo) {
                         try {
-                            geo = geo.replace(/^(GEOMETRY_JSON|geometry_json)\s*=?\s*/i, '').trim();
                             const pts = JSON.parse(geo);
-                            const normPts = normalizeGeoJSONCoordinates(pts);
-                            layer = L.polygon(normPts, { color: '#10B981', weight: 1, fillOpacity: 0.4 });
+                            layer = L.polygon(pts, { pane: 'biospherePane', color: '#10B981', weight: 1, fillOpacity: 0.4 });
                         } catch(e) {}
                     }
                     if(layer) {
@@ -699,13 +680,13 @@
 
                     // Lines
                     if(isValidLatLng(n.affectedby_lat, n.affectedby_lng)) {
-                        const line = L.polyline([[n.affectedby_lat, n.affectedby_lng], [n.lat, n.lng]], { color: '#64748b', weight: 1, dashArray: '4,4' }).addTo(mapLogic.map);
-                        const orange = L.marker([n.affectedby_lat, n.affectedby_lng], { icon: L.divIcon({ className: 'geo-marker-icon', html: '<div style="background:#F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white;"></div>', iconSize: [10,10] }) }).addTo(mapLogic.map);
+                        const line = L.polyline([[n.affectedby_lat, n.affectedby_lng], [n.lat, n.lng]], { pane: 'linesPane', color: '#64748b', weight: 1, dashArray: '4,4' }).addTo(mapLogic.map);
+                        const orange = L.marker([n.affectedby_lat, n.affectedby_lng], { pane: 'orangePane', icon: L.divIcon({ className: 'geo-marker-icon', html: '<div style="background:#F59E0B; width:100%; height:100%; border-radius:50%; border:2px solid white;"></div>', iconSize: [10,10] }) }).addTo(mapLogic.map);
                         orange.bindTooltip(n.affectedby_local_name || 'Factor', {className: 'custom-tooltip'});
                         mapLogic.layers.push(line, orange);
                     }
 
-                    const marker = L.marker([n.lat, n.lng], { icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14,14] }) }).addTo(mapLogic.map);
+                    const marker = L.marker([n.lat, n.lng], { pane: 'nodesPane', icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14,14] }) }).addTo(mapLogic.map);
                     marker.on('click', () => BioApp.showDetail(n, 'nodes'));
                     marker.bindTooltip(n.local_name, {className: 'custom-tooltip'});
                     mapLogic.layers.push(marker);
@@ -941,6 +922,7 @@
                 
                 const bounds = L.latLngBounds([]);
                 let hasPolygon = false; 
+                let dataDebugInfo = { targetPoints: 0, factorCount: 0 };
 
                 // FIX: RENDER FACTORS ON 'factors' PANE (Z-Index 400)
                 if (!isBio && d.affectedby_local_name) {
@@ -953,82 +935,62 @@
                         if (fGeo) {
                             try {
                                 fGeo = fGeo.replace(/^GEOMETRY_JSON/i, '').trim(); 
-                                // SUPER PARSER FOR FACTORS
-                                let parsed;
-                                if (fGeo.includes("][")) {
-                                    let patched = fGeo.replace(/\]\s*\[/g, '],[');
-                                    if (patched.startsWith('[[') && patched.endsWith(']]') && !patched.startsWith('[[[')) {
-                                        patched = `[${patched}]`;
-                                    }
-                                    parsed = JSON.parse(patched);
-                                } else {
-                                    parsed = JSON.parse(fGeo);
-                                }
+                                // Clean up header if present
                                 
-                                // NORMALIZE COORDINATES (Deep)
-                                parsed = normalizeGeoJSONCoordinates(parsed);
-
+                                let parsed = JSON.parse(fGeo);
+                                
                                 // Use L.polygon instead of L.geoJSON to control pane ordering better in some cases
                                 // AND handle array structure directly
                                 if (Array.isArray(parsed)) {
-                                    const poly = L.polygon(parsed, { color: color, weight: 2, dashArray: '5,5', fillOpacity: 0.3, fillColor: color }).addTo(mapLogic.detailMap);
+                                    const poly = L.polygon(parsed, { pane: 'factors', color: color, weight: 2, dashArray: '5,5', fillOpacity: 0.3, fillColor: color }).addTo(mapLogic.detailMap);
                                     poly.bringToBack();
                                     bounds.extend(poly.getBounds());
                                 }
                             } catch(e){}
                         } else if (fNode && isValidLatLng(fNode.lat, fNode.lng)) {
-                            const marker = L.circleMarker([fNode.lat, fNode.lng], { color: color, radius: 6 }).addTo(mapLogic.detailMap).bindTooltip(`Factor: ${fName}`);
+                            const marker = L.circleMarker([fNode.lat, fNode.lng], { pane: 'factors', color: color, radius: 6 }).addTo(mapLogic.detailMap).bindTooltip(`Factor: ${fName}`);
                             marker.bringToBack();
                             bounds.extend([fNode.lat, fNode.lng]);
                         }
                     });
                 }
 
-                // FIX: RENDER TARGET ON TOP (Z-Index 500)
+                // FIX: RENDER TARGET ON 'current' PANE (Z-Index 500 - Always Top)
                 let targetGeo = BioApp.getGeometry(d);
                 if(targetGeo) {
                     try {
                         targetGeo = targetGeo.replace(/^(GEOMETRY_JSON|geometry_json)\s*=?\s*/i, '').trim(); 
                         
-                        let parsed;
-                        if (targetGeo.includes("][")) {
-                            let patched = targetGeo.replace(/\]\s*\[/g, '],[');
-                            if (patched.startsWith('[[') && patched.endsWith(']]') && !patched.startsWith('[[[')) {
-                                patched = `[${patched}]`; 
-                            }
-                            parsed = JSON.parse(patched);
-                        } else {
-                            parsed = JSON.parse(targetGeo);
-                        }
-                        
-                        parsed = normalizeGeoJSONCoordinates(parsed);
+                        let parsed = JSON.parse(targetGeo);
                         
                         const style = { color: isBio?'#10B981':'#9333ea', weight: 3, fillOpacity: 0.6 }; 
 
                         if (Array.isArray(parsed)) {
-                            // Handle MultiPolygon (Array of Polygons) vs Single Polygon (Array of Rings)
-                            // Basic heuristic: if parsed[0][0] is a number, it's a Ring -> Polygon
-                            // if parsed[0][0] is an Array, it's a Polygon -> MultiPolygon logic
-                            
                             // Check first element depth
                             if (parsed.length > 0 && Array.isArray(parsed[0]) && parsed[0].length > 0 && Array.isArray(parsed[0][0])) {
                                 // Depth 3: [[[lat,lng],...], [[lat,lng],...]] -> Multiple Polygons
                                 parsed.forEach(polyCoords => {
-                                    const poly = L.polygon(polyCoords, style).addTo(mapLogic.detailMap);
+                                    const poly = L.polygon(polyCoords, { pane: 'current', ...style }).addTo(mapLogic.detailMap);
                                     poly.bringToFront();
                                     bounds.extend(poly.getBounds());
                                 });
                             } else {
                                 // Depth 2: [[lat,lng],...] -> Single Polygon
-                                const poly = L.polygon(parsed, style).addTo(mapLogic.detailMap);
+                                const poly = L.polygon(parsed, { pane: 'current', ...style }).addTo(mapLogic.detailMap);
                                 poly.bringToFront();
                                 bounds.extend(poly.getBounds());
                             }
                             hasPolygon = true;
+                            // Success indicator
+                            contextNote.innerHTML += ` <span class="text-green-600 font-bold ml-2 text-[9px]">[DATA FOUND]</span>`;
                         }
                     } catch(e){
                         console.warn("Failed to parse geometry for", d.local_name, e);
+                        // Add error text to popup
+                        document.getElementById('map-context-note').innerHTML += ` <span class="text-red-500 font-bold ml-2">(GIS ERROR: Invalid JSON)</span>`;
                     }
+                } else {
+                     contextNote.innerHTML += ` <span class="text-slate-400 ml-2">(No GIS Data)</span>`;
                 }
                 
                 // Fallback to Marker
@@ -1052,6 +1014,7 @@
                 setTimeout(() => {
                     mapLogic.detailMap.invalidateSize();
                     if(bounds.isValid()) {
+                        // FIX: Reduced maxZoom to 10 (Regional View)
                         mapLogic.detailMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 10, animate: false });
                     } else if (isValidLatLng(d.lat, d.lng)) {
                         mapLogic.detailMap.setView([d.lat, d.lng], 8);
