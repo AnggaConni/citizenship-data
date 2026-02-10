@@ -34,26 +34,27 @@
         .section-view.active { display: flex; opacity: 1; }
         .z-modal { z-index: 2000; } .z-picker { z-index: 3000; }
         
-        /* --- FIX: PICKER MODE CSS (UPDATED FOR LAYER BLOCKING) --- */
+        /* --- FIX: PICKER MODE CSS (UPDATED) --- */
         .picker-mode { cursor: crosshair !important; }
         
-        /* SOLUSI UTAMA: 
-           Target SEMUA path (polygon/garis) dan marker yang interaktif di dalam map 
-           saat kelas .picker-mode aktif.
-           pointer-events: none !important; membuat klik tembus ke layer peta di bawahnya.
-        */
+        /* SOLUSI 1: Non-aktifkan klik pada Polygon/Area (Hijau) agar tembus ke peta */
         .picker-mode path.leaflet-interactive,
-        .picker-mode .leaflet-marker-icon,
         .picker-mode .leaflet-image-layer,
         .picker-mode .leaflet-pane > svg path {
             pointer-events: none !important; 
         }
+        
+        /* SOLUSI 2: TAPI, biarkan Marker (Biru/Orange) tetap bisa diklik untuk fitur "Link to Node" */
+        .picker-mode .leaflet-marker-icon {
+            pointer-events: auto !important;
+            cursor: pointer !important;
+        }
 
-        /* Efek Visual: Buat layer vector sedikit transparan saat mode edit agar user tahu fokusnya ke peta */
+        /* Efek Visual saat mode edit */
         .picker-mode .leaflet-biospherePane-pane,
         .picker-mode .leaflet-nodesPane-pane,
         .picker-mode .leaflet-orangePane-pane {
-            opacity: 0.5;
+            opacity: 0.7;
             transition: opacity 0.3s;
         }
 
@@ -103,6 +104,11 @@
         .yt-overlay:hover { background: rgba(0,0,0,0.3); }
         .yt-btn { width: 48px; height: 48px; background: #ff0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s; }
         .yt-overlay:hover .yt-btn { transform: scale(1.1); }
+
+        /* Suggestion List */
+        .suggestion-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 11px; }
+        .suggestion-item:hover { background-color: #eff6ff; color: var(--primary-blue); }
+        .suggestion-item:last-child { border-bottom: none; }
 
         /* --- LOADING OVERLAY --- */
         #pdf-loading-overlay {
@@ -272,7 +278,7 @@
             <div id="view-map" class="absolute inset-0">
                 <div id="map-container" class="h-full w-full bg-slate-100 outline-none z-0"></div>
                 
-                <!-- Search & Filters Container (UPDATED) -->
+                <!-- Search & Filters Container -->
                 <div class="absolute top-6 left-6 z-[400] flex flex-col gap-3">
                     <!-- Search Bar -->
                     <div class="relative shadow-xl">
@@ -280,7 +286,7 @@
                         <i class="fas fa-search absolute left-4 top-3.5 text-slate-400"></i>
                     </div>
 
-                    <!-- Filter Buttons (NEW) -->
+                    <!-- Filter Buttons -->
                     <div class="bg-white/90 backdrop-blur-md rounded-xl shadow-xl p-1 flex border border-slate-200">
                         <button onclick="BioApp.setLayerFilter('all')" id="btn-filter-all" class="flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-800 text-white shadow-sm transition">ALL</button>
                         <button onclick="BioApp.setLayerFilter('nodes')" id="btn-filter-nodes" class="flex-1 px-3 py-1.5 text-[10px] font-bold rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition">BIODIVERSITY</button>
@@ -479,7 +485,11 @@
                     <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 relative">
                         <div class="flex justify-between items-center mb-2"><label class="text-xs text-orange-600 font-bold"><i class="fas fa-cube"></i> Affected By (Other Biodiversity)</label><button type="button" onclick="BioApp.pickLocation('origin')" class="text-[9px] bg-orange-500 text-white px-2 py-1 rounded">Set Loc</button></div>
                         <div class="grid grid-cols-2 gap-2 mb-2">
-                             <input type="text" id="inp-aff-name" placeholder="Name (Comma separated)" class="w-full rounded p-2 text-xs border border-orange-200">
+                             <div class="relative w-full">
+                                 <input type="text" id="inp-aff-name" placeholder="Name (Autofill available)" class="w-full rounded p-2 text-xs border border-orange-200" oninput="BioApp.suggestConnections(this.value)">
+                                 <!-- Autocomplete Suggestions -->
+                                 <div id="suggestion-list" class="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-xl shadow-lg max-h-40 overflow-y-auto z-50 hidden custom-scrollbar"></div>
+                             </div>
                              <input type="text" id="inp-conn-type" placeholder="Interaction Type" class="w-full rounded p-2 text-xs border border-orange-200">
                         </div>
                         <div class="hidden"><input id="inp-aff-lat"><input id="inp-aff-lng"><input id="inp-aff-latin"><input id="inp-aff-country"></div>
@@ -686,7 +696,8 @@
             pagination: { currentPage: 1, itemsPerPage: 15 }, 
             filters: { search: '', type: 'all', country: 'all' },
             currentExportFormat: 'csv',
-            layerFilter: 'all' // Added layer filter state
+            layerFilter: 'all',
+            pickerMode: null // 'main', 'origin', or null
         };
 
         // Simple XSS Sanitizer
@@ -902,7 +913,19 @@
                         }
 
                         const marker = L.marker([n.lat, n.lng], { pane: 'nodesPane', icon: L.divIcon({ className: 'geo-marker-icon', iconSize: [14,14] }) }).addTo(mapLogic.map);
-                        marker.on('click', () => BioApp.showDetail(n, 'nodes'));
+                        
+                        // --- FIX: SMART PICKER LOGIC ---
+                        // Intercept click on marker. If in "Origin Picker Mode", use this node's data.
+                        marker.on('click', (e) => {
+                            if (state.pickerMode === 'origin') {
+                                L.DomEvent.stopPropagation(e); // Stop map click handler
+                                BioApp.selectConnection(n); // Use this node
+                                BioApp.cancelPicker(); // Close picker
+                                return;
+                            }
+                            BioApp.showDetail(n, 'nodes');
+                        });
+
                         marker.bindTooltip(n.local_name, {className: 'custom-tooltip'});
                         mapLogic.layers.push(marker);
                     });
@@ -1070,6 +1093,38 @@
 
                 mapLogic.render();
             },
+            
+            // --- FIX: AUTOCOMPLETE LOGIC ---
+            suggestConnections: (val) => {
+                const list = document.getElementById('suggestion-list');
+                list.innerHTML = '';
+                if (!val || val.length < 2) { list.classList.add('hidden'); return; }
+                
+                const search = val.toLowerCase();
+                const matches = state.nodes.filter(n => 
+                    (n.local_name && n.local_name.toLowerCase().includes(search)) || 
+                    (n.latin_name && n.latin_name.toLowerCase().includes(search))
+                ).slice(0, 8); // Limit suggestions
+
+                if (matches.length === 0) { list.classList.add('hidden'); return; }
+
+                matches.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerHTML = `<strong>${m.local_name}</strong> <span class="text-slate-400">(${m.country})</span><div class="text-[9px] text-slate-400 font-mono">Coords: ${m.lat}, ${m.lng}</div>`;
+                    div.onclick = () => BioApp.selectConnection(m);
+                    list.appendChild(div);
+                });
+                list.classList.remove('hidden');
+            },
+            selectConnection: (node) => {
+                document.getElementById('inp-aff-name').value = node.local_name;
+                document.getElementById('inp-aff-lat').value = node.lat;
+                document.getElementById('inp-aff-lng').value = node.lng;
+                document.getElementById('suggestion-list').classList.add('hidden');
+                // Optional: Flash success or something
+            },
+
             showAddChoice: () => ui.openModal('choice-modal'),
             initAdd: (type) => { ui.closeModal('choice-modal'); state.currentDetail = null; state.inputMode = type; BioApp.resetInputForm(); ui.openModal('input-modal'); },
             resetInputForm: () => {
@@ -1083,6 +1138,7 @@
                 document.getElementById('btn-set-point').classList.toggle('hidden', isBio);
                 document.getElementById('btn-delete').classList.add('hidden');
                 document.getElementById('inp-type').value = state.inputMode;
+                document.getElementById('suggestion-list').classList.add('hidden');
             },
             editCurrent: () => {
                 const d = state.currentDetail;
@@ -1732,8 +1788,9 @@
                 BioApp.switchTab('map');
 
                 // 3. Show picker UI
+                state.pickerMode = target; // Set global state
                 document.getElementById('picker-notification').classList.remove('hidden'); 
-                document.getElementById('picker-msg').innerText = "Click map to set location";
+                document.getElementById('picker-msg').innerText = target === 'main' ? "Click map to set location" : "Click map OR Blue Node to connect";
 
                 // 4. (Optional) Auto-center if lat/lng already exists
                 const existingLat = document.getElementById(target === 'main' ? 'inp-lat' : 'inp-aff-lat').value;
@@ -1743,16 +1800,26 @@
                 }
                 
                 const handler = (e) => {
+                    // Only process map clicks if not intercepted by marker click
                     const lat = e.latlng.lat.toFixed(6); const lng = e.latlng.lng.toFixed(6);
                     if(target === 'main') { document.getElementById('inp-lat').value = lat; document.getElementById('inp-lng').value = lng; } else { document.getElementById('inp-aff-lat').value = lat; document.getElementById('inp-aff-lng').value = lng; }
-                    mapLogic.map.off('click', handler); document.getElementById('picker-notification').classList.add('hidden'); document.getElementById('map-container').classList.remove('picker-mode'); ui.openModal('input-modal');
+                    mapLogic.map.off('click', handler); 
+                    BioApp.cancelPicker(); // Reuse cleanup logic
                 };
                 mapLogic.map.on('click', handler); 
                 
-                // Add picker-mode class (which triggers the pointer-events:none CSS)
+                // Add picker-mode class (which triggers the CSS logic)
                 document.getElementById('map-container').classList.add('picker-mode');
             },
-            cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); document.getElementById('map-container').classList.remove('picker-mode'); ui.openModal('input-modal'); }
+            cancelPicker: () => { 
+                state.pickerMode = null; // Clear state
+                document.getElementById('picker-notification').classList.add('hidden'); 
+                document.getElementById('map-container').classList.remove('picker-mode'); 
+                // Remove any leftover click handlers? Leaflet handles .off well if ref is same, but anonymous funcs are tricky.
+                // Since we use closures, we rely on the handler executing once. 
+                // For robustness, simply reopening modal is fine as user likely clicked map or cancelled.
+                ui.openModal('input-modal'); 
+            }
         };
 
         document.addEventListener('DOMContentLoaded', BioApp.init);
