@@ -33,8 +33,21 @@
         .section-view { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
         .section-view.active { display: flex; opacity: 1; }
         .z-modal { z-index: 2000; } .z-picker { z-index: 3000; }
+        
+        /* --- FIX: PICKER MODE CSS --- */
         .picker-mode { cursor: crosshair !important; }
         
+        /* SOLUSI PENTING:
+           Saat mode picker aktif (.picker-mode ada di map-container),
+           kita buat layer biospherePane menjadi "transparan" terhadap klik mouse (pointer-events: none).
+           Jadi klik user akan tembus ke peta dasar.
+        */
+        .picker-mode .leaflet-biospherePane-pane {
+            pointer-events: none !important; 
+            opacity: 0.6; /* Sedikit transparan visual agar user tahu sedang mode edit */
+            transition: opacity 0.3s;
+        }
+
         /* Markers & Tooltips */
         .custom-tooltip { background: white; border: 1px solid var(--primary-blue); color: var(--primary-blue); border-radius: 6px; font-weight: bold; padding: 6px 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-size: 11px; }
         .bio-tooltip { border-color: var(--bio-green); color: var(--bio-dark); }
@@ -82,20 +95,20 @@
         .yt-btn { width: 48px; height: 48px; background: #ff0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s; }
         .yt-overlay:hover .yt-btn { transform: scale(1.1); }
 
-        /* --- LOADING OVERLAY (FIXED) --- */
+        /* --- LOADING OVERLAY --- */
         #pdf-loading-overlay {
             position: fixed; inset: 0; background: rgba(255, 255, 255, 0.98);
-            z-index: 9999; display: none; /* FIX: Default hidden */
+            z-index: 9999; display: none;
             flex-direction: column; align-items: center; justify-content: center;
             backdrop-filter: blur(5px);
         }
-        #pdf-loading-overlay.active { display: flex; } /* Toggle class */
+        #pdf-loading-overlay.active { display: flex; }
         
         .loading-progress-bar {
             width: 240px; height: 4px; background: #e2e8f0; margin-top: 20px;
         }
         .loading-progress-fill {
-            height: 100%; background: #000; width: 0%; transition: width 0.3s ease-out; /* Hitam Solid */
+            height: 100%; background: #000; width: 0%; transition: width 0.3s ease-out;
         }
         
         /* --- GHOST MAPPING CONTAINER (Hidden) --- */
@@ -1668,13 +1681,33 @@
             nextPage: () => { state.pagination.currentPage++; BioApp.updateDashboard(); },
             prevPage: () => { if (state.pagination.currentPage > 1) { state.pagination.currentPage--; BioApp.updateDashboard(); } },
             pickLocation: (target) => {
-                ui.closeModal('input-modal'); document.getElementById('picker-notification').classList.remove('hidden'); document.getElementById('picker-msg').innerText = "Click map to set location";
+                // --- FIX: WORKFLOW IMPROVEMENT ---
+                // 1. Hide modal immediately
+                ui.closeModal('input-modal'); 
+                
+                // 2. Auto-switch to MAP tab so user doesn't have to navigate manually
+                BioApp.switchTab('map');
+
+                // 3. Show picker UI
+                document.getElementById('picker-notification').classList.remove('hidden'); 
+                document.getElementById('picker-msg').innerText = "Click map to set location";
+
+                // 4. (Optional) Auto-center if lat/lng already exists
+                const existingLat = document.getElementById(target === 'main' ? 'inp-lat' : 'inp-aff-lat').value;
+                const existingLng = document.getElementById(target === 'main' ? 'inp-lng' : 'inp-aff-lng').value;
+                if(isValidLatLng(existingLat, existingLng)) {
+                    mapLogic.map.setView([existingLat, existingLng], 12); // Zoom to existing point
+                }
+                
                 const handler = (e) => {
                     const lat = e.latlng.lat.toFixed(6); const lng = e.latlng.lng.toFixed(6);
                     if(target === 'main') { document.getElementById('inp-lat').value = lat; document.getElementById('inp-lng').value = lng; } else { document.getElementById('inp-aff-lat').value = lat; document.getElementById('inp-aff-lng').value = lng; }
                     mapLogic.map.off('click', handler); document.getElementById('picker-notification').classList.add('hidden'); document.getElementById('map-container').classList.remove('picker-mode'); ui.openModal('input-modal');
                 };
-                mapLogic.map.on('click', handler); document.getElementById('map-container').classList.add('picker-mode');
+                mapLogic.map.on('click', handler); 
+                
+                // Add picker-mode class (which triggers the pointer-events:none CSS)
+                document.getElementById('map-container').classList.add('picker-mode');
             },
             cancelPicker: () => { document.getElementById('picker-notification').classList.add('hidden'); document.getElementById('map-container').classList.remove('picker-mode'); ui.openModal('input-modal'); }
         };
@@ -1683,4 +1716,3 @@
     </script>
 </body>
 </html>
-
