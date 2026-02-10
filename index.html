@@ -131,7 +131,13 @@
                         <button onclick="BioApp.logout()" class="w-full py-2 text-red-500 hover:text-red-700 text-xs transition border border-red-100 rounded-lg">Sign Out</button>
                     </div>
                 </div>
-                <button onclick="ui.openModal('help-modal')" class="mascot-btn w-full py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition flex justify-center items-center gap-2"><i class="fas fa-paw"></i> Help / Guide</button>
+                <button onclick="ui.openModal('help-modal')" class="mascot-btn w-full py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold shadow hover:bg-emerald-600 transition flex justify-center items-center gap-2 mb-2"><i class="fas fa-paw"></i> Help / Guide</button>
+                
+                <!-- NEW EXPORT BUTTONS -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="BioApp.showExportChoice('csv')" class="py-2 bg-white border border-slate-200 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg text-[10px] font-bold transition flex justify-center items-center gap-1 shadow-sm"><i class="fas fa-file-csv"></i> Export CSV</button>
+                    <button onclick="BioApp.showExportChoice('dcmi')" class="py-2 bg-white border border-slate-200 hover:bg-purple-50 text-slate-600 hover:text-purple-600 rounded-lg text-[10px] font-bold transition flex justify-center items-center gap-1 shadow-sm"><i class="fas fa-code"></i> Export DCMI</button>
+                </div>
             </div>
         </aside>
 
@@ -277,6 +283,23 @@
                 </button>
             </div>
             <button onclick="ui.closeModal('choice-modal')" class="mt-6 text-slate-400 hover:text-slate-600 text-xs font-bold">Cancel</button>
+        </div>
+    </div>
+
+    <!-- EXPORT MODAL -->
+    <div id="export-modal" class="fixed inset-0 z-modal hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="glass-panel w-80 p-6 rounded-2xl bg-white shadow-2xl text-center">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Export Data</h3>
+            <p class="text-xs text-slate-500 mb-6" id="export-msg">Select dataset to download</p>
+            <div class="space-y-2">
+                <button onclick="BioApp.executeExport('nodes')" class="w-full py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl flex items-center justify-center gap-2 text-blue-700 font-bold text-xs transition">
+                    <i class="fas fa-leaf"></i> Biodiversity Data
+                </button>
+                <button onclick="BioApp.executeExport('biosphere')" class="w-full py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl flex items-center justify-center gap-2 text-emerald-700 font-bold text-xs transition">
+                    <i class="fas fa-globe"></i> Biosphere Data
+                </button>
+            </div>
+            <button onclick="ui.closeModal('export-modal')" class="mt-4 text-slate-400 hover:text-slate-600 text-xs font-bold">Cancel</button>
         </div>
     </div>
 
@@ -518,7 +541,8 @@
             media: { imgIdx: 0, vidIdx: 0, images: [], videos: [] },
             charts: { status: null, country: null },
             pagination: { currentPage: 1, itemsPerPage: 15 }, 
-            filters: { search: '', type: 'all', country: 'all' }
+            filters: { search: '', type: 'all', country: 'all' },
+            currentExportFormat: 'csv'
         };
 
         // Simple XSS Sanitizer
@@ -958,6 +982,78 @@
                 });
             },
             
+            // --- EXPORT LOGIC ---
+            showExportChoice: (format) => {
+                state.currentExportFormat = format;
+                document.getElementById('export-msg').innerText = `Select dataset to download as ${format.toUpperCase()}`;
+                ui.openModal('export-modal');
+            },
+            executeExport: (type) => {
+                ui.closeModal('export-modal');
+                const data = type === 'nodes' ? state.nodes : state.biosphere;
+                const fmt = state.currentExportFormat;
+                const ts = new Date().toISOString().slice(0,10);
+                
+                if (data.length === 0) { alert('No data to export.'); return; }
+
+                if (fmt === 'csv') {
+                    BioApp.generateCSV(data, `BioApp_${type}_${ts}.csv`);
+                } else {
+                    BioApp.generateDCMI(data, type, `BioApp_${type}_${ts}_dcmi.xml`);
+                }
+            },
+            downloadFile: (content, fileName, mimeType) => {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            },
+            generateCSV: (data, fileName) => {
+                if(!data || !data.length) return;
+                const keys = Object.keys(data[0]).filter(k => !k.startsWith('_')); // Exclude internal keys
+                const csvContent = [
+                    keys.join(','),
+                    ...data.map(row => keys.map(k => {
+                        let val = row[k] === null || row[k] === undefined ? '' : String(row[k]);
+                        // Escape quotes and wrap in quotes if contains comma
+                        val = val.replace(/"/g, '""');
+                        if (val.search(/("|,|\n)/g) >= 0) val = `"${val}"`;
+                        return val;
+                    }).join(','))
+                ].join('\n');
+                BioApp.downloadFile(csvContent, fileName, 'text/csv;charset=utf-8;');
+            },
+            generateDCMI: (data, type, fileName) => {
+                let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+                xml += '<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n';
+                
+                data.forEach(item => {
+                    xml += '  <record>\n';
+                    // Mapping
+                    const title = type === 'nodes' ? item.local_name : item.name_bio;
+                    const altTitle = type === 'nodes' ? item.latin_name : '';
+                    const desc = item.description || '';
+                    const date = type === 'biosphere' ? item.unesco_year : '';
+                    
+                    xml += `    <dc:title>${sanitizeHTML(title)}</dc:title>\n`;
+                    if(altTitle) xml += `    <dc:alternative>${sanitizeHTML(altTitle)}</dc:alternative>\n`;
+                    xml += `    <dc:identifier>${item.id}</dc:identifier>\n`;
+                    if(desc) xml += `    <dc:description>${sanitizeHTML(desc)}</dc:description>\n`;
+                    xml += `    <dc:coverage>${item.country}</dc:coverage>\n`;
+                    if(item.region) xml += `    <dc:coverage>${item.region}</dc:coverage>\n`;
+                    if(date) xml += `    <dc:date>${date}</dc:date>\n`;
+                    if(item.image_url) xml += `    <dc:relation>${item.image_url}</dc:relation>\n`;
+                    xml += '  </record>\n';
+                });
+                
+                xml += '</metadata>';
+                BioApp.downloadFile(xml, fileName, 'application/xml;charset=utf-8;');
+            },
+
             // --- DETAILS & MINI MAP LOGIC (FIXED) ---
             showDetail: (d, type) => {
                 state.currentDetail = d; state.currentType = type;
