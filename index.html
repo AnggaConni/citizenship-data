@@ -432,7 +432,20 @@
 
                 <!-- RIGHT: INFO & SCROLLABLE -->
                 <div class="p-8 overflow-y-auto bg-slate-50 h-1/2 md:h-full custom-scrollbar">
-                    <div id="dt-admin-btn" class="hidden mb-4"><button onclick="BioApp.editCurrent()" class="text-[10px] bg-amber-100 text-amber-600 px-3 py-1 rounded-full font-bold hover:bg-amber-200 border border-amber-200">EDIT DATA</button></div>
+                    
+                    <!-- ACTION BUTTONS ROW -->
+                    <div class="flex gap-2 mb-4">
+                        <!-- EDIT BUTTON (ADMIN ONLY) -->
+                        <div id="dt-admin-btn" class="hidden">
+                            <button onclick="BioApp.editCurrent()" class="text-[10px] bg-amber-100 text-amber-600 px-3 py-1 rounded-full font-bold hover:bg-amber-200 border border-amber-200 flex items-center gap-1">
+                                <i class="fas fa-edit"></i> EDIT DATA
+                            </button>
+                        </div>
+                        <!-- EXPORT GEOJSON BUTTON (ALL USERS) -->
+                        <button onclick="BioApp.exportCurrentGeoJSON()" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 border border-blue-200 flex items-center gap-1">
+                            <i class="fas fa-file-export"></i> EXPORT GEOJSON (ARCGIS)
+                        </button>
+                    </div>
                     
                     <!-- 1. YOUTUBE CAROUSEL -->
                     <div id="vid-section" class="mb-6 hidden">
@@ -1002,6 +1015,107 @@
                     BioApp.generateDCMI(data, type, `BioApp_${type}_${ts}_dcmi.xml`);
                 }
             },
+            
+            // --- SINGLE FEATURE EXPORT (GEOJSON) ---
+            exportCurrentGeoJSON: () => {
+                const d = state.currentDetail;
+                if(!d) return;
+
+                // 1. Get GIS Data
+                let rawGeo = BioApp.getGeometry(d);
+                let geoType = 'Point';
+                let coordinates = [0,0];
+
+                if(rawGeo) {
+                    try {
+                        // Clean header if present
+                        rawGeo = rawGeo.replace(/^(GEOMETRY_JSON|geometry_json)\s*=?\s*/i, '').trim();
+                        let parsed = JSON.parse(rawGeo);
+
+                        // --- CRITICAL STEP: CONVERT LEAFLET [LAT, LNG] TO GEOJSON [LNG, LAT] ---
+                        // The app stores data as [[Lat, Lng], [Lat, Lng]...]
+                        // GeoJSON requires [[Lng, Lat], [Lng, Lat]...]
+                        
+                        if (Array.isArray(parsed)) {
+                             // Handle Polygon (Array of Arrays)
+                             geoType = 'Polygon';
+                             
+                             // Detect if it is a simple polygon (Depth 2: [[lat,lng],..]) 
+                             // or MultiPolygon/Complex (Depth 3: [[[lat,lng],..]])
+                             
+                             if (Array.isArray(parsed[0]) && typeof parsed[0][0] === 'number') {
+                                 // Single Ring Polygon
+                                 // Map [Lat, Lng] -> [Lng, Lat]
+                                 let ring = parsed.map(p => [p[1], p[0]]);
+                                 // Ensure ring is closed (Last point == First point)
+                                 if (ring.length > 0) {
+                                     const first = ring[0];
+                                     const last = ring[ring.length-1];
+                                     if (first[0] !== last[0] || first[1] !== last[1]) {
+                                         ring.push(first);
+                                     }
+                                 }
+                                 coordinates = [ring]; // GeoJSON Polygon requires array of rings
+                             } else if (Array.isArray(parsed[0]) && Array.isArray(parsed[0][0])) {
+                                 // Already nested? Just swap coordinates
+                                 coordinates = parsed.map(ring => {
+                                     let r = ring.map(p => [p[1], p[0]]);
+                                     // Close ring
+                                     if (r.length > 0) {
+                                         const first = r[0];
+                                         const last = r[r.length-1];
+                                         if (first[0] !== last[0] || first[1] !== last[1]) {
+                                             r.push(first);
+                                         }
+                                     }
+                                     return r;
+                                 });
+                             }
+                        }
+                    } catch(e) {
+                        console.error('GeoJSON Export Error', e);
+                        alert('Error parsing Polygon data. Falling back to Point location.');
+                        rawGeo = null; // Force fallback
+                    }
+                }
+
+                // Fallback to Point if no GIS data
+                if (!rawGeo) {
+                    if (isValidLatLng(d.lat, d.lng)) {
+                         geoType = 'Point';
+                         coordinates = [d.lng, d.lat]; // GeoJSON is [Lng, Lat]
+                    } else {
+                        alert('No valid location data found to export.');
+                        return;
+                    }
+                }
+
+                // Construct Feature
+                const feature = {
+                    "type": "Feature",
+                    "properties": {
+                        "id": d.id,
+                        "name": state.currentType === 'nodes' ? d.local_name : d.name_bio,
+                        "country": d.country,
+                        "description": d.description,
+                        "category": state.currentType
+                    },
+                    "geometry": {
+                        "type": geoType,
+                        "coordinates": coordinates
+                    }
+                };
+
+                // Export as FeatureCollection (Standard for ArcGIS)
+                const featureCollection = {
+                    "type": "FeatureCollection",
+                    "features": [feature]
+                };
+
+                const fileName = `${state.currentType}_${d.id}_gis.geojson`;
+                BioApp.downloadFile(JSON.stringify(featureCollection, null, 2), fileName, 'application/geo+json');
+            },
+
             downloadFile: (content, fileName, mimeType) => {
                 const blob = new Blob([content], { type: mimeType });
                 const url = URL.createObjectURL(blob);
@@ -1082,7 +1196,6 @@
                 
                 const bounds = L.latLngBounds([]);
                 let hasPolygon = false; 
-                let dataDebugInfo = { targetPoints: 0, factorCount: 0 };
 
                 // FIX: RENDER FACTORS ON 'factors' PANE (Z-Index 400)
                 if (!isBio && d.affectedby_local_name) {
