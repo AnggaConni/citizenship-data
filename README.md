@@ -1,58 +1,104 @@
-# citizenship-data
+# 🌍 Global Biodiversity & Biosphere 2026 (BioSphere)
 
-> **Open Source Tools for Community & Governance Reform**
-> *Built by Angga Conni Saputra*
+BioSphere adalah Aplikasi Web GIS (Geographic Information System) progresif untuk memvisualisasikan, memantau, dan mengelola data keanekaragaman hayati (Biodiversity) dan Cagar Biosfer (Biosphere Reserves). Aplikasi ini dibangun dengan pendekatan serverless menggunakan Google Sheets sebagai database.
 
----
+✨ Fitur Utama
 
-## 🇬🇧 About This Project
-This application allows users to [Jelaskan fungsi singkat dalam B.Inggris]. 
-Built with the **"Open Kitchen"** philosophy, this project ensures zero "black-boxes." Everything is transparent, auditable, and ready for community collaboration.
+1. 🗺️ Peta Interaktif (GIS)
 
-## 🇮🇩 Tentang Project Ini
-Aplikasi ini dibuat untuk memudahkan [Jelaskan fungsi singkat dalam B.Indonesia].
-Dibangun dengan prinsip **"Dapur Terbuka"**. Tidak ada kode yang disembunyikan. Semuanya transparan agar bisa diaudit, dipelajari, dan dikembangkan bersama.
+Multi-Layer Visualization: Menampilkan titik biodiversitas (biru), faktor ekologis (oranye), dan zona cagar biosfer (hijau) dalam satu peta.
 
----
+GIS Drawing Tool: Editor bawaan untuk menggambar poligon area konservasi atau habitat langsung di atas peta.
 
-## 🛡️ Security & Integrity (Why Open Source?) / Keamanan & Integritas
+Advanced Popups: Popup detail dengan carousel gambar, video YouTube, dan "Kartu Link" anti-phishing.
 
-### 🇬🇧 Is it Safe? Yes.
-There is a misconception that web apps might contain ransomware. **Here, you can verify it yourself.**
-* **Auditable:** The code runs on the server (Google Apps Script/Web) or browser. You can inspect every `.gs`, `.html`, or `.js` file directly.
-* **No Hidden Scripts:** There are NO `.exe` files or hidden encryption scripts. What you see is exactly what runs.
-* **Safe to Use:** Designed to help, not to harm. Please check the source code before using.
+2. 📊 Dashboard Analitik
 
-### 🇮🇩 Apakah Aman? Ya, Sangat Aman.
-Ada kesalahpahaman bahwa aplikasi web bisa berisi *ransomware*. **Di sini, Anda bisa membuktikannya sendiri.**
-* **Bisa Diaudit:** Kode ini berjalan di server atau browser. Anda bisa melihat file `.gs`, `.html`, atau `.js` secara telanjang mata.
-* **Tidak Ada Script Tersembunyi:** TIDAK ADA file `.exe` (aplikasi eksekusi) atau skrip enkripsi data (ransomware). Apa yang Anda lihat di kode, itulah yang dijalankan sistem.
-* **Aman Digunakan:** Aplikasi ini dirancang untuk membantu, bukan merusak. Silakan bedah kodenya sebelum menggunakan.
+Visualisasi data real-time dengan Chart.js (Status Distribusi & Top Countries).
 
----
+Tabel data dengan paginasi dan pencarian instan.
 
-## 🤝 Who Can Use This? / Siapa yang Boleh Pakai?
+Statistik KPI (Key Performance Indicators) otomatis.
 
-I dedicate this code for **Social Impact & Education**.
-Saya mendedikasikan kode ini untuk **Dampak Sosial & Edukasi**.
+3. 🛡️ Keamanan & Integritas Data
 
-✅ **PERMITTED / DIPERBOLEHKAN:**
-* **Students/Researchers:** Free to clone/fork for learning, thesis, or research. *(Mahasiswa/Pelajar: Gratis untuk belajar/skripsi)*.
-* **NGOs/Communities:** Free to use for community empowerment. *(LSM/Komunitas: Gratis untuk pemberdayaan masyarakat)*.
-* **Public Sector:** Free to adopt for governance transparency. *(Pemerintah/Desa: Gratis untuk transparansi layanan)*.
+Mode Kontributor (Login): Proteksi fitur CRUD (Create, Read, Update, Delete) hanya untuk pengguna terdaftar.
 
-❌ **PROHIBITED / DILARANG:**
-* **Commercial Use:** Do NOT sell this software or use it for business profit without permission. *(Dilarang menjual atau mencari keuntungan bisnis dari kode ini tanpa izin)*.
-* **Re-branding without Credit:** Please respect intellectual property. *(Mohon hargai karya intelektual dengan mencantumkan sumber)*.
+Validasi Input: Sanitasi HTML dasar dan validasi URL untuk mencegah XSS.
 
-> *"If you want to make money from this code, let's talk first. If you want to help people with this code, go ahead."*
+Lock Service: Mencegah konflik data saat penyimpanan bersamaan di backend.
 
----
+4. 📤 Interoperabilitas Data
 
-## 📬 Contact / Kontak
-For bug reports, feature requests, or commercial licensing inquiries:
-*(Untuk laporan bug, saran, atau izin komersial)*:
+Export CSV: Unduh dataset lengkap untuk analisis di Excel/SPSS.
 
-**Angga Conni Saputra**
-*Governance Reform & Digital System Consultant*
-(https://www.linkedin.com/in/anggaconni/)
+Export DCMI: Dukungan standar metadata Dublin Core untuk integrasi perpustakaan digital.
+
+🛠️ Instalasi & Setup
+
+Langkah 1: Persiapan Google Sheet (Database)
+
+Buat Spreadsheet baru di Google Drive, dan buat 3 Sheet (Tab) dengan nama persis berikut:
+
+Nodes (Untuk Data Biodiversitas)
+
+Header Baris 1: ID, Local Name, Latin Name, Country, Lat, Lng, AffectedBy Local Name, AffectedBy Latin Name, AffectedBy Country, AffectedBy Lat, AffectedBy Lng, Connection Type, Contact, Geometry JSON, Youtube URL, UNESCO Status, Research Links, Image URL, Description
+
+Biosphere (Untuk Data Cagar Biosfer)
+
+Header Baris 1: ID, Name Bio, Country, Region, UNESCO Year, Status, Area Total Ha, Youtube URL, Geometry JSON, Research Links, Image URL, Description
+
+Users (Untuk Login)
+
+Header Baris 1: Username, Password
+
+Isi Data: Masukkan username dan password admin di baris ke-2 dst.
+
+Langkah 2: Deploy Backend (Google Apps Script)
+
+Di Google Sheet, klik menu Extensions > Apps Script.
+
+Hapus kode yang ada, lalu Copy-Paste kode dari file backend.gs (tersedia di bawah).
+
+Klik tombol Deploy > New Deployment.
+
+Pilih type: Web App.
+
+Konfigurasi:
+
+Description: v1
+
+Execute as: Me (Email Anda).
+
+Who has access: Anyone (Penting agar frontend bisa akses).
+
+Klik Deploy dan salin Web App URL.
+
+Langkah 3: Konfigurasi Frontend
+
+Buka file index.html.
+
+Cari variabel const GAS_URL (biasanya di bagian bawah script).
+
+Ganti URL di dalamnya dengan Web App URL yang Anda dapatkan di Langkah 2.
+
+const GAS_URL = '[https://script.google.com/macros/s/AKfycb.../exec](https://script.google.com/macros/s/AKfycb.../exec)'; 
+
+
+💻 Tech Stack
+
+Frontend: HTML5, Tailwind CSS (CDN), Leaflet.js (Maps), Chart.js (Stats), FontAwesome.
+
+Backend: Google Apps Script (Node.js environment).
+
+Database: Google Sheets.
+
+📝 Catatan Audit Keamanan
+
+Aplikasi ini telah diaudit untuk keamanan tingkat dasar hingga menengah:
+
+✅ Anti-XSS: Input deskripsi dibersihkan dari tag script berbahaya.
+
+✅ Anti-Phishing: Link eksternal ditampilkan dengan domain jelas dan menggunakan atribut rel="noopener noreferrer".
+
+✅ Concurrency: Backend menggunakan LockService untuk menangani antrian request.
