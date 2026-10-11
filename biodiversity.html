@@ -152,7 +152,8 @@
         species:new Map(), markers:new Map(), sampleRecords:0, sampleMedia:0,
         activeSpecies:null, records:[], recordTotal:0, recordOffset:0, recordLoading:false,
         researchLoaded:new Set(), datasetsLoaded:new Set(), filteredRecords:[],
-        debounce:null, queryCache:new Map(), datasetCache:new Map(), requestCache:new Map()
+        debounce:null, queryCache:new Map(), datasetCache:new Map(), requestCache:new Map(),
+        crossrefQueue:Promise.resolve(), crossrefLastStart:0
       };
       const $ = id => document.getElementById(id);
       const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -190,6 +191,16 @@
       function setStatus(message, isError){
         $('searchStatus').textContent = message;
         $('searchStatus').style.color = isError ? '#a64b36' : '#819084';
+      }
+      function politeCrossrefFetch(url, cacheKey){
+        const task=state.crossrefQueue.then(async()=>{
+          const wait=Math.max(0,1100-(Date.now()-state.crossrefLastStart));
+          if(wait) await new Promise(resolve=>setTimeout(resolve,wait));
+          state.crossrefLastStart=Date.now();
+          return fetchJSON(url,cacheKey,600000);
+        });
+        state.crossrefQueue=task.catch(()=>{});
+        return task;
       }
       function kingdomColor(kingdom){
         const k = String(kingdom || '').toLowerCase();
@@ -597,7 +608,7 @@
             if(!state.activeSpecies || String(state.activeSpecies.key)!==key)return;
             openRoot.innerHTML='<p class="status">OpenAlex could not return results ('+esc(error.message)+'). An optional free key may increase the available request budget.</p>';
           }),
-          fetchJSON(crossURL,'crossref:'+name,600000).then(data=>{
+          politeCrossrefFetch(crossURL,'crossref:'+name).then(data=>{
             if(!state.activeSpecies || String(state.activeSpecies.key)!==key)return;
             const results=(data.message&&data.message.items)||[];
             crossRoot.innerHTML=results.length?results.map(w=>{
