@@ -193,7 +193,7 @@
           <a class="project-card biodiversity" href="./biodiversity.html" aria-label="Open Biodiversity Explorer">
             <div class="card-top"><span class="card-icon"><i class="fa-solid fa-leaf"></i></span><span class="tag"><span class="tiny-dot"></span> Public APIs · Progressive scan</span></div>
             <h3>Biodiversity Explorer</h3>
-            <p class="card-intro">An exploratory interface for species occurrence records. It requests public data from GBIF, identifies unique species in the scanned sample, plots one representative point per species, and fetches a selected species’ worldwide records only when you open it.</p>
+            <p class="card-intro">An exploratory interface for species occurrence records. Choose a country first—or explicitly select Worldwide—then scan public GBIF records in the background. The app deduplicates the results into one representative point per species; opening a species fetches that taxon’s worldwide records.</p>
             <div class="identity"><div class="identity-label">How its data is managed</div><strong>Live API retrieval + in-browser processing</strong><p>The biodiversity scan runs in the browser and reads public data from source services. It does not copy that occurrence database into the Citizenship Explorer’s private storage. Images and research metadata appear only when the source provides matching records.</p></div>
             <ul class="feature-list">
               <li><i class="fa-solid fa-check"></i> GBIF species and records</li>
@@ -212,7 +212,7 @@
     <section aria-labelledby="scan-title">
       <div class="light-heading">
         <div><div class="section-kicker">Inside the biodiversity scanner</div><h2 id="scan-title">It scans progressively — it does not freeze and wait.</h2></div>
-        <p>The scan uses asynchronous network requests and processes results a page at a time. While the browser waits for a response, the rest of the interface can continue responding to your actions.</p>
+        <p>First choose a country or the explicit Worldwide option and start the scan. The app then uses asynchronous network requests and processes results one page at a time. While the browser waits for a response, the rest of the interface can continue responding to your actions.</p>
       </div>
 
       <div class="callout"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>What “async” means here:</strong> fetching a page from GBIF is an asynchronous operation. The browser can keep handling map zooming and panning, searching for a species, opening a species modal, and reading results while the next page is requested. The scan continues in the background until it finishes, fails on unavailable pages, or you press Stop scan. Public API response times and rate limits can still affect how quickly new data arrives.</div></div>
@@ -227,7 +227,7 @@
       <div class="section-panel">
         <div class="panel-head"><span class="panel-icon"><i class="fa-solid fa-route"></i></span><div><h3>What happens when you keep browsing?</h3><p>You do not need to sit and watch the progress bar. The scanner works through network requests in the background; meanwhile, the map and species controls remain usable.</p></div></div>
         <div class="timeline">
-          <div class="timeline-item"><b>While scanning</b><span>Pan and zoom the world map, filter the current species list, or search for a scientific name.</span></div>
+          <div class="timeline-item"><b>While scanning</b><span>Pan and zoom the map, filter the country-specific species list, or search for a scientific name. The search pin respects the selected country.</span></div>
           <div class="timeline-item"><b>Open a species</b><span>Click its map point, list item, or gallery card to open the detail modal.</span></div>
           <div class="timeline-item"><b>Load global records</b><span>The modal separately requests records for that species worldwide and loads them in smaller pages.</span></div>
           <div class="timeline-item"><b>Check the evidence</b><span>Inspect observation dates, locations, source links, available images, and associated datasets.</span></div>
@@ -244,12 +244,12 @@
       <div class="two-col">
         <article class="info-card">
           <div class="info-title"><i class="fa-solid fa-gauge-high"></i><h3>Why the scan currently stops at 9,900 records</h3></div>
-          <p>The current browser scan is deliberately capped at <strong>9,900 occurrence rows</strong>. It works through pages of 300 records and deduplicates species while processing them.</p>
+          <p>The current browser scan is deliberately capped at <strong>9,900 occurrence rows per run</strong> for the selected country, or for Worldwide if you explicitly choose a global scan. It works through pages of up to 300 records and deduplicates species while processing them.</p>
           <p>This is an API-friendly interactive scan limit, not a measurement of the maximum RAM your computer can use. Public GBIF search has pagination and high-offset constraints; for larger or exhaustive extracts, GBIF provides a separate download workflow.</p>
           <ul class="bullet-list">
             <li><i class="fa-solid fa-check"></i><span>Progress is visible, and the scan can be stopped.</span></li>
             <li><i class="fa-solid fa-check"></i><span>A page that fails after retries may leave a gap; the status message reports failures where detected.</span></li>
-            <li><i class="fa-solid fa-check"></i><span>The result is a deduplicated view of the scanned records, not every species documented by GBIF.</span></li>
+            <li><i class="fa-solid fa-check"></i><span>The result is a deduplicated view of up to 9,900 matching occurrence rows from the chosen country or explicit worldwide scan—not every species documented by GBIF.</span></li>
           </ul>
           <div class="pill-row"><a class="source-pill" href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-book"></i> GBIF Occurrence API docs</a><a class="source-pill" href="https://www.gbif.org/occurrence/download" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-download"></i> GBIF downloads</a></div>
         </article>
@@ -308,7 +308,7 @@
     <section aria-labelledby="faq-title" style="margin-top:45px">
       <div class="light-heading"><div><div class="section-kicker">Common questions</div><h2 id="faq-title">Avoiding common misunderstandings.</h2></div></div>
       <div class="faq">
-        <details><summary>Does the biodiversity scan download all of GBIF?</summary><p>No. It scans up to 9,900 coordinate-bearing occurrence rows per run, then deduplicates by species key. GBIF's full catalogue contains far more data. Large or exhaustive extracts should use GBIF's download services and appropriate processing infrastructure.</p></details>
+        <details><summary>Does the biodiversity scan download all of GBIF?</summary><p>No. After you select a country—or explicitly choose Worldwide—it scans up to 9,900 matching coordinate-bearing occurrence rows per run, then deduplicates by species key. GBIF's full catalogue contains far more data. Large or exhaustive extracts should use GBIF's download services and appropriate processing infrastructure.</p></details>
         <details><summary>Can I use the map while the scan is running?</summary><p>Yes. Requests are asynchronous and each result page is processed as it arrives. Map interaction, the search field, species list, gallery, and detail modal remain usable. Network congestion or API rate limits can still make requests slower.</p></details>
         <details><summary>Why can the same species have many global records but just one main-map point?</summary><p>The main map is designed to explore unique species, not render every occurrence. Clicking the species then opens a separate global-record view where the app loads occurrence records in smaller pages and maps the loaded coordinate-bearing records.</p></details>
         <details><summary>Are all species shown with photos?</summary><p>No. Images are obtained from multimedia fields attached to occurrence records. Some species have no attached images, some image URLs may no longer work, and licences or attribution requirements vary by image.</p></details>
