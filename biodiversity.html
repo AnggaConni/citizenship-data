@@ -145,11 +145,14 @@
       const OPENALEX = 'https://api.openalex.org/works';
       const CROSSREF = 'https://api.crossref.org/works';
       const SAMPLE_LIMIT = 300;
-      const PAGE_SIZE = 100;
+      const RANDOM_SAMPLE_LIMIT = 150;
+      const RANDOM_SAMPLE_SLICES = 7;
+      const MAX_SPECIES = 1200;
       const MAX_MARKERS = 180;
       const state = {
         map:null, markerLayer:null, occurrenceMap:null, occurrenceLayer:null,
         species:new Map(), markers:new Map(), sampleRecords:0, sampleMedia:0,
+        sampleOccurrenceKeys:new Set(), sampleMediaKeys:new Set(),
         activeSpecies:null, records:[], recordTotal:0, recordOffset:0, recordLoading:false,
         researchLoaded:new Set(), datasetsLoaded:new Set(), filteredRecords:[],
         debounce:null, queryCache:new Map(), datasetCache:new Map(), requestCache:new Map(),
@@ -236,7 +239,7 @@
         }
         item.key = key;
         state.species.set(key,item);
-        if(state.species.size > 600){
+        if(state.species.size > MAX_SPECIES){
           const first = state.species.keys().next().value;
           removeSpeciesMarker(first);
           state.species.delete(first);
@@ -301,31 +304,83 @@
         }).join('');
         root.querySelectorAll('[data-gallery-key]').forEach(btn=>btn.addEventListener('click',()=>openSpecies(state.species.get(btn.dataset.galleryKey))));
       }
+      function ingestSampleRecords(records){
+        records.forEach(record=>{
+          const recordId=record.key ? 'gbif:'+String(record.key) : 'fallback:'+[
+            getSpeciesKey(record),record.decimalLatitude,record.decimalLongitude,record.year||record.eventDate||''
+          ].join('|');
+          if(!state.sampleOccurrenceKeys.has(recordId)){
+            state.sampleOccurrenceKeys.add(recordId);
+            if(getMedia(record).length) state.sampleMediaKeys.add(recordId);
+          }
+          const item=makeSpeciesFromOccurrence(record);
+          if(!item) return;
+          const existing=state.species.get(String(item.key));
+          if(existing){
+            if(!existing.image && item.image) existing.image=item.image;
+            return;
+          }
+          addSpecies(item,{map:true,silent:true});
+        });
+        state.sampleRecords=state.sampleOccurrenceKeys.size;
+        state.sampleMedia=state.sampleMediaKeys.size;
+      }
       async function loadInitialSample(){
         $('reloadBtn').disabled=true;
-        $('reloadBtn').innerHTML='<span class="loader"></span><span>Loading</span>';
-        $('speciesList').innerHTML='<div class="side-empty"><span class="loader"></span>Requesting a global sample from GBIF…</div>';
-        setStatus('Loading georeferenced occurrence sample from GBIF…');
+        $('reloadBtn').innerHTML='<span class="loader"></span><span>Sampling</span>';
+        $('speciesList').innerHTML='<div class="side-empty"><span class="loader"></span>Sampling GBIF records across the accessible result range…</div>';
+        setStatus('Loading an initial sample, then querying additional result windows to improve taxonomic and geographic diversity…');
+        state.species.clear();
+        state.markers.clear();
+        if(state.markerLayer) state.markerLayer.clearLayers();
+        state.sampleRecords=0;
+        state.sampleMedia=0;
+        state.sampleOccurrenceKeys.clear();
+        state.sampleMediaKeys.clear();
+        updateStats();
         try{
-          const data=await fetchJSON(GBIF+'/occurrence/search?hasCoordinate=true&hasGeospatialIssue=false&limit='+SAMPLE_LIMIT+'&offset=0','initial-sample',45000);
-          const records=Array.isArray(data.results)?data.results:[];
-          state.sampleRecords=records.length;
-          state.sampleMedia=records.filter(r=>getMedia(r).length>0).length;
-          records.forEach(record=>{
-            const item=makeSpeciesFromOccurrence(record);
-            if(!item) return;
-            const existing=state.species.get(item.key);
-            if(existing){
-              if(!existing.image && item.image) existing.image=item.image;
-              if(!existing.representative || (!existing.image && item.image)) existing.representative=record;
-              return;
+          const data=await fetchJSON(
+            GBIF+'/occurrence/search?hasCoordinate=true&hasGeospatialIssue=false&limit='+SAMPLE_LIMIT+'&offset=0',
+            'initial-sample',45000
+          );
+          const firstPage=Array.isArray(data.results)?data.results:[];
+          if(!firstPage.length) throw new Error('GBIF returned no coordinate-bearing records for this query.');
+          ingestSampleRecords(firstPage);
+
+          // The first page can overrepresent particular datasets and places.
+          // Add stratified samples from different offsets within GBIF's searchable result window.
+          const totalAvailable=Math.max(firstPage.length,Number(data.count)||firstPage.length);
+          const maxStart=Math.max(0,Math.min(100000-RANDOM_SAMPLE_LIMIT,totalAvailable-RANDOM_SAMPLE_LIMIT));
+          const offsets=[];
+          if(maxStart>SAMPLE_LIMIT+RANDOM_SAMPLE_LIMIT){
+            for(let i=1;i<=RANDOM_SAMPLE_SLICES;i++){
+              const offset=Math.round(SAMPLE_LIMIT+(maxStart-SAMPLE_LIMIT)*(i/(RANDOM_SAMPLE_SLICES+1)));
+              if(offset>SAMPLE_LIMIT && !offsets.includes(offset)) offsets.push(offset);
             }
-            addSpecies(item,{map:true,silent:true});
-          });
+          }
+          let successfulSlices=0;
+          if(offsets.length){
+            $('reloadBtn').innerHTML='<span class="loader"></span><span>Widening sample</span>';
+            const settled=await Promise.allSettled(offsets.map(offset=>fetchJSON(
+              GBIF+'/occurrence/search?hasCoordinate=true&hasGeospatialIssue=false&limit='+RANDOM_SAMPLE_LIMIT+'&offset='+offset,
+              'initial-sample-offset:'+offset,45000
+            )));
+            settled.forEach(result=>{
+              if(result.status==='fulfilled'){
+                const rows=Array.isArray(result.value.results)?result.value.results:[];
+                ingestSampleRecords(rows);
+                if(rows.length) successfulSlices++;
+              }
+            });
+          }
           renderSpeciesList();renderGallery();updateStats();
-          if(!records.length) throw new Error('GBIF returned no coordinate-bearing records for this query.');
-          setStatus('Loaded '+number(records.length)+' occurrence records and '+number(state.species.size)+' unique species. Select a point for worldwide records.');
-          if(state.markers.size){const bounds=L.latLngBounds([]);state.markers.forEach(marker=>bounds.extend(marker.getLatLng()));if(bounds.isValid())state.map.fitBounds(bounds,{padding:[30,30],maxZoom:5});}
+          setStatus(
+            'Sampled '+number(state.sampleRecords)+' distinct occurrence records across '+number(successfulSlices+1)+' result windows, producing '+number(state.species.size)+' unique species. Click one marker to query that species worldwide.'+
+            (offsets.length>0 && successfulSlices<offsets.length ? ' Some sample windows were unavailable; reload to retry.' : '')
+          );
+          const bounds=L.latLngBounds([]);
+          state.markers.forEach(marker=>bounds.extend(marker.getLatLng()));
+          if(bounds.isValid()) state.map.fitBounds(bounds,{padding:[30,30],maxZoom:5});
         }catch(error){
           console.error(error);
           $('speciesList').innerHTML='<div class="side-empty"><i class="fa-solid fa-triangle-exclamation"></i>Could not load the live GBIF sample.<br>'+esc(error.message)+'<br><button class="btn" style="margin-top:10px" onclick="window.biodiversityExplorer.reload()">Try again</button></div>';
@@ -666,7 +721,12 @@
         document.addEventListener('click',e=>{if(!e.target.closest('.search-box'))closeSuggestions();});
         $('kingdomFilter').addEventListener('change',onKingdomFilter);
         $('resetMapBtn').addEventListener('click',()=>{state.map.setView([15,0],2);});
-        $('reloadBtn').addEventListener('click',()=>{state.species.clear();state.markers.clear();state.markerLayer.clearLayers();state.sampleRecords=0;state.sampleMedia=0;state.requestCache.delete('initial-sample');loadInitialSample();});
+        $('reloadBtn').addEventListener('click',()=>{
+          for(const cacheKey of state.requestCache.keys()){
+            if(String(cacheKey)==='initial-sample'||String(cacheKey).startsWith('initial-sample-offset:')) state.requestCache.delete(cacheKey);
+          }
+          loadInitialSample();
+        });
         $('closeModalBtn').addEventListener('click',closeModal);
         $('speciesModal').addEventListener('click',e=>{if(e.target===$('speciesModal'))closeModal();});
         document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
