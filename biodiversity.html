@@ -144,15 +144,17 @@
       const GBIF = 'https://api.gbif.org/v1';
       const OPENALEX = 'https://api.openalex.org/works';
       const CROSSREF = 'https://api.crossref.org/works';
-      const SAMPLE_LIMIT = 300;
-      const RANDOM_SAMPLE_LIMIT = 150;
-      const RANDOM_SAMPLE_SLICES = 7;
-      const MAX_SPECIES = 1200;
-      const MAX_MARKERS = 180;
+      // GBIF occurrence search returns at most 300 records per page.
+      // Keep search offsets below 10,000; GBIF recommends its download API for larger extracts.
+      const PAGE_SIZE = 300;
+      const MAX_SCAN_RECORDS = 9900;
+      const MAX_SPECIES = 15000;
+      const PAGE_DELAY_MS = 180;
       const state = {
         map:null, markerLayer:null, occurrenceMap:null, occurrenceLayer:null,
         species:new Map(), markers:new Map(), sampleRecords:0, sampleMedia:0,
         sampleOccurrenceKeys:new Set(), sampleMediaKeys:new Set(),
+        scanCancelled:false, scanning:false, scanTarget:0, scanProcessed:0,
         activeSpecies:null, records:[], recordTotal:0, recordOffset:0, recordLoading:false,
         researchLoaded:new Set(), datasetsLoaded:new Set(), filteredRecords:[],
         debounce:null, queryCache:new Map(), datasetCache:new Map(), requestCache:new Map(),
@@ -177,17 +179,20 @@
         const media = getMedia(item);
         return media.length ? media[0].identifier : '';
       };
-      async function fetchJSON(url, cacheKey, ttl){
+      async function fetchJSON(url, cacheKey, ttl, noStore){
         const key = cacheKey || url;
-        const hit = state.requestCache.get(key);
-        if(hit && hit.expires > Date.now()) return hit.value;
+        if(!noStore){
+          const hit = state.requestCache.get(key);
+          if(hit && hit.expires > Date.now()) return hit.value;
+        }
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 22000);
         try {
           const response = await fetch(url, {signal:controller.signal, headers:{'Accept':'application/json'}});
           if(!response.ok) throw new Error('API returned HTTP ' + response.status);
           const json = await response.json();
-          state.requestCache.set(key, {value:json, expires:Date.now() + (ttl || 60000)});
+          // Full-scan pages are deduplicated immediately instead of retained in cache.
+          if(!noStore) state.requestCache.set(key, {value:json, expires:Date.now() + (ttl || 60000)});
           return json;
         } finally { clearTimeout(timer); }
       }
@@ -215,13 +220,22 @@
       function makeSpeciesFromOccurrence(record){
         const key = getSpeciesKey(record);
         if(!key || !validPoint(record)) return null;
+        const firstMedia = getMedia(record).slice(0,1).map(m=>({
+          identifier:m.identifier, type:m.type, title:m.title, creator:m.creator,
+          license:m.license, rights:m.rights
+        }));
+        // Keep a compact representative only; discard the full page after processing.
+        const representative = {
+          key:record.key, country:record.country, eventDate:record.eventDate,
+          year:record.year, media:firstMedia
+        };
         return {
           key:key, scientificName:record.species || record.acceptedScientificName || record.scientificName || 'Unknown species',
           canonicalName:record.species || record.acceptedScientificName || record.scientificName || 'Unknown species',
           kingdom:record.kingdom || '', phylum:record.phylum || '', class:record.class || '',
           order:record.order || '', family:record.family || '', genus:record.genus || '',
           taxonRank:'SPECIES', lat:Number(record.decimalLatitude), lng:Number(record.decimalLongitude),
-          representative:record, image:getImage(record), occurrenceCount:null, source:'GBIF occurrence sample'
+          representative:representative, image:getImage(record), occurrenceCount:null, source:'GBIF occurrence sample'
         };
       }
       function addSpecies(item, options){
@@ -391,7 +405,7 @@
         }
       }
       function initMap(){
-        state.map=L.map('worldMap',{zoomControl:false,worldCopyJump:true}).setView([15,0],2);
+        state.map=L.map('worldMap',{zoomControl:false,worldCopyJump:true,preferCanvas:true}).setView([15,0],2);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'}).addTo(state.map);
         L.control.zoom({position:'topright'}).addTo(state.map);
         L.control.scale({imperial:false,position:'bottomright'}).addTo(state.map);
