@@ -212,13 +212,15 @@
       }
       function addSpecies(item, options){
         if(!item || !item.key) return null;
+        const opts=options||{};
         const key = String(item.key);
         const existing = state.species.get(key);
         if(existing){
           if(!existing.image && item.image) existing.image = item.image;
           if(!existing.representative && item.representative) existing.representative = item.representative;
-          if(options && options.open) openSpecies(existing);
-          renderSpeciesList(); renderGallery();
+          if(opts.map !== false && Number.isFinite(existing.lat) && Number.isFinite(existing.lng)) addMarker(existing);
+          if(!opts.silent){renderSpeciesList();renderGallery();updateStats();}
+          if(opts.open) openSpecies(existing);
           return existing;
         }
         item.key = key;
@@ -228,9 +230,9 @@
           removeSpeciesMarker(first);
           state.species.delete(first);
         }
-        if(options && options.map !== false && Number.isFinite(item.lat) && Number.isFinite(item.lng)) addMarker(item);
-        renderSpeciesList(); renderGallery(); updateStats();
-        if(options && options.open) openSpecies(item);
+        if(opts.map !== false && Number.isFinite(item.lat) && Number.isFinite(item.lng)) addMarker(item);
+        if(!opts.silent){renderSpeciesList();renderGallery();updateStats();}
+        if(opts.open) openSpecies(item);
         return item;
       }
       function removeSpeciesMarker(key){
@@ -250,7 +252,7 @@
         state.markers.set(key,marker);
       }
       function updateStats(){
-        $('statSpecies').textContent=number(state.species.size);
+        $('statSpecies').textContent=number(state.markers.size);
         $('statRecords').textContent=number(state.sampleRecords);
         $('statMedia').textContent=number(state.sampleMedia);
         $('speciesListCaption').textContent=number(state.species.size)+' unique taxa loaded';
@@ -307,7 +309,7 @@
               if(!existing.representative || (!existing.image && item.image)) existing.representative=record;
               return;
             }
-            addSpecies(item,{map:true});
+            addSpecies(item,{map:true,silent:true});
           });
           renderSpeciesList();renderGallery();updateStats();
           if(!records.length) throw new Error('GBIF returned no coordinate-bearing records for this query.');
@@ -582,6 +584,7 @@
         const crossURL=CROSSREF+'?query.bibliographic='+encodeURIComponent(name)+'&rows=5&select=DOI,title,publisher,published,URL,author,type';
         const jobs=[
           fetchJSON(openURL,'openalex:'+name+':'+(openKey?'key':'public'),600000).then(data=>{
+            if(!state.activeSpecies || String(state.activeSpecies.key)!==key)return;
             const results=data.results||[];
             openRoot.innerHTML=results.length?results.map(w=>{
               const title=(w.title||'Untitled publication');
@@ -591,9 +594,11 @@
               return researchCard(title,[year,authors,w.cited_by_count!=null?number(w.cited_by_count)+' citations':''].filter(Boolean).join(' · '),url,'OpenAlex');
             }).join(''):'<p class="status">No OpenAlex works matched this name.</p>';
           }).catch(error=>{
+            if(!state.activeSpecies || String(state.activeSpecies.key)!==key)return;
             openRoot.innerHTML='<p class="status">OpenAlex could not return results ('+esc(error.message)+'). An optional free key may increase the available request budget.</p>';
           }),
           fetchJSON(crossURL,'crossref:'+name,600000).then(data=>{
+            if(!state.activeSpecies || String(state.activeSpecies.key)!==key)return;
             const results=(data.message&&data.message.items)||[];
             crossRoot.innerHTML=results.length?results.map(w=>{
               const title=Array.isArray(w.title)?w.title[0]:'Untitled publication';
@@ -603,6 +608,7 @@
               return researchCard(title,[year,author,w.publisher].filter(Boolean).join(' · '),url,'Crossref');
             }).join(''):'<p class="status">No Crossref publications matched this name.</p>';
           }).catch(error=>{
+            if(!state.activeSpecies || String(state.activeSpecies.key)!==key)return;
             crossRoot.innerHTML='<p class="status">Crossref could not return results ('+esc(error.message)+'). The public service may be rate-limited; retry later.</p>';
           })
         ];
@@ -621,6 +627,7 @@
           Promise.all(usedJobs),
           fetchJSON(query,'dataset-search:'+(species.canonicalName||species.scientificName),300000)
         ]);
+        if(!state.activeSpecies || String(state.activeSpecies.key)!==key)return;
         const used=outcomes[0].status==='fulfilled'?outcomes[0].value:[];
         $('usedDatasets').innerHTML=used.length?used.map(d=>{
           const title=d.title||d.key||'Unnamed dataset';
