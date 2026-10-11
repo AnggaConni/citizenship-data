@@ -74,7 +74,7 @@
       <div class="map-card">
         <div class="map-head">
           <div class="map-heading"><span class="map-icon"><i class="fa-solid fa-earth-americas"></i></span><div><h2>Species distribution explorer</h2><p>One map point per species · Click a point for global records</p></div></div>
-          <div class="map-actions"><button class="btn" id="resetMapBtn" type="button"><i class="fa-solid fa-earth-americas"></i><span>Reset view</span></button><button class="btn btn-primary" id="reloadBtn" type="button"><i class="fa-solid fa-arrows-rotate"></i><span>Run full scan</span></button></div>
+          <div class="map-actions"><button class="btn" id="resetMapBtn" type="button"><i class="fa-solid fa-earth-americas"></i><span>Reset view</span></button><button class="btn btn-primary" id="reloadBtn" type="button"><i class="fa-solid fa-arrows-rotate"></i><span>Scan again</span></button></div>
         </div>
         <div class="map-shell">
           <div id="worldMap" aria-label="Map of representative species observation locations"></div>
@@ -430,6 +430,7 @@
             updateScanProgress(state.scanProcessed,target,'Scanning GBIF occurrence records…',
               number(state.species.size)+' unique species found · '+number(state.sampleRecords)+' distinct records processed');
             if(state.scanProcessed%1200===0 || offset+limit>=target){
+              renderSpeciesList();renderGallery();
               setStatus('Processed '+number(state.scanProcessed)+' occurrence rows and found '+number(state.species.size)+' unique species so far…');
             }
             await wait(PAGE_DELAY_MS);
@@ -442,7 +443,7 @@
           const summary=(stoppedByUser?'Scan stopped by you. ':'Scan finished. ')+
             'Processed '+number(state.scanProcessed)+' occurrence rows; deduplicated to '+number(state.species.size)+' unique species with one representative point each.';
           const caveat=capReached?' GBIF reports '+number(totalAvailable)+' matching records; this browser scan stops at '+number(MAX_SCAN_RECORDS)+' because high-offset occurrence searches can be restricted.':(totalAvailable>state.scanProcessed?' Some records may have been unavailable or the scan was stopped early.':' All records within this scan window were processed.');
-          const failureNote=failedPages?(' '+number(failedPages)+' pages failed after retries. Use Run full scan again to retry.'): '';
+          const failureNote=failedPages?(' '+number(failedPages)+' pages failed after retries. Use Scan again to retry.'): '';
           setStatus(summary+caveat+failureNote,failedPages>0);
           updateScanProgress(state.scanProcessed,target,stoppedByUser?'Scan stopped':(failedPages?'Scan completed with gaps':'Scan complete'),
             number(state.species.size)+' unique species · '+number(state.sampleMedia)+' records with multimedia in scanned pages');
