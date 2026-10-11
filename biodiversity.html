@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10271f">
+  <meta name="description" content="Explore biodiversity records across the world. Discover species, occurrence locations, images, datasets and related research.">
+  <title>Biodiversity Explorer | Open Species Atlas</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root{--forest:#10271f;--forest2:#18382d;--leaf:#2c8a61;--mint:#a8edc9;--lime:#d2f36b;--paper:#f3f6ef;--panel:#fff;--ink:#192c24;--muted:#6d7c72;--line:#e0e8df;--blue:#247bbb;--shadow:0 18px 54px rgba(18,48,34,.10)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(44,138,97,.35);outline-offset:2px}
+    .appbar{background:linear-gradient(110deg,#10271f,#1d4433);color:#f4fff6;padding:16px 0;position:relative;z-index:10;box-shadow:0 4px 24px rgba(12,35,26,.15)}
+    .wrap{width:min(1440px,calc(100% - 36px));margin:auto}.bar-inner{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none}.brand-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(140deg,#a8edc9,#d2f36b);color:#143627;font-size:20px;box-shadow:0 6px 20px #071b142c}.brand-name{font:800 14px Manrope,sans-serif;letter-spacing:.11em;text-transform:uppercase}.brand-sub{margin-top:3px;color:#b5d0c0;font-size:11px}
+    .bar-links{display:flex;align-items:center;gap:12px}.api-pill{display:inline-flex;align-items:center;gap:7px;background:#ffffff12;border:1px solid #ffffff21;border-radius:999px;padding:8px 11px;color:#d9f4e4;font-size:11px;font-weight:700}.api-pill i{color:var(--mint)}.home-link{color:#d4e8d9;font-size:12px;text-decoration:none}.home-link:hover{color:white}
+    .intro{display:flex;justify-content:space-between;align-items:end;gap:26px;padding:35px 0 24px}.eyebrow{display:flex;align-items:center;gap:8px;color:#397450;font-weight:800;font-size:10px;letter-spacing:.16em;text-transform:uppercase}.eyebrow .dot{height:7px;width:7px;background:#31a36e;box-shadow:0 0 0 4px #31a36e1a;border-radius:50%}h1,h2,h3,p{margin-top:0}h1{font:800 clamp(32px,4vw,48px)/1.07 Manrope,sans-serif;letter-spacing:-.055em;margin:12px 0 10px;color:#17372a}.intro-copy{margin:0;color:#68796d;line-height:1.65;max-width:670px;font-size:14px}.intro-aside{color:#78897d;font-size:11px;line-height:1.6;text-align:right;max-width:220px}.intro-aside strong{color:#335c43;display:block;font-size:12px}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 17px;min-height:88px;box-shadow:0 3px 12px #1a3a2610}.stat-label{display:flex;align-items:center;gap:7px;color:#718074;font-size:11px;font-weight:700}.stat-label i{color:#42825d}.stat-value{font:800 25px Manrope,sans-serif;letter-spacing:-.04em;margin-top:5px;color:#1b3b2b}.stat-foot{font-size:10px;color:#8c998e;margin-top:2px}
+    .workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:14px;align-items:stretch}.map-card,.side-card,.section-card{background:#fff;border:1px solid var(--line);border-radius:19px;box-shadow:var(--shadow);overflow:hidden}.map-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 17px;border-bottom:1px solid #e9eee7}.map-heading{display:flex;align-items:center;gap:10px}.map-heading .map-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:#24734b;background:#e7f5e9}.map-heading h2{font:800 14px Manrope,sans-serif;margin:0}.map-heading p{margin:3px 0 0;font-size:11px;color:#819084}.map-actions{display:flex;gap:7px;align-items:center}.btn{border:1px solid #dce6dc;background:#fff;color:#4c6454;border-radius:10px;padding:9px 11px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:background .2s,border-color .2s,transform .2s}.btn:hover{background:#f0f8f1;border-color:#bad5c0}.btn-primary{background:#236f4a;border-color:#236f4a;color:white}.btn-primary:hover{background:#1a5a3b;border-color:#1a5a3b}.btn:disabled{opacity:.45;cursor:not-allowed}.map-shell{position:relative;background:#e4ede5}#worldMap{height:560px;width:100%;z-index:1}.map-overlay{position:absolute;z-index:500;left:14px;bottom:14px;max-width:min(430px,calc(100% - 28px));padding:11px 13px;background:#fffffff0;backdrop-filter:blur(10px);border:1px solid #dce7dc;border-radius:12px;box-shadow:0 6px 20px #23462a20;font-size:10px;color:#66766a;line-height:1.5}.map-overlay strong{color:#315740}.map-legend{display:flex;gap:11px;flex-wrap:wrap;margin-bottom:4px}.legend-item{display:flex;align-items:center;gap:5px}.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;border:1px solid #fff;box-shadow:0 0 0 1px #8ba494}
+    .search-panel{padding:15px;border-bottom:1px solid var(--line)}.search-label{display:block;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#66796c;margin-bottom:8px}.search-row{display:flex;gap:7px}.search-box{position:relative;flex:1;min-width:0}.search-box>i{position:absolute;left:12px;top:13px;color:#779181;font-size:12px}.search-box input{width:100%;border:1px solid #dce6db;background:#fbfdf9;border-radius:11px;padding:11px 10px 11px 34px;font-size:12px;color:#233d2e;min-width:0}.search-box input:focus{outline:2px solid #b8dfc3;border-color:#77b78e}.suggestions{position:absolute;left:0;right:0;top:calc(100% + 5px);background:white;border:1px solid #dce6db;border-radius:12px;box-shadow:0 15px 36px #19352321;z-index:1500;max-height:300px;overflow:auto;display:none}.suggestions.open{display:block}.suggestion{display:block;width:100%;text-align:left;padding:11px 12px;border:0;border-bottom:1px solid #eef2ec;background:white;color:#223b2e}.suggestion:hover{background:#f0f7ed}.suggestion:last-child{border-bottom:0}.suggestion strong{display:block;font-size:12px}.suggestion small{display:block;margin-top:3px;color:#7a8a7d;font-size:10px}.side-body{padding:14px}.filter-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:1px 0 12px}.filter-row label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#718173}.filter-row select{max-width:150px;border:1px solid #dbe6d9;border-radius:8px;padding:7px 8px;background:#fbfdf8;color:#35533f;font-size:11px}.species-list{max-height:480px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:1px 3px 2px 1px}.species-item{display:grid;grid-template-columns:61px minmax(0,1fr);gap:10px;text-align:left;border:1px solid #e5ece2;border-radius:12px;padding:8px;background:#fff;transition:border-color .2s,transform .2s;width:100%;color:inherit}.species-item:hover{border-color:#9fc9aa;transform:translateY(-1px)}.species-thumb{width:61px;height:61px;border-radius:9px;object-fit:cover;background:#e6efe5;color:#538263}.thumb-empty{display:grid;place-items:center;font-size:18px}.species-item strong{display:block;font-size:11px;line-height:1.4;margin:3px 0 4px;overflow-wrap:anywhere}.species-item em{font-size:10px;color:#728274;line-height:1.4;display:block}.species-item small{display:block;font-size:9px;color:#89978a;margin-top:6px}.side-empty{padding:25px 10px;text-align:center;color:#829084;font-size:11px;line-height:1.6}.side-empty i{font-size:21px;color:#9ab6a0;display:block;margin-bottom:9px}.source-note{margin-top:13px;padding:11px;border-radius:11px;background:#f4f8f1;color:#728172;font-size:10px;line-height:1.6}.source-note strong{color:#355b40}.section-card{margin-top:15px;padding:16px 17px}.section-title-row{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:13px}.section-title-row h2{font:800 15px Manrope,sans-serif;margin:0}.section-title-row p{font-size:11px;color:#7a8a7d;margin:4px 0 0}.species-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}.taxon-card{border:1px solid #e2eae0;border-radius:13px;overflow:hidden;background:white;text-align:left;width:100%;padding:0;min-width:0;transition:transform .2s,border-color .2s}.taxon-card:hover{transform:translateY(-3px);border-color:#98c6a4}.taxon-image{height:120px;background:#e7efe4;display:grid;place-items:center;color:#7aa184;overflow:hidden}.taxon-image img{width:100%;height:100%;object-fit:cover}.taxon-info{padding:10px}.taxon-info strong{font-size:11px;line-height:1.4;display:block}.taxon-info em{display:block;font-size:10px;color:#77877a;margin-top:4px;line-height:1.4}.taxon-info small{display:block;font-size:9px;color:#859286;margin-top:8px}.footer{display:flex;justify-content:space-between;gap:15px;padding:22px 0 27px;color:#859184;font-size:10px}.footer a{color:#577762;text-decoration:none}.footer a:hover{text-decoration:underline}
+    .modal-backdrop{display:none;position:fixed;inset:0;z-index:3000;background:rgba(7,20,13,.65);backdrop-filter:blur(5px);padding:20px;align-items:center;justify-content:center}.modal-backdrop.open{display:flex}.modal{width:min(1150px,100%);max-height:min(92vh,1000px);background:#f9fbf7;border-radius:20px;box-shadow:0 30px 100px #0005;overflow:hidden;display:flex;flex-direction:column;animation:modalIn .18s ease-out}.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 21px;background:#153428;color:white;border-bottom:1px solid #ffffff12;flex-shrink:0}.modal-title-row{display:flex;align-items:center;gap:13px;min-width:0}.modal-cover{width:66px;height:66px;flex-shrink:0;border-radius:13px;object-fit:cover;background:#315742;border:1px solid #ffffff30}.modal-title{min-width:0}.modal-title h2{font:800 clamp(17px,2.5vw,24px)/1.2 Manrope,sans-serif;margin:0;color:white;overflow-wrap:anywhere}.modal-title p{margin:5px 0 0;color:#c0dacb;font-size:11px;line-height:1.5}.close-btn{height:37px;width:37px;flex-shrink:0;border-radius:11px;color:#e8f7ed;background:#ffffff13;border:1px solid #ffffff25}.close-btn:hover{background:#ffffff25}.modal-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.meta-chip{border:1px solid #ffffff25;background:#ffffff12;border-radius:999px;padding:4px 7px;color:#d7eee0;font-size:9px}.modal-tabs{display:flex;gap:3px;padding:0 20px;background:white;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}.modal-tab{border:0;background:transparent;color:#718074;font-size:11px;font-weight:800;padding:13px 12px;border-bottom:3px solid transparent;white-space:nowrap}.modal-tab:hover{color:#245c3a}.modal-tab.active{color:#206541;border-bottom-color:#4aa66d}.modal-scroll{overflow:auto;min-height:0;padding:18px}.tab-panel{display:none}.tab-panel.active{display:block}.overview-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(250px,.8fr);gap:15px}.inner-card{background:white;border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.inner-card h3{font:800 12px Manrope,sans-serif;margin:0 0 12px;color:#284c34}.inner-card p{color:#708071;font-size:11px;line-height:1.7}.taxonomy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.taxon-field{border-radius:10px;background:#f5f8f2;padding:10px;min-width:0}.taxon-field span{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#839183;font-weight:800}.taxon-field strong{display:block;margin-top:4px;font-size:11px;overflow-wrap:anywhere;color:#35523c}.media-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.media-card{border:1px solid #e3eae0;border-radius:11px;overflow:hidden;background:white;min-width:0}.media-card img{width:100%;height:120px;object-fit:cover;display:block;background:#e7efe4}.media-caption{font-size:9px;color:#718071;line-height:1.5;padding:8px;overflow-wrap:anywhere}.media-caption a{color:#327653}.records-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.92fr);gap:14px}.record-map-panel{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#e5ede4}.record-map-heading{padding:11px 13px;background:white;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;color:#5e725f;font-size:10px}.record-map-heading strong{color:#294c34}#occurrenceMap{height:390px;width:100%}.records-list{display:flex;flex-direction:column;gap:8px;max-height:480px;overflow:auto}.record-item{display:grid;grid-template-columns:49px minmax(0,1fr);gap:10px;padding:9px;border:1px solid #e4ebe1;border-radius:11px;background:white}.record-img{height:49px;width:49px;object-fit:cover;border-radius:8px;background:#e7efe4}.record-text strong{font-size:10px;display:block;line-height:1.4;color:#284732}.record-text small{font-size:9px;line-height:1.5;color:#819083;display:block;margin-top:3px}.record-text a{font-size:9px;color:#26764c;text-decoration:none;display:inline-block;margin-top:4px}.record-text a:hover{text-decoration:underline}.records-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 12px}.records-tools p{margin:0;font-size:11px;color:#758475;line-height:1.5}.record-count{font-weight:800;color:#2a5b39}.research-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.research-list{display:flex;flex-direction:column;gap:8px}.research-item{padding:10px;border-radius:10px;background:#f6f9f3;border:1px solid #e7eee3}.research-item a{font-size:11px;line-height:1.45;font-weight:800;color:#286142;text-decoration:none}.research-item a:hover{text-decoration:underline}.research-item p{font-size:10px;color:#7a897b;line-height:1.5;margin:5px 0 0}.api-key-row{display:flex;gap:6px;margin-bottom:10px}.api-key-row input{min-width:0;flex:1;border:1px solid #dce6db;border-radius:8px;padding:8px;font-size:10px}.dataset-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dataset-item{background:white;border:1px solid var(--line);border-radius:12px;padding:12px}.dataset-item strong{display:block;font-size:11px;line-height:1.5;color:#285438}.dataset-item p{font-size:10px;line-height:1.6;color:#7a887b;margin:6px 0}.dataset-item a{font-size:10px;color:#2a8050;text-decoration:none}.status{font-size:10px;color:#7e8e80;line-height:1.5}.loader{width:18px;height:18px;border:2px solid #dceadf;border-top-color:#318357;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:middle;margin-right:7px}.notice{padding:12px;border-radius:10px;background:#f1f7ec;border:1px solid #e1ecd9;font-size:10px;line-height:1.6;color:#6d7f6b}.notice strong{color:#3b6543}
+    @keyframes spin{to{transform:rotate(360deg)}}@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}.hidden{display:none!important}
+    @media(max-width:1050px){.workspace{grid-template-columns:minmax(0,1fr) 275px}#worldMap{height:520px}.species-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.taxon-image{height:100px}}
+    @media(max-width:780px){.wrap{width:calc(100% - 24px)}.intro{align-items:start;flex-direction:column;padding-top:26px}.intro-aside{text-align:left;max-width:none}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{padding:12px;min-height:78px}.stat-value{font-size:22px}.workspace{grid-template-columns:1fr}.side-card{order:-1}.side-body{padding:12px}.species-list{max-height:240px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.species-item{grid-template-columns:48px minmax(0,1fr)}.species-thumb{width:48px;height:52px}.search-panel{padding:12px}.map-head{align-items:flex-start}.map-actions .btn span{display:none}.map-actions .btn{padding:9px 10px}#worldMap{height:58vh;min-height:390px}.species-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.taxon-image{height:115px}.records-layout,.overview-grid{grid-template-columns:1fr}.record-map-panel{order:-1}#occurrenceMap{height:300px}.research-grid,.dataset-list{grid-template-columns:1fr}.media-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.modal-backdrop{padding:8px}.modal{max-height:96vh;border-radius:15px}.modal-head{padding:13px}.modal-scroll{padding:11px}.modal-tabs{padding:0 8px}.modal-tab{padding:12px 8px;font-size:10px}.modal-cover{width:53px;height:53px}.modal-title p{font-size:10px}.bar-links .api-pill{display:none}.intro h1{font-size:34px}.footer{flex-direction:column}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <header class="appbar">
+    <div class="wrap bar-inner">
+      <a class="brand" href="./index.html" aria-label="Open Data Explorers home">
+        <span class="brand-icon"><i class="fa-solid fa-leaf" aria-hidden="true"></i></span>
+        <span><span class="brand-name">Biodiversity Explorer</span><span class="brand-sub" style="display:block">Species • Places • Evidence</span></span>
+      </a>
+      <div class="bar-links">
+        <span class="api-pill"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> GBIF Open Data</span>
+        <a class="home-link" href="./index.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> All explorers</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="intro">
+      <div>
+        <div class="eyebrow"><span class="dot"></span> Global species occurrence atlas</div>
+        <h1>Every species leaves<br>a <span style="color:#358454">trace.</span></h1>
+        <p class="intro-copy">Explore georeferenced biodiversity records, find a species, and open its global observation history. Each species gets one representative point on the main map; worldwide records load only when you select that species.</p>
+      </div>
+      <div class="intro-aside"><strong><i class="fa-solid fa-database"></i> Live public data</strong>Powered by GBIF occurrence, taxonomy, dataset and multimedia records, with related research from OpenAlex and Crossref.</div>
+    </section>
+
+    <section class="stats" aria-label="Explorer statistics">
+      <div class="stat"><div class="stat-label"><i class="fa-solid fa-location-dot"></i> Species on map</div><div class="stat-value" id="statSpecies">—</div><div class="stat-foot">Unique species in the current map sample</div></div>
+      <div class="stat"><div class="stat-label"><i class="fa-solid fa-list-check"></i> Sample records</div><div class="stat-value" id="statRecords">—</div><div class="stat-foot">Coordinate-bearing GBIF records inspected</div></div>
+      <div class="stat"><div class="stat-label"><i class="fa-solid fa-camera"></i> Records with media</div><div class="stat-value" id="statMedia">—</div><div class="stat-foot">Images and other media available in sample</div></div>
+      <div class="stat"><div class="stat-label"><i class="fa-solid fa-globe"></i> Global lookup</div><div class="stat-value">On click</div><div class="stat-foot">Queries worldwide records for the selected species</div></div>
+    </section>
+
+    <section class="workspace">
+      <div class="map-card">
+        <div class="map-head">
+          <div class="map-heading"><span class="map-icon"><i class="fa-solid fa-earth-americas"></i></span><div><h2>Species distribution explorer</h2><p>One map point per species · Click a point for global records</p></div></div>
+          <div class="map-actions"><button class="btn" id="resetMapBtn" type="button"><i class="fa-solid fa-earth-americas"></i><span>Reset view</span></button><button class="btn btn-primary" id="reloadBtn" type="button"><i class="fa-solid fa-rotate"></i><span>Reload sample</span></button></div>
+        </div>
+        <div class="map-shell">
+          <div id="worldMap" aria-label="Map of representative species observation locations"></div>
+          <div class="map-overlay"><div class="map-legend"><span class="legend-item"><span class="legend-dot" style="background:#287d55"></span>Plants / algae</span><span class="legend-item"><span class="legend-dot" style="background:#2378b7"></span>Animals</span><span class="legend-item"><span class="legend-dot" style="background:#a36bba"></span>Fungi / other</span></div><strong>How to read this map:</strong> Each dot is one species, placed at one representative GBIF occurrence. It is not a range map or a complete distribution. Click a dot to load the species' records worldwide.</div>
+        </div>
+      </div>
+
+      <aside class="side-card">
+        <div class="search-panel">
+          <label class="search-label" for="speciesQuery">Find a species</label>
+          <div class="search-row">
+            <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="speciesQuery" autocomplete="off" placeholder="e.g. Panthera pardus" aria-label="Search species name"><div id="suggestions" class="suggestions" role="listbox"></div></div>
+            <button class="btn btn-primary" id="searchBtn" type="button" aria-label="Search species"><i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+          <div id="searchStatus" class="status" style="margin-top:8px">Search scientific or common names via the GBIF taxonomy service.</div>
+        </div>
+        <div class="side-body">
+          <div class="filter-row"><label for="kingdomFilter">Filter sample</label><select id="kingdomFilter"><option value="all">All kingdoms</option><option value="animalia">Animalia</option><option value="plantae">Plantae</option><option value="fungi">Fungi</option><option value="other">Other / unknown</option></select></div>
+          <div class="section-title-row" style="margin-bottom:10px"><div><h2 style="font-size:12px">Species in this view</h2><p id="speciesListCaption">Loading first sample…</p></div></div>
+          <div id="speciesList" class="species-list"><div class="side-empty"><span class="loader"></span>Loading GBIF records…</div></div>
+          <div class="source-note"><strong><i class="fa-solid fa-circle-info"></i> Live-data note</strong><br>The opening map is a limited sample for speed, not a complete inventory of Earth. A selected species is queried globally on demand, with results paginated to avoid overwhelming the browser or public API.</div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section-card">
+      <div class="section-title-row"><div><h2>Recently discovered species</h2><p>Click a species card to inspect its global occurrences, available images, source datasets and related research.</p></div><span id="galleryCount" class="api-pill" style="background:#edf6ee;color:#3c7450;border-color:#dceadd"><i class="fa-solid fa-leaf"></i> Live GBIF sample</span></div>
+      <div id="speciesGallery" class="species-grid"><div class="side-empty">Species cards will appear when the first GBIF sample is loaded.</div></div>
+    </section>
+    <footer class="footer"><span>Open Data Explorers · Biodiversity Explorer</span><span>Data: <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">GBIF</a> · Research: <a href="https://openalex.org/" target="_blank" rel="noopener noreferrer">OpenAlex</a> and <a href="https://www.crossref.org/" target="_blank" rel="noopener noreferrer">Crossref</a> · Map tiles: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a></span></footer>
+  </main>
+
+  <div id="speciesModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalScientificName">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title-row"><img id="modalCover" class="modal-cover hidden" alt=""><span id="modalCoverPlaceholder" class="modal-cover" style="display:grid;place-items:center;color:#c4dfcb;font-size:21px"><i class="fa-solid fa-leaf"></i></span><div class="modal-title"><h2 id="modalScientificName">Species detail</h2><p id="modalCommonName">Loading taxonomy and global occurrence records…</p><div class="modal-meta"><span id="modalKingdom" class="meta-chip">Taxonomy</span><span id="modalRecordCount" class="meta-chip">Records loading…</span><span id="modalMediaCount" class="meta-chip">Media</span></div></div></div>
+        <button type="button" class="close-btn" id="closeModalBtn" aria-label="Close species details"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <nav class="modal-tabs" aria-label="Species detail sections">
+        <button class="modal-tab active" data-tab="overview" type="button"><i class="fa-regular fa-address-card"></i> Overview</button>
+        <button class="modal-tab" data-tab="records" type="button"><i class="fa-solid fa-map-location-dot"></i> Global records</button>
+        <button class="modal-tab" data-tab="research" type="button"><i class="fa-solid fa-book-open"></i> Related research</button>
+        <button class="modal-tab" data-tab="datasets" type="button"><i class="fa-solid fa-database"></i> Data sources</button>
+      </nav>
+      <div class="modal-scroll">
+        <section id="tab-overview" class="tab-panel active">
+          <div class="overview-grid">
+            <div class="inner-card"><h3><i class="fa-solid fa-seedling"></i> Taxonomy & identification</h3><div id="taxonomyGrid" class="taxonomy-grid"><div class="status"><span class="loader"></span>Loading species taxonomy…</div></div><div id="speciesDescription" class="notice" style="margin-top:12px">Taxonomic descriptions are shown when the source provides them.</div></div>
+            <div class="inner-card"><h3><i class="fa-solid fa-earth-americas"></i> Worldwide record summary</h3><div id="occurrenceSummary" class="status"><span class="loader"></span>Querying GBIF for this species worldwide…</div><div class="notice" style="margin-top:12px">An occurrence record is evidence that an organism was recorded at a place and time. Records are not automatically a measure of population size or current presence.</div></div>
+          </div>
+          <div class="inner-card" style="margin-top:13px"><h3><i class="fa-solid fa-camera"></i> Available images & multimedia</h3><div id="mediaGallery" class="media-grid"><p class="status">Finding media supplied with occurrence records…</p></div><p class="status" style="margin:12px 0 0">Images belong to their respective publishers. Check each record's licence and attribution before reuse; image availability varies by species.</p></div>
+        </section>
+        <section id="tab-records" class="tab-panel">
+          <div class="records-tools"><p id="recordsStatus">Global records are loading…</p><button class="btn" id="loadMoreBtn" type="button" disabled><i class="fa-solid fa-plus"></i> Load more</button></div>
+          <div id="largeDatasetNotice" class="notice hidden" style="margin-bottom:12px">This species has a very large number of records. GBIF's interactive search has a 100,000-result ceiling; use GBIF's download workflow for an exhaustive dataset.</div>
+          <div class="records-layout"><div class="record-map-panel"><div class="record-map-heading"><strong>Observed locations in loaded records</strong><span id="recordMapCount">0 mapped</span></div><div id="occurrenceMap" aria-label="Map of selected species global occurrence records"></div></div><div><div id="recordList" class="records-list"><div class="side-empty"><span class="loader"></span>Loading occurrence records…</div></div><div id="recordPagingNote" class="status" style="margin-top:9px"></div></div></div>
+        </section>
+        <section id="tab-research" class="tab-panel">
+          <div class="notice" style="margin-bottom:13px"><strong>Related literature, not a conservation assessment.</strong> Search results are based on metadata matching the scientific name and may include unrelated uses of the same words. Verify relevance in the original publication.</div>
+          <div class="inner-card" style="margin-bottom:13px"><h3><i class="fa-solid fa-key"></i> OpenAlex API key (optional)</h3><p>Casual queries may work without a key. A free OpenAlex key gives a larger API budget. If supplied, it is saved only in this browser, not in the repository.</p><div class="api-key-row"><input id="openAlexKey" type="password" autocomplete="off" placeholder="Optional OpenAlex key"><button id="saveOpenAlexKey" class="btn" type="button">Save locally</button></div><div id="openAlexKeyStatus" class="status">No key saved in this browser.</div></div>
+          <div class="research-grid"><div class="inner-card"><h3><i class="fa-solid fa-book"></i> OpenAlex works</h3><div id="openAlexResults" class="research-list"><p class="status">Research results will load when a species is selected.</p></div></div><div class="inner-card"><h3><i class="fa-solid fa-quote-right"></i> Crossref publications</h3><div id="crossrefResults" class="research-list"><p class="status">Crossref metadata will load when a species is selected.</p></div></div></div>
+        </section>
+        <section id="tab-datasets" class="tab-panel">
+          <div class="notice" style="margin-bottom:13px">Datasets are the published sources behind GBIF occurrence records. The same species may be documented by several collections or observation projects.</div>
+          <div class="inner-card" style="margin-bottom:13px"><h3><i class="fa-solid fa-link"></i> Datasets found in this species' records</h3><div id="usedDatasets" class="dataset-list"><p class="status">Dataset metadata will load after occurrence records arrive.</p></div></div>
+          <div class="inner-card"><h3><i class="fa-solid fa-magnifying-glass"></i> Related GBIF datasets</h3><div id="relatedDatasets" class="dataset-list"><p class="status">Dataset search runs when you open this section.</p></div></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    (function(){
+      'use strict';
+      const GBIF = 'https://api.gbif.org/v1';
+      const OPENALEX = 'https://api.openalex.org/works';
+      const CROSSREF = 'https://api.crossref.org/works';
+      const SAMPLE_LIMIT = 300;
+      const PAGE_SIZE = 100;
+      const MAX_MARKERS = 180;
+      const state = {
+        map:null, markerLayer:null, occurrenceMap:null, occurrenceLayer:null,
+        species:new Map(), markers:new Map(), sampleRecords:0, sampleMedia:0,
+        activeSpecies:null, records:[], recordTotal:0, recordOffset:0, recordLoading:false,
+        researchLoaded:new Set(), datasetsLoaded:new Set(), filteredRecords:[],
+        debounce:null, queryCache:new Map(), datasetCache:new Map(), requestCache:new Map()
+      };
+      const $ = id => document.getElementById(id);
+      const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const number = value => Number(value || 0).toLocaleString();
+      const validPoint = record => Number.isFinite(Number(record.decimalLatitude)) && Number.isFinite(Number(record.decimalLongitude)) && Math.abs(Number(record.decimalLatitude)) <= 90 && Math.abs(Number(record.decimalLongitude)) <= 180;
+      const occURL = key => 'https://www.gbif.org/occurrence/' + encodeURIComponent(key);
+      const taxonName = item => item.canonicalName || item.species || item.scientificName || item.acceptedScientificName || 'Unknown species';
+      const getSpeciesKey = record => {
+        const k = record.speciesKey || (String(record.taxonRank || '').toUpperCase() === 'SPECIES' ? record.taxonKey : null);
+        return k ? String(k) : '';
+      };
+      const getMedia = record => (record && Array.isArray(record.media) ? record.media : []).filter(m => {
+        const type = String(m.type || '').toLowerCase();
+        const id = String(m.identifier || '');
+        return !!id && /^https?:\/\//i.test(id) && (type.indexOf('image') >= 0 || type.indexOf('stillimage') >= 0 || /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(id));
+      });
+      const getImage = item => {
+        const media = getMedia(item);
+        return media.length ? media[0].identifier : '';
+      };
+      async function fetchJSON(url, cacheKey, ttl){
+        const key = cacheKey || url;
+        const hit = state.requestCache.get(key);
+        if(hit && hit.expires > Date.now()) return hit.value;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 22000);
+        try {
+          const response = await fetch(url, {signal:controller.signal, headers:{'Accept':'application/json'}});
+          if(!response.ok) throw new Error('API returned HTTP ' + response.status);
+          const json = await response.json();
+          state.requestCache.set(key, {value:json, expires:Date.now() + (ttl || 60000)});
+          return json;
+        } finally { clearTimeout(timer); }
+      }
+      function setStatus(message, isError){
+        $('searchStatus').textContent = message;
+        $('searchStatus').style.color = isError ? '#a64b36' : '#819084';
+      }
+      function kingdomColor(kingdom){
+        const k = String(kingdom || '').toLowerCase();
+        if(k.indexOf('animal') >= 0) return '#2378b7';
+        if(k.indexOf('plant') >= 0 || k.indexOf('algae') >= 0) return '#287d55';
+        if(k.indexOf('fung') >= 0) return '#a36bba';
+        return '#b28748';
+      }
+      function makeSpeciesFromOccurrence(record){
+        const key = getSpeciesKey(record);
+        if(!key || !validPoint(record)) return null;
+        return {
+          key:key, scientificName:record.species || record.acceptedScientificName || record.scientificName || 'Unknown species',
+          canonicalName:record.species || record.acceptedScientificName || record.scientificName || 'Unknown species',
+          kingdom:record.kingdom || '', phylum:record.phylum || '', class:record.class || '',
+          order:record.order || '', family:record.family || '', genus:record.genus || '',
+          taxonRank:'SPECIES', lat:Number(record.decimalLatitude), lng:Number(record.decimalLongitude),
+          representative:record, image:getImage(record), occurrenceCount:null, source:'GBIF occurrence sample'
+        };
+      }
+      function addSpecies(item, options){
+        if(!item || !item.key) return null;
+        const key = String(item.key);
+        const existing = state.species.get(key);
+        if(existing){
+          if(!existing.image && item.image) existing.image = item.image;
+          if(!existing.representative && item.representative) existing.representative = item.representative;
+          if(options && options.open) openSpecies(existing);
+          renderSpeciesList(); renderGallery();
+          return existing;
+        }
+        item.key = key;
+        state.species.set(key,item);
+        if(state.species.size > 600){
+          const first = state.species.keys().next().value;
+          removeSpeciesMarker(first);
+          state.species.delete(first);
+        }
+        if(options && options.map !== false && Number.isFinite(item.lat) && Number.isFinite(item.lng)) addMarker(item);
+        renderSpeciesList(); renderGallery(); updateStats();
+        if(options && options.open) openSpecies(item);
+        return item;
+      }
+      function removeSpeciesMarker(key){
+        const marker=state.markers.get(String(key));
+        if(marker && state.markerLayer) state.markerLayer.removeLayer(marker);
+        state.markers.delete(String(key));
+      }
+      function addMarker(item){
+        if(!state.map || !Number.isFinite(item.lat) || !Number.isFinite(item.lng)) return;
+        const key=String(item.key);
+        if(state.markers.has(key)) return;
+        const color=kingdomColor(item.kingdom);
+        const marker=L.circleMarker([item.lat,item.lng],{radius:7,color:'#ffffff',weight:1.7,fillColor:color,fillOpacity:.94,opacity:1});
+        marker.bindTooltip(esc(item.canonicalName || item.scientificName),{direction:'top',offset:[0,-7],opacity:.95});
+        marker.on('click',()=>openSpecies(state.species.get(key) || item));
+        marker.addTo(state.markerLayer);
+        state.markers.set(key,marker);
+      }
+      function updateStats(){
+        $('statSpecies').textContent=number(state.species.size);
+        $('statRecords').textContent=number(state.sampleRecords);
+        $('statMedia').textContent=number(state.sampleMedia);
+        $('speciesListCaption').textContent=number(state.species.size)+' unique taxa loaded';
+        $('galleryCount').innerHTML='<i class="fa-solid fa-leaf"></i> '+number(state.species.size)+' species';
+      }
+      function passesFilter(species){
+        const v=$('kingdomFilter').value;
+        if(v==='all') return true;
+        const k=String(species.kingdom||'').toLowerCase();
+        if(v==='animalia') return k==='animalia';
+        if(v==='plantae') return k==='plantae';
+        if(v==='fungi') return k==='fungi';
+        return !['animalia','plantae','fungi'].includes(k);
+      }
+      function renderSpeciesList(){
+        const root=$('speciesList');
+        const list=Array.from(state.species.values()).filter(passesFilter).slice(0,140);
+        if(!list.length){root.innerHTML='<div class="side-empty"><i class="fa-solid fa-filter-circle-xmark"></i>No species match this filter.</div>';return;}
+        root.innerHTML=list.map(sp=>{
+          const name=esc(sp.canonicalName||sp.scientificName);
+          const image=sp.image?'<img class="species-thumb" loading="lazy" src="'+esc(sp.image)+'" alt="" onerror="this.outerHTML=\\'<span class=&quot;species-thumb thumb-empty&quot;><i class=&quot;fa-solid fa-leaf&quot;></i></span>\\'">':'<span class="species-thumb thumb-empty"><i class="fa-solid fa-leaf"></i></span>';
+          return '<button class="species-item" type="button" data-species-key="'+esc(sp.key)+'">'+image+'<span><strong><em>'+name+'</em></strong><small>'+esc(sp.kingdom||'Kingdom not supplied')+' · '+(sp.representative && sp.representative.country?esc(sp.representative.country):'Global record')+'</small></span></button>';
+        }).join('');
+        root.querySelectorAll('[data-species-key]').forEach(btn=>btn.addEventListener('click',()=>openSpecies(state.species.get(btn.dataset.speciesKey))));
+      }
+      function renderGallery(){
+        const root=$('speciesGallery');
+        const list=Array.from(state.species.values()).filter(passesFilter).slice(0,12);
+        if(!list.length){root.innerHTML='<p class="status">No species are available for the selected filter.</p>';return;}
+        root.innerHTML=list.map(sp=>{
+          const name=esc(sp.canonicalName||sp.scientificName);
+          const img=sp.image?'<img src="'+esc(sp.image)+'" alt="'+name+'" loading="lazy" onerror="this.style.display=\\'none\\'">':'<i class="fa-solid fa-leaf"></i>';
+          const rec=sp.representative||{};
+          return '<button class="taxon-card" type="button" data-gallery-key="'+esc(sp.key)+'"><span class="taxon-image">'+img+'</span><span class="taxon-info"><strong><em>'+name+'</em></strong><em>'+esc(sp.kingdom||'Taxonomy not supplied')+'</em><small><i class="fa-solid fa-location-dot"></i> '+esc(rec.country||'World record')+' · Explore species</small></span></button>';
+        }).join('');
+        root.querySelectorAll('[data-gallery-key]').forEach(btn=>btn.addEventListener('click',()=>openSpecies(state.species.get(btn.dataset.galleryKey))));
+      }
+      async function loadInitialSample(){
+        $('reloadBtn').disabled=true;
+        $('reloadBtn').innerHTML='<span class="loader"></span><span>Loading</span>';
+        $('speciesList').innerHTML='<div class="side-empty"><span class="loader"></span>Requesting a global sample from GBIF…</div>';
+        setStatus('Loading georeferenced occurrence sample from GBIF…');
+        try{
+          const data=await fetchJSON(GBIF+'/occurrence/search?hasCoordinate=true&hasGeospatialIssue=false&limit='+SAMPLE_LIMIT+'&offset=0','initial-sample',45000);
+          const records=Array.isArray(data.results)?data.results:[];
+          state.sampleRecords=records.length;
+          state.sampleMedia=records.filter(r=>getMedia(r).length>0).length;
+          records.forEach(record=>{
+            const item=makeSpeciesFromOccurrence(record);
+            if(!item) return;
+            const existing=state.species.get(item.key);
+            if(existing){
+              if(!existing.image && item.image) existing.image=item.image;
+              if(!existing.representative || (!existing.image && item.image)) existing.representative=record;
+              return;
+            }
+            addSpecies(item,{map:true});
+          });
+          renderSpeciesList();renderGallery();updateStats();
+          if(!records.length) throw new Error('GBIF returned no coordinate-bearing records for this query.');
+          setStatus('Loaded '+number(records.length)+' occurrence records and '+number(state.species.size)+' unique species. Select a point for worldwide records.');
+          if(state.markers.size) state.map.fitBounds(state.markerLayer.getBounds(),{padding:[30,30],maxZoom:5});
+        }catch(error){
+          console.error(error);
+          $('speciesList').innerHTML='<div class="side-empty"><i class="fa-solid fa-triangle-exclamation"></i>Could not load the live GBIF sample.<br>'+esc(error.message)+'<br><button class="btn" style="margin-top:10px" onclick="window.biodiversityExplorer.reload()">Try again</button></div>';
+          setStatus('GBIF is temporarily unavailable or the request failed.',true);
+        }finally{
+          $('reloadBtn').disabled=false;
+          $('reloadBtn').innerHTML='<i class="fa-solid fa-rotate"></i><span>Reload sample</span>';
+        }
+      }
+      function initMap(){
+        state.map=L.map('worldMap',{zoomControl:false,worldCopyJump:true}).setView([15,0],2);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'}).addTo(state.map);
+        L.control.zoom({position:'topright'}).addTo(state.map);
+        L.control.scale({imperial:false,position:'bottomright'}).addTo(state.map);
+        state.markerLayer=L.layerGroup().addTo(state.map);
+      }
+      function openSuggestions(){ $('suggestions').classList.add('open'); }
+      function closeSuggestions(){ $('suggestions').classList.remove('open'); }
+      function renderSuggestions(items, note){
+        const root=$('suggestions');
+        if(!items.length){root.innerHTML='<div class="suggestion"><small>'+esc(note||'No matching taxon found. Try another scientific name.')+'</small></div>';openSuggestions();return;}
+        root.innerHTML=items.slice(0,10).map(item=>{
+          const key=item.key || item.usageKey || '';
+          return '<button class="suggestion" type="button" data-suggest-key="'+esc(key)+'"><strong><em>'+esc(taxonName(item))+'</em></strong><small>'+esc([item.rank||item.taxonRank,item.kingdom,item.family].filter(Boolean).join(' · '))+'</small></button>';
+        }).join('');
+        root.querySelectorAll('[data-suggest-key]').forEach(btn=>btn.addEventListener('click',()=>{
+          const item=items.find(x=>String(x.key||x.usageKey)===btn.dataset.suggestKey);
+          if(item) chooseTaxon(item);
+        }));
+        openSuggestions();
+      }
+      async function suggestSpecies(query){
+        if(!query || query.trim().length<2){closeSuggestions();return;}
+        try{
+          const url=GBIF+'/species/suggest?q='+encodeURIComponent(query.trim())+'&rank=SPECIES&limit=8';
+          const data=await fetchJSON(url,'suggest:'+query.trim().toLowerCase(),20000);
+          renderSuggestions(Array.isArray(data)?data:[]);
+        }catch(error){renderSuggestions([],'The GBIF taxonomy search is temporarily unavailable.');}
+      }
+      async function runSearch(){
+        const query=$('speciesQuery').value.trim();
+        if(!query){setStatus('Enter a scientific or common name first.',true);return;}
+        closeSuggestions();
+        $('searchBtn').disabled=true;
+        $('searchBtn').innerHTML='<span class="loader"></span>';
+        setStatus('Searching the GBIF taxonomy…');
+        try{
+          const data=await fetchJSON(GBIF+'/species/search?q='+encodeURIComponent(query)+'&rank=SPECIES&status=ACCEPTED&limit=15','species-search:'+query.toLowerCase(),30000);
+          const items=(data.results||[]).filter(x=>x.key && String(x.rank||'').toUpperCase()==='SPECIES');
+          if(!items.length){setStatus('No accepted species matched. Try a scientific name or a shorter keyword.',true);renderSuggestions([],'No matching species was found.');return;}
+          renderSuggestions(items,'Search results');
+          setStatus('Found '+number(data.count||items.length)+' taxonomy matches. Select a species to place it on the map.');
+        }catch(error){setStatus('Taxonomy search failed: '+error.message,true);}
+        finally{$('searchBtn').disabled=false;$('searchBtn').innerHTML='<i class="fa-solid fa-arrow-right"></i>';}
+      }
+      async function chooseTaxon(taxon){
+        closeSuggestions();
+        const key=taxon.key||taxon.usageKey;
+        if(!key)return;
+        const existing=state.species.get(String(key));
+        if(existing){
+          if(state.markers.has(String(key))){state.map.setView([existing.lat,existing.lng],Math.max(5,state.map.getZoom()));}
+          openSpecies(existing);return;
+        }
+        setStatus('Finding a georeferenced record for '+taxonName(taxon)+'…');
+        $('searchBtn').disabled=true;
+        try{
+          const data=await fetchJSON(GBIF+'/occurrence/search?speciesKey='+encodeURIComponent(key)+'&hasCoordinate=true&hasGeospatialIssue=false&limit=1&offset=0','first-occurrence:'+key,60000);
+          const record=(data.results||[])[0];
+          let species={
+            key:String(key), scientificName:taxon.scientificName||taxon.canonicalName||taxonName(taxon),
+            canonicalName:taxon.canonicalName||taxonName(taxon), kingdom:taxon.kingdom||'',phylum:taxon.phylum||'',
+            class:taxon.class||'',order:taxon.order||'',family:taxon.family||'',genus:taxon.genus||'',
+            taxonRank:taxon.rank||'SPECIES',source:'GBIF taxonomy'
+          };
+          if(record&&validPoint(record)){
+            species.lat=Number(record.decimalLatitude);species.lng=Number(record.decimalLongitude);
+            species.representative=record;species.image=getImage(record)||'';
+            addSpecies(species,{map:true});
+            const marker=state.markers.get(String(key));
+            if(marker){state.map.setView([species.lat,species.lng],Math.max(5,state.map.getZoom()));}
+            setStatus('Added one representative point for '+species.canonicalName+'. Click it for global records.');
+          }else{
+            species.lat=NaN;species.lng=NaN;species.representative=record||null;species.image=record?getImage(record):'';
+            addSpecies(species,{map:false});
+            setStatus('Taxon found, but GBIF returned no coordinate-bearing record. Opening species details instead.');
+          }
+          openSpecies(species);
+        }catch(error){setStatus('Could not find a georeferenced record for this species: '+error.message,true);}
+        finally{$('searchBtn').disabled=false;$('searchBtn').innerHTML='<i class="fa-solid fa-arrow-right"></i>';}
+      }
+      function setActiveTab(name){
+        document.querySelectorAll('.modal-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===name));
+        document.querySelectorAll('.tab-panel').forEach(panel=>panel.classList.toggle('active',panel.id==='tab-'+name));
+        if(name==='records') setTimeout(()=>{if(state.occurrenceMap)state.occurrenceMap.invalidateSize();},100);
+        if(name==='research' && state.activeSpecies) loadResearch(state.activeSpecies);
+        if(name==='datasets' && state.activeSpecies) loadDatasets(state.activeSpecies);
+      }
+      function showModal(){
+        $('speciesModal').classList.add('open');
+        document.body.style.overflow='hidden';
+      }
+      function closeModal(){
+        $('speciesModal').classList.remove('open');
+        document.body.style.overflow='';
+      }
+      function addTaxonValue(label,value){
+        return '<div class="taxon-field"><span>'+esc(label)+'</span><strong>'+esc(value||'Not provided')+'</strong></div>';
+      }
+      function renderTaxonomy(taxon){
+        $('taxonomyGrid').innerHTML=[
+          addTaxonValue('Kingdom',taxon.kingdom),addTaxonValue('Phylum',taxon.phylum),
+          addTaxonValue('Class',taxon.class),addTaxonValue('Order',taxon.order),
+          addTaxonValue('Family',taxon.family),addTaxonValue('Genus',taxon.genus),
+          addTaxonValue('Rank',taxon.rank||taxon.taxonRank),addTaxonValue('Taxonomic status',taxon.taxonomicStatus)
+        ].join('');
+        const desc=taxon.description || '';
+        $('speciesDescription').innerHTML=desc?'<strong>GBIF description:</strong> '+esc(desc):'<strong>Taxonomic note:</strong> GBIF provides classification metadata for this name. A narrative species description was not available in this taxon response.';
+      }
+      function openSpecies(species){
+        if(!species)return;
+        state.activeSpecies=species;
+        state.records=[];state.recordTotal=0;state.recordOffset=0;state.recordLoading=false;
+        $('modalScientificName').textContent=species.canonicalName||species.scientificName||'Species detail';
+        $('modalCommonName').textContent='Loading taxonomic details and worldwide records…';
+        $('modalKingdom').textContent=species.kingdom||'Taxonomy';
+        $('modalRecordCount').textContent='Loading occurrences…';
+        $('modalMediaCount').textContent='Media pending';
+        const cover=$('modalCover');
+        cover.classList.add('hidden');cover.removeAttribute('src');$('modalCoverPlaceholder').style.display='grid';
+        const img=species.image||getImage(species.representative||{});
+        if(img){cover.src=img;cover.alt=species.canonicalName||species.scientificName||'Species image';cover.classList.remove('hidden');$('modalCoverPlaceholder').style.display='none';cover.onerror=()=>{cover.classList.add('hidden');$('modalCoverPlaceholder').style.display='grid';};}
+        $('taxonomyGrid').innerHTML='<div class="status"><span class="loader"></span>Loading taxonomy…</div>';
+        $('occurrenceSummary').innerHTML='<span class="loader"></span>Querying all worldwide records for this species…';
+        $('mediaGallery').innerHTML='<p class="status"><span class="loader"></span>Loading available multimedia…</p>';
+        $('recordList').innerHTML='<div class="side-empty"><span class="loader"></span>Loading worldwide occurrences…</div>';
+        $('recordsStatus').textContent='Querying GBIF occurrence records worldwide…';
+        $('recordPagingNote').textContent='';
+        $('recordMapCount').textContent='0 mapped';
+        $('largeDatasetNotice').classList.add('hidden');
+        $('loadMoreBtn').disabled=true;$('loadMoreBtn').innerHTML='<span class="loader"></span> Loading…';
+        $('openAlexResults').innerHTML='<p class="status"><span class="loader"></span>Searching OpenAlex…</p>';
+        $('crossrefResults').innerHTML='<p class="status"><span class="loader"></span>Searching Crossref…</p>';
+        $('usedDatasets').innerHTML='<p class="status">Occurrence source datasets will be identified from the results.</p>';
+        $('relatedDatasets').innerHTML='<p class="status">Open the Data sources tab to search related GBIF datasets.</p>';
+        setActiveTab('overview');
+        showModal();
+        loadSpeciesTaxonomy(species);
+        loadOccurrencePage(species,0,true);
+        loadResearch(species);
+      }
+      async function loadSpeciesTaxonomy(species){
+        try{
+          let detail=species;
+          if(species.key && /^\d+$/.test(String(species.key))){
+            const fetched=await fetchJSON(GBIF+'/species/'+encodeURIComponent(species.key),'taxon:'+species.key,3600000);
+            detail=Object.assign({},species,fetched);
+          }
+          if(state.activeSpecies && String(state.activeSpecies.key)===String(species.key)){
+            state.activeSpecies=Object.assign({},state.activeSpecies,detail);
+            $('modalScientificName').textContent=detail.canonicalName||detail.scientificName||species.canonicalName||species.scientificName;
+            $('modalCommonName').textContent=[detail.vernacularName,detail.scientificName||detail.canonicalName].filter(Boolean).join(' · ');
+            $('modalKingdom').textContent=detail.kingdom||'Kingdom not supplied';
+            renderTaxonomy(detail);
+          }
+        }catch(error){
+          if(state.activeSpecies&&String(state.activeSpecies.key)===String(species.key)){
+            renderTaxonomy(species);
+            $('modalCommonName').textContent=species.scientificName||species.canonicalName||'Taxonomic information is limited';
+          }
+        }
+      }
+      function initOccurrenceMap(){
+        if(state.occurrenceMap)return;
+        state.occurrenceMap=L.map('occurrenceMap',{zoomControl:false,worldCopyJump:true}).setView([15,0],2);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'}).addTo(state.occurrenceMap);
+        L.control.zoom({position:'topright'}).addTo(state.occurrenceMap);
+        state.occurrenceLayer=L.layerGroup().addTo(state.occurrenceMap);
+      }
+      function renderRecords(){
+        const root=$('recordList');
+        if(!state.records.length){root.innerHTML='<div class="side-empty"><i class="fa-solid fa-location-dot"></i>No occurrence records were returned for this species.</div>';}
+        else{
+          root.innerHTML=state.records.map(record=>{
+            const media=getMedia(record);
+            const image=media.length?'<img class="record-img" loading="lazy" src="'+esc(media[0].identifier)+'" alt="" onerror="this.style.visibility=\\'hidden\\'">':'<span class="record-img thumb-empty" style="display:grid;place-items:center"><i class="fa-solid fa-leaf"></i></span>';
+            const date=record.eventDate||record.year||'Date not supplied';
+            const place=[record.locality,record.stateProvince,record.country].filter(Boolean).join(', ');
+            const meta=[date,place,record.basisOfRecord].filter(Boolean).join(' · ');
+            return '<article class="record-item">'+image+'<div class="record-text"><strong>'+esc(record.recordedBy||record.institutionCode||'Observer not identified')+'</strong><small>'+esc(meta||'Location or date not supplied')+'</small><a href="'+esc(occURL(record.key))+'" target="_blank" rel="noopener noreferrer">Open GBIF record <i class="fa-solid fa-arrow-up-right-from-square"></i></a></div></article>';
+          }).join('');
+        }
+        $('recordsStatus').innerHTML='<span class="record-count">'+number(state.recordTotal)+'</span> global records match this taxon. Loaded '+number(state.records.length)+' so far.';
+        $('recordPagingNote').textContent=state.recordTotal>100000?'The result is larger than the interactive API ceiling. For a complete extract, use the GBIF download workflow.':'Each “Load more” request retrieves the next page from GBIF across all countries.';
+        $('loadMoreBtn').disabled=state.recordLoading||state.records.length>=state.recordTotal||state.records.length>=100000;
+        $('loadMoreBtn').innerHTML=state.recordLoading?'<span class="loader"></span> Loading…':'<i class="fa-solid fa-plus"></i> Load more ('+number(Math.max(0,state.recordTotal-state.records.length))+')';
+      }
+      function addOccurrencePoints(records, reset){
+        initOccurrenceMap();
+        if(reset)state.occurrenceLayer.clearLayers();
+        let count=0;const bounds=[];
+        records.forEach(r=>{
+          if(!validPoint(r))return;
+          const marker=L.circleMarker([Number(r.decimalLatitude),Number(r.decimalLongitude)],{radius:4,color:'#fff',weight:1,fillColor:'#267a50',fillOpacity:.75});
+          const place=[r.locality,r.stateProvince,r.country].filter(Boolean).join(', ')||'Location not supplied';
+          const info='<strong>'+esc(state.activeSpecies.canonicalName||state.activeSpecies.scientificName)+'</strong><br>'+esc(place)+'<br>'+esc(r.eventDate||r.year||'Date not supplied')+'<br><a href="'+esc(occURL(r.key))+'" target="_blank" rel="noopener noreferrer">GBIF record</a>';
+          marker.bindPopup(info);marker.addTo(state.occurrenceLayer);bounds.push([Number(r.decimalLatitude),Number(r.decimalLongitude)]);count++;
+        });
+        $('recordMapCount').textContent=number(state.records.filter(validPoint).length)+' mapped in loaded pages';
+        if(reset){if(bounds.length)state.occurrenceMap.fitBounds(bounds,{padding:[20,20],maxZoom:5});else state.occurrenceMap.setView([15,0],2);}
+      }
+      async function loadOccurrencePage(species, offset, reset){
+        if(state.recordLoading)return;
+        state.recordLoading=true;renderRecords();
+        const key=String(species.key);
+        try{
+          const query='speciesKey='+encodeURIComponent(key)+'&limit='+PAGE_SIZE+'&offset='+offset;
+          const data=await fetchJSON(GBIF+'/occurrence/search?'+query,'occurrences:'+key+':'+offset,30000);
+          const rows=Array.isArray(data.results)?data.results:[];
+          if(reset){state.records=[];state.recordTotal=Number(data.count||0);}
+          if(rows.length)state.records=state.records.concat(rows);
+          state.recordOffset=state.records.length;
+          state.recordTotal=Math.max(state.recordTotal,Number(data.count||0));
+          state.recordLoading=false;
+          $('modalRecordCount').textContent=number(state.recordTotal)+' global records';
+          $('modalMediaCount').textContent=number(state.records.filter(r=>getMedia(r).length).length)+' images in loaded pages';
+          $('occurrenceSummary').innerHTML='<div class="stat-value" style="font-size:27px">'+number(state.recordTotal)+'</div><p style="margin:3px 0 10px">GBIF occurrence records returned for this species from around the world.</p><div class="taxonomy-grid"><div class="taxon-field"><span>Loaded so far</span><strong>'+number(state.records.length)+' records</strong></div><div class="taxon-field"><span>With coordinates</span><strong>'+number(state.records.filter(validPoint).length)+' records</strong></div><div class="taxon-field"><span>With media</span><strong>'+number(state.records.filter(r=>getMedia(r).length).length)+' records</strong></div><div class="taxon-field"><span>API sample page</span><strong>'+PAGE_SIZE+' max / request</strong></div></div>';
+          $('largeDatasetNotice').classList.toggle('hidden',state.recordTotal<=100000);
+          renderRecords();renderMedia(state.records);
+          addOccurrencePoints(state.records,!!reset);
+          if(state.records.length===0)$('occurrenceSummary').innerHTML='<p>No occurrence records found for this species key. Try GBIF species search for a related accepted name.</p>';
+        }catch(error){
+          state.recordLoading=false;renderRecords();
+          $('occurrenceSummary').innerHTML='<p class="status">The occurrence request failed: '+esc(error.message)+'. You can retry by closing and opening this species again.</p>';
+          $('recordsStatus').textContent='Could not load worldwide records from GBIF.';
+        }
+      }
+      function renderMedia(records){
+        const root=$('mediaGallery'), chosen=[], seen=new Set();
+        records.forEach(r=>getMedia(r).forEach(m=>{
+          const id=m.identifier;if(seen.has(id)||chosen.length>=8)return;seen.add(id);chosen.push({media:m,record:r});
+        }));
+        if(!chosen.length){root.innerHTML='<div class="notice">No image or multimedia item was included in the first loaded occurrence records. Try loading more records to discover other media, or open source records on GBIF.</div>';return;}
+        root.innerHTML=chosen.map(item=>{
+          const m=item.media, r=item.record, label=m.title||m.creator||'Occurrence image';
+          const licence=m.license||m.rights||'Check the original record for licence';
+          return '<div class="media-card"><a href="'+esc(m.identifier)+'" target="_blank" rel="noopener noreferrer"><img src="'+esc(m.identifier)+'" loading="lazy" alt="'+esc(label)+'" onerror="this.closest(\\'.media-card\\').style.display=\\'none\\'"></a><div class="media-caption"><strong>'+esc(label)+'</strong><br>'+esc(m.creator||r.recordedBy||'Creator not supplied')+'<br>'+esc(licence)+'<br><a href="'+esc(occURL(r.key))+'" target="_blank" rel="noopener noreferrer">Source record</a></div></div>';
+        }).join('');
+      }
+      function researchCard(title,detail,url,label){
+        return '<article class="research-item"><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title||'Untitled work')+'</a><p>'+esc(detail||'Publication metadata')+(label?' · '+esc(label):'')+'</p></article>';
+      }
+      async function loadResearch(species){
+        const key=String(species.key);
+        if(state.researchLoaded.has(key))return;
+        state.researchLoaded.add(key);
+        const name=species.canonicalName||species.scientificName||'biodiversity';
+        const openRoot=$('openAlexResults'), crossRoot=$('crossrefResults');
+        openRoot.innerHTML='<p class="status"><span class="loader"></span>Searching OpenAlex for '+esc(name)+'…</p>';
+        crossRoot.innerHTML='<p class="status"><span class="loader"></span>Searching Crossref for '+esc(name)+'…</p>';
+        const openKey=localStorage.getItem('biodiversityExplorerOpenAlexKey')||'';
+        const openURL=OPENALEX+'?search='+encodeURIComponent(name)+'&per-page=5&sort=cited_by_count:desc'+(openKey?'&api_key='+encodeURIComponent(openKey):'');
+        const crossURL=CROSSREF+'?query.bibliographic='+encodeURIComponent(name)+'&rows=5&select=DOI,title,publisher,published,URL,author,type';
+        const jobs=[
+          fetchJSON(openURL,'openalex:'+name+':'+(openKey?'key':'public'),600000).then(data=>{
+            const results=data.results||[];
+            openRoot.innerHTML=results.length?results.map(w=>{
+              const title=(w.title||'Untitled publication');
+              const authors=(w.authorships||[]).slice(0,3).map(a=>a.author&&a.author.display_name).filter(Boolean).join(', ');
+              const year=w.publication_year||'Year not supplied';
+              const url=w.doi?'https://doi.org/'+String(w.doi).replace(/^https?:\/\/doi.org\//i,''):(w.id||'https://openalex.org/');
+              return researchCard(title,[year,authors,w.cited_by_count!=null?number(w.cited_by_count)+' citations':''].filter(Boolean).join(' · '),url,'OpenAlex');
+            }).join(''):'<p class="status">No OpenAlex works matched this name.</p>';
+          }).catch(error=>{
+            openRoot.innerHTML='<p class="status">OpenAlex could not return results ('+esc(error.message)+'). An optional free key may increase the available request budget.</p>';
+          }),
+          fetchJSON(crossURL,'crossref:'+name,600000).then(data=>{
+            const results=(data.message&&data.message.items)||[];
+            crossRoot.innerHTML=results.length?results.map(w=>{
+              const title=Array.isArray(w.title)?w.title[0]:'Untitled publication';
+              const author=(w.author||[]).slice(0,3).map(a=>[a.given,a.family].filter(Boolean).join(' ')).join(', ');
+              const year=w.published&&w.published['date-parts']&&w.published['date-parts'][0]?w.published['date-parts'][0][0]:'Year not supplied';
+              const url=w.URL||(w.DOI?'https://doi.org/'+w.DOI:'https://search.crossref.org/');
+              return researchCard(title,[year,author,w.publisher].filter(Boolean).join(' · '),url,'Crossref');
+            }).join(''):'<p class="status">No Crossref publications matched this name.</p>';
+          }).catch(error=>{
+            crossRoot.innerHTML='<p class="status">Crossref could not return results ('+esc(error.message)+'). The public service may be rate-limited; retry later.</p>';
+          })
+        ];
+        await Promise.allSettled(jobs);
+      }
+      async function loadDatasets(species){
+        const key=String(species.key);
+        if(state.datasetsLoaded.has(key))return;
+        state.datasetsLoaded.add(key);
+        $('usedDatasets').innerHTML='<p class="status"><span class="loader"></span>Looking up dataset metadata from the loaded occurrence records…</p>';
+        $('relatedDatasets').innerHTML='<p class="status"><span class="loader"></span>Searching GBIF datasets…</p>';
+        const keys=Array.from(new Set(state.records.map(r=>r.datasetKey).filter(Boolean))).slice(0,6);
+        const usedJobs=keys.map(datasetKey=>fetchJSON(GBIF+'/dataset/'+encodeURIComponent(datasetKey),'dataset:'+datasetKey,3600000).catch(error=>({key:datasetKey,title:'Dataset metadata unavailable',_error:error.message})));
+        const query=GBIF+'/dataset/search?q='+encodeURIComponent(species.canonicalName||species.scientificName||'')+'&limit=6';
+        const outcomes=await Promise.allSettled([
+          Promise.all(usedJobs),
+          fetchJSON(query,'dataset-search:'+(species.canonicalName||species.scientificName),300000)
+        ]);
+        const used=outcomes[0].status==='fulfilled'?outcomes[0].value:[];
+        $('usedDatasets').innerHTML=used.length?used.map(d=>{
+          const title=d.title||d.key||'Unnamed dataset';
+          const org=d.publishingOrganizationTitle||d.publishingOrganizationKey||'Publisher not supplied';
+          const url='https://www.gbif.org/dataset/'+encodeURIComponent(d.key||'');
+          return '<article class="dataset-item"><strong>'+esc(title)+'</strong><p>'+esc(org)+'<br>'+esc(d.type||'Dataset')+(d.license?' · '+esc(d.license):'')+'</p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Open dataset on GBIF <i class="fa-solid fa-arrow-up-right-from-square"></i></a></article>';
+        }).join(''):'<p class="status">No source dataset keys were returned with the loaded occurrences. The related dataset search may still find relevant data.</p>';
+        const search=outcomes[1].status==='fulfilled'?(outcomes[1].value.results||[]):[];
+        $('relatedDatasets').innerHTML=search.length?search.map(d=>{
+          const title=d.title||'Unnamed dataset';
+          const org=d.publishingOrganizationTitle||'Publisher not supplied';
+          return '<article class="dataset-item"><strong>'+esc(title)+'</strong><p>'+esc(org)+'<br>'+esc(d.type||'Dataset')</p><a href="https://www.gbif.org/dataset/'+encodeURIComponent(d.key||'')+'" target="_blank" rel="noopener noreferrer">View dataset <i class="fa-solid fa-arrow-up-right-from-square"></i></a></article>';
+        }).join(''):'<p class="status">No related dataset matched the species name. Datasets represented in occurrence records are listed separately.</p>';
+      }
+      function onKingdomFilter(){renderSpeciesList();renderGallery();state.markerLayer.clearLayers();state.markers.clear();Array.from(state.species.values()).filter(passesFilter).forEach(addMarker);}
+      function init(){
+        initMap();
+        $('searchBtn').addEventListener('click',runSearch);
+        $('speciesQuery').addEventListener('input',()=>{
+          clearTimeout(state.debounce);
+          const q=$('speciesQuery').value.trim();
+          state.debounce=setTimeout(()=>suggestSpecies(q),350);
+        });
+        $('speciesQuery').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runSearch();}if(e.key==='Escape')closeSuggestions();});
+        document.addEventListener('click',e=>{if(!e.target.closest('.search-box'))closeSuggestions();});
+        $('kingdomFilter').addEventListener('change',onKingdomFilter);
+        $('resetMapBtn').addEventListener('click',()=>{state.map.setView([15,0],2);});
+        $('reloadBtn').addEventListener('click',()=>{state.species.clear();state.markers.clear();state.markerLayer.clearLayers();state.sampleRecords=0;state.sampleMedia=0;state.requestCache.delete('initial-sample');loadInitialSample();});
+        $('closeModalBtn').addEventListener('click',closeModal);
+        $('speciesModal').addEventListener('click',e=>{if(e.target===$('speciesModal'))closeModal();});
+        document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+        document.querySelectorAll('.modal-tab').forEach(btn=>btn.addEventListener('click',()=>setActiveTab(btn.dataset.tab)));
+        $('loadMoreBtn').addEventListener('click',()=>{
+          if(state.activeSpecies&&!state.recordLoading&&state.records.length<state.recordTotal)loadOccurrencePage(state.activeSpecies,state.records.length,false);
+        });
+        $('saveOpenAlexKey').addEventListener('click',()=>{
+          const key=$('openAlexKey').value.trim();
+          if(key)localStorage.setItem('biodiversityExplorerOpenAlexKey',key);else localStorage.removeItem('biodiversityExplorerOpenAlexKey');
+          $('openAlexKeyStatus').textContent=key?'OpenAlex key saved in this browser.':'Saved key removed. Public demo requests will be used.';
+          if(state.activeSpecies){state.researchLoaded.delete(String(state.activeSpecies.key));loadResearch(state.activeSpecies);}
+        });
+        const savedKey=localStorage.getItem('biodiversityExplorerOpenAlexKey')||'';
+        if(savedKey){$('openAlexKey').value=savedKey;$('openAlexKeyStatus').textContent='An OpenAlex key is saved in this browser.';}
+        loadInitialSample();
+      }
+      window.biodiversityExplorer={reload:loadInitialSample,openSpecies:openSpecies};
+      document.addEventListener('DOMContentLoaded',init);
+    })();
+  </script>
+</body>
+</html>
