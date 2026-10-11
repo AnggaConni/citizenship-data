@@ -407,6 +407,7 @@
         state.sampleRecords=0;state.sampleMedia=0;
         state.sampleOccurrenceKeys.clear();state.sampleMediaKeys.clear();
         state.hasScanned=false;state.activeScanCountryCode=null;state.activeScanCountryName='';
+        if(state.map)state.map.setView([15,0],2);
         updateStats();renderSpeciesList();renderGallery();
         $('scanProgress').classList.remove('active');
         $('mapStartPrompt').classList.remove('hidden');
@@ -588,7 +589,9 @@
           console.error(error);
           $('speciesList').innerHTML='<div class="side-empty"><i class="fa-solid fa-triangle-exclamation"></i>Could not scan GBIF records.<br>'+esc(error.message)+'<br><button class="btn" style="margin-top:10px" onclick="window.biodiversityExplorer.reload()">Try again</button></div>';
           setStatus('GBIF is temporarily unavailable or the request failed: '+error.message,true);
-          updateScanProgress(state.scanProcessed,MAX_SCAN_RECORDS,'Scan failed','Retry with Run full scan. Raw pages are not retained in memory.');
+          $('countryStatus').textContent='Scan failed for '+state.activeScanCountryName+'. Check the message above, then retry.';
+          if(!state.sampleRecords)$('mapStartPrompt').classList.remove('hidden');
+          updateScanProgress(state.scanProcessed,MAX_SCAN_RECORDS,'Scan failed','Retry with Scan selection. Raw pages are not retained in memory.');
           $('stopScanBtn').disabled=true;
           $('stopScanBtn').textContent='Unavailable';
         }finally{
@@ -676,6 +679,7 @@
           if(record&&validPoint(record)){
             species.lat=Number(record.decimalLatitude);species.lng=Number(record.decimalLongitude);
             species.representative=record;species.image=getImage(record)||'';
+            $('mapStartPrompt').classList.add('hidden');
             addSpecies(species,{map:true});
             const marker=state.markers.get(String(key));
             if(marker){state.map.setView([species.lat,species.lng],Math.max(5,state.map.getZoom()));}
