@@ -22,6 +22,23 @@
     .intro{display:flex;justify-content:space-between;align-items:end;gap:26px;padding:35px 0 24px}.eyebrow{display:flex;align-items:center;gap:8px;color:#397450;font-weight:800;font-size:10px;letter-spacing:.16em;text-transform:uppercase}.eyebrow .dot{height:7px;width:7px;background:#31a36e;box-shadow:0 0 0 4px #31a36e1a;border-radius:50%}h1,h2,h3,p{margin-top:0}h1{font:800 clamp(32px,4vw,48px)/1.07 Manrope,sans-serif;letter-spacing:-.055em;margin:12px 0 10px;color:#17372a}.intro-copy{margin:0;color:#68796d;line-height:1.65;max-width:670px;font-size:14px}.intro-aside{color:#78897d;font-size:11px;line-height:1.6;text-align:right;max-width:220px}.intro-aside strong{color:#335c43;display:block;font-size:12px}
     .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 17px;min-height:88px;box-shadow:0 3px 12px #1a3a2610}.stat-label{display:flex;align-items:center;gap:7px;color:#718074;font-size:11px;font-weight:700}.stat-label i{color:#42825d}.stat-value{font:800 25px Manrope,sans-serif;letter-spacing:-.04em;margin-top:5px;color:#1b3b2b}.stat-foot{font-size:10px;color:#8c998e;margin-top:2px}
     .workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:14px;align-items:stretch}.map-card,.side-card,.section-card{background:#fff;border:1px solid var(--line);border-radius:19px;box-shadow:var(--shadow);overflow:hidden}.map-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 17px;border-bottom:1px solid #e9eee7}.map-heading{display:flex;align-items:center;gap:10px}.map-heading .map-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:#24734b;background:#e7f5e9}.map-heading h2{font:800 14px Manrope,sans-serif;margin:0}.map-heading p{margin:3px 0 0;font-size:11px;color:#819084}.map-actions{display:flex;gap:7px;align-items:center}.btn{border:1px solid #dce6dc;background:#fff;color:#4c6454;border-radius:10px;padding:9px 11px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:background .2s,border-color .2s,transform .2s}.btn:hover{background:#f0f8f1;border-color:#bad5c0}.btn-primary{background:#236f4a;border-color:#236f4a;color:white}.btn-primary:hover{background:#1a5a3b;border-color:#1a5a3b}.btn:disabled{opacity:.45;cursor:not-allowed}.map-shell{position:relative;background:#e4ede5}#worldMap{height:560px;width:100%;z-index:1}.map-overlay{position:absolute;z-index:500;left:14px;bottom:14px;max-width:min(430px,calc(100% - 28px));padding:11px 13px;background:#fffffff0;backdrop-filter:blur(10px);border:1px solid #dce7dc;border-radius:12px;box-shadow:0 6px 20px #23462a20;font-size:10px;color:#66766a;line-height:1.5}.map-overlay strong{color:#315740}.map-legend{display:flex;gap:11px;flex-wrap:wrap;margin-bottom:4px}.legend-item{display:flex;align-items:center;gap:5px}.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;border:1px solid #fff;box-shadow:0 0 0 1px #8ba494}
+    .country-panel{padding:15px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#f6faf2,#fff)}
+    .country-panel-title{display:flex;gap:10px;align-items:center;margin-bottom:15px}
+    .country-panel-icon{width:36px;height:36px;flex-shrink:0;border-radius:11px;display:grid;place-items:center;background:#e5f3e3;color:#2c7b4d}
+    .country-panel-title strong{display:block;font:800 12px Manrope,sans-serif;color:#2e4f37}
+    .country-panel-title small{display:block;color:#839083;font-size:10px;line-height:1.5;margin-top:3px}
+    .country-select{display:block;width:100%;padding:11px 12px;border:1px solid #d8e5d6;background:#fff;border-radius:10px;color:#294833;font-size:12px}
+    .country-select:focus{outline:2px solid #b8dfc3;border-color:#77b78e}
+    .country-action-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
+    .country-action-row>span{font-size:9px;line-height:1.45;color:#879587;text-align:right}
+    .country-status{margin:9px 0 0;color:#7b8a7c;font-size:10px;line-height:1.65}
+    .map-start-prompt{position:absolute;inset:0;z-index:450;display:flex;align-items:center;justify-content:center;background:rgba(238,245,235,.30);pointer-events:none;padding:20px}
+    .map-start-prompt.hidden{display:none}
+    .map-start-card{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;max-width:340px;padding:24px 26px;border:1px solid #d5e6d1;border-radius:19px;background:rgba(255,255,255,.95);box-shadow:0 15px 45px rgba(28,66,39,.15);backdrop-filter:blur(12px);color:#31583c}
+    .map-start-icon{width:49px;height:49px;border-radius:15px;display:grid;place-items:center;background:#e6f4e2;color:#2d8052;font-size:21px}
+    .map-start-card strong{font:800 16px Manrope,sans-serif}
+    .map-start-card span:not(.map-start-icon){font-size:11px;color:#708271;line-height:1.8}
+    .map-start-card small{font-size:10px;color:#38845a}
     .search-panel{padding:15px;border-bottom:1px solid var(--line)}
     .scan-progress{display:none;margin-top:11px;padding:10px;border:1px solid #dce9d9;background:#f4f8ef;border-radius:10px}
     .scan-progress.active{display:block}
@@ -74,22 +91,34 @@
       <div class="map-card">
         <div class="map-head">
           <div class="map-heading"><span class="map-icon"><i class="fa-solid fa-earth-americas"></i></span><div><h2>Species distribution explorer</h2><p>One map point per species · Click a point for global records</p></div></div>
-          <div class="map-actions"><button class="btn" id="resetMapBtn" type="button"><i class="fa-solid fa-earth-americas"></i><span>Reset view</span></button><button class="btn btn-primary" id="reloadBtn" type="button"><i class="fa-solid fa-arrows-rotate"></i><span>Scan again</span></button></div>
+          <div class="map-actions"><button class="btn" id="resetMapBtn" type="button"><i class="fa-solid fa-earth-americas"></i><span>Reset view</span></button><button class="btn btn-primary" id="reloadBtn" type="button" disabled><i class="fa-solid fa-arrows-rotate"></i><span>Scan selection</span></button></div>
         </div>
         <div class="map-shell">
           <div id="worldMap" aria-label="Map of representative species observation locations"></div>
+          <div id="mapStartPrompt" class="map-start-prompt">
+            <div class="map-start-card"><span class="map-start-icon"><i class="fa-solid fa-earth-americas"></i></span><strong>Choose where to explore</strong><span>Select a country or choose a global scan in the panel, then press <b>Start scan</b>. The map will populate as GBIF pages are processed.</span><small>You can still search for a species at any time.</small></div>
+          </div>
           <div class="map-overlay"><div class="map-legend"><span class="legend-item"><span class="legend-dot" style="background:#287d55"></span>Plants / algae</span><span class="legend-item"><span class="legend-dot" style="background:#2378b7"></span>Animals</span><span class="legend-item"><span class="legend-dot" style="background:#a36bba"></span>Fungi / other</span></div><strong>How to read this map:</strong> Each dot is one species, placed at one representative GBIF occurrence. It is not a range map or a complete distribution. Click a dot to load the species' records worldwide.</div>
         </div>
       </div>
 
       <aside class="side-card">
+        <div class="country-panel">
+          <div class="country-panel-title"><span class="country-panel-icon"><i class="fa-solid fa-earth-americas"></i></span><div><strong>Choose a scan area</strong><small>Start with a country, or deliberately scan worldwide.</small></div></div>
+          <label class="search-label" for="scanCountry">Country or area</label>
+          <select id="scanCountry" class="country-select" aria-label="Choose country or worldwide scan">
+            <option value="">Loading country list from GBIF…</option>
+          </select>
+          <div class="country-action-row"><button id="startScanBtn" class="btn btn-primary" type="button" disabled><i class="fa-solid fa-play"></i> Start scan</button><span>Up to 9,900 records per run</span></div>
+          <p id="countryStatus" class="country-status" aria-live="polite">Choose a country to load its georeferenced species records. No scan starts automatically.</p>
+        </div>
         <div class="search-panel">
           <label class="search-label" for="speciesQuery">Find a species</label>
           <div class="search-row">
             <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="speciesQuery" autocomplete="off" placeholder="e.g. Panthera pardus" aria-label="Search species name"><div id="suggestions" class="suggestions" role="listbox"></div></div>
             <button class="btn btn-primary" id="searchBtn" type="button" aria-label="Search species"><i class="fa-solid fa-arrow-right"></i></button>
           </div>
-          <div id="searchStatus" class="status" style="margin-top:8px">Search scientific or common names via the GBIF taxonomy service.</div>
+          <div id="searchStatus" class="status" style="margin-top:8px">Search scientific or common names. If a country is selected, the map pin is searched within that country; opening the species still loads worldwide records.</div>
           <div id="scanProgress" class="scan-progress" aria-live="polite">
             <div class="scan-progress-line"><span id="scanProgressLabel">Preparing full scan…</span><strong id="scanProgressCount">0 / 9,900</strong></div>
             <div class="scan-progress-track"><span id="scanProgressFill"></span></div>
@@ -99,7 +128,7 @@
         <div class="side-body">
           <div class="filter-row"><label for="kingdomFilter">Filter sample</label><select id="kingdomFilter"><option value="all">All kingdoms</option><option value="animalia">Animalia</option><option value="plantae">Plantae</option><option value="fungi">Fungi</option><option value="other">Other / unknown</option></select></div>
           <div class="section-title-row" style="margin-bottom:10px"><div><h2 style="font-size:12px">Species in this view</h2><p id="speciesListCaption">Preparing full scan…</p></div></div>
-          <div id="speciesList" class="species-list"><div class="side-empty"><span class="loader"></span>Loading GBIF records…</div></div>
+          <div id="speciesList" class="species-list"><div class="side-empty"><i class="fa-solid fa-earth-americas"></i>Choose a country or worldwide scan to discover species here.</div></div>
           <div class="source-note"><strong><i class="fa-solid fa-circle-info"></i> Live-data note</strong><br>The explorer scans up to 9,900 georeferenced records using paginated requests, then deduplicates by species key. This cap keeps offsets below GBIF's high-offset restriction; use GBIF's download service for larger extracts. Each selected species is queried worldwide only when opened.</div>
         </div>
       </aside>
@@ -107,7 +136,7 @@
 
     <section class="section-card">
       <div class="section-title-row"><div><h2>Recently discovered species</h2><p>Click a species card to inspect its global occurrences, available images, source datasets and related research.</p></div><span id="galleryCount" class="api-pill" style="background:#edf6ee;color:#3c7450;border-color:#dceadd"><i class="fa-solid fa-leaf"></i> Live GBIF sample</span></div>
-      <div id="speciesGallery" class="species-grid"><div class="side-empty">Species cards will appear when the first GBIF sample is loaded.</div></div>
+      <div id="speciesGallery" class="species-grid"><div class="side-empty">Choose a scan area to start discovering species. You can search for a species above at any time.</div></div>
     </section>
     <footer class="footer"><span>Open Data Explorers · Biodiversity Explorer</span><span>Data: <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">GBIF</a> · Research: <a href="https://openalex.org/" target="_blank" rel="noopener noreferrer">OpenAlex</a> and <a href="https://www.crossref.org/" target="_blank" rel="noopener noreferrer">Crossref</a> · Map tiles: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a></span></footer>
   </main>
@@ -168,7 +197,8 @@
         map:null, markerLayer:null, occurrenceMap:null, occurrenceLayer:null,
         species:new Map(), markers:new Map(), sampleRecords:0, sampleMedia:0,
         sampleOccurrenceKeys:new Set(), sampleMediaKeys:new Set(),
-        scanCancelled:false, scanning:false, scanTarget:0, scanProcessed:0,
+        countries:[], selectedArea:null, activeScanCountryCode:null, activeScanCountryName:'',
+        hasScanned:false, scanCancelled:false, scanning:false, scanTarget:0, scanProcessed:0,
         activeSpecies:null, records:[], recordTotal:0, recordOffset:0, recordLoading:false,
         researchLoaded:new Set(), datasetsLoaded:new Set(), filteredRecords:[],
         debounce:null, queryCache:new Map(), datasetCache:new Map(), requestCache:new Map(),
@@ -364,18 +394,123 @@
         state.sampleMedia=state.sampleMediaKeys.size;
       }
       const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
+      function selectedArea(){
+        const value=$('scanCountry').value;
+        if(!value)return null;
+        if(value==='__GLOBAL__')return {code:null,name:'Worldwide'};
+        return state.countries.find(c=>c.code===value)||null;
+      }
+      function clearCurrentSample(){
+        state.species.clear();
+        state.markers.clear();
+        if(state.markerLayer)state.markerLayer.clearLayers();
+        state.sampleRecords=0;state.sampleMedia=0;
+        state.sampleOccurrenceKeys.clear();state.sampleMediaKeys.clear();
+        state.hasScanned=false;state.activeScanCountryCode=null;state.activeScanCountryName='';
+        updateStats();renderSpeciesList();renderGallery();
+        $('scanProgress').classList.remove('active');
+        $('mapStartPrompt').classList.remove('hidden');
+        $('speciesList').innerHTML='<div class="side-empty"><i class="fa-solid fa-earth-americas"></i>Choose a scan area and press Start scan to load matching records.</div>';
+        $('speciesGallery').innerHTML='<div class="side-empty">Species cards will appear as pages are processed.</div>';
+      }
+      function onScanAreaChange(){
+        if(state.scanning)return;
+        const area=selectedArea();
+        clearCurrentSample();
+        const ready=!!area;
+        $('startScanBtn').disabled=!ready;
+        $('reloadBtn').disabled=!ready;
+        if(!area){
+          $('countryStatus').textContent='Choose a country to load its georeferenced records. No scan starts automatically.';
+          setStatus('Choose a scan area before loading the map.');
+          return;
+        }
+        $('countryStatus').textContent=area.code
+          ? area.name+' selected. The scan will use GBIF records with coordinates recorded in this country.'
+          : 'Worldwide selected. The scan will sample the global searchable record range rather than focus on one country.';
+        setStatus('Ready to scan '+area.name+'. Press Start scan when you are ready.');
+      }
+      async function loadCountries(){
+        const select=$('scanCountry');
+        select.disabled=true;
+        select.innerHTML='<option value="">Loading country list from GBIF…</option>';
+        try{
+          const raw=await fetchJSON(GBIF+'/enumeration/country','gbif-country-enumeration',86400000);
+          const items=Array.isArray(raw)?raw:[];
+          const normalized=items.map(item=>{
+            if(typeof item==='string'){
+              const value=item.trim();
+              return /^[A-Z]{2}$/.test(value)?{code:value,name:value}:{code:'',name:value};
+            }
+            const code=String(item.iso2||item.iso2Code||item.alpha2||item.code||'').toUpperCase();
+            const name=String(item.title||item.name||item.label||item.description||code).trim();
+            return {code,name};
+          }).filter(item=>/^[A-Z]{2}$/.test(item.code)&&item.name);
+          const byCode=new Map();
+          normalized.forEach(item=>{if(!byCode.has(item.code))byCode.set(item.code,item);});
+          state.countries=Array.from(byCode.values()).sort((a,b)=>a.name.localeCompare(b.name));
+          if(!state.countries.length)throw new Error('No country codes were present in the enumeration response.');
+          select.innerHTML='';
+          const prompt=document.createElement('option');prompt.value='';prompt.textContent='Select a country…';select.appendChild(prompt);
+          const global=document.createElement('option');global.value='__GLOBAL__';global.textContent='Worldwide — global scan';select.appendChild(global);
+          const group=document.createElement('optgroup');group.label='Countries and territories';
+          state.countries.forEach(country=>{
+            const option=document.createElement('option');option.value=country.code;option.textContent=country.name;group.appendChild(option);
+          });
+          select.appendChild(group);
+          $('countryStatus').textContent='Country list loaded from GBIF. Choose a country, then press Start scan. The app will not scan automatically.';
+          select.disabled=false;
+        }catch(error){
+          console.error('GBIF country enumeration failed',error);
+          // Keep the explorer usable during an enumeration outage, while being explicit
+          // that this is only a small fallback list rather than the full GBIF list.
+          state.countries=[
+            {code:'ID',name:'Indonesia'},{code:'MY',name:'Malaysia'},{code:'SG',name:'Singapore'},
+            {code:'PH',name:'Philippines'},{code:'TH',name:'Thailand'},{code:'IN',name:'India'},
+            {code:'AU',name:'Australia'},{code:'NZ',name:'New Zealand'},{code:'US',name:'United States'},
+            {code:'CA',name:'Canada'},{code:'GB',name:'United Kingdom'},{code:'BR',name:'Brazil'},
+            {code:'ZA',name:'South Africa'},{code:'JP',name:'Japan'},{code:'DE',name:'Germany'},
+            {code:'FR',name:'France'}
+          ];
+          select.innerHTML='';
+          const prompt=document.createElement('option');prompt.value='';prompt.textContent='Select a country…';select.appendChild(prompt);
+          const global=document.createElement('option');global.value='__GLOBAL__';global.textContent='Worldwide — global scan';select.appendChild(global);
+          const group=document.createElement('optgroup');group.label='Popular countries (fallback)';
+          state.countries.forEach(country=>{const option=document.createElement('option');option.value=country.code;option.textContent=country.name;group.appendChild(option);});
+          select.appendChild(group);
+          select.disabled=false;
+          $('countryStatus').textContent='GBIF country list could not be loaded. A short fallback list is available; try reloading the page for the full list.';
+        }
+        $('startScanBtn').disabled=true;
+        $('reloadBtn').disabled=true;
+      }
       async function loadInitialSample(){
         if(state.scanning) return;
+        const area=selectedArea();
+        if(!area){
+          $('countryStatus').textContent='Please choose a country or Worldwide before scanning.';
+          setStatus('Choose a country or Worldwide in the scan-area selector first.',true);
+          return;
+        }
+        state.selectedArea=area;
+        state.activeScanCountryCode=area.code;
+        state.activeScanCountryName=area.name;
         state.scanning=true;
         state.scanCancelled=false;
         state.scanTarget=MAX_SCAN_RECORDS;
         state.scanProcessed=0;
+        $('scanCountry').disabled=true;
+        $('startScanBtn').disabled=true;
+        $('startScanBtn').innerHTML='<span class="loader"></span> Scanning…';
         $('reloadBtn').disabled=true;
         $('reloadBtn').innerHTML='<span class="loader"></span><span>Scanning…</span>';
         $('stopScanBtn').disabled=false;
         $('stopScanBtn').textContent='Stop scan';
-        $('speciesList').innerHTML='<div class="side-empty"><span class="loader"></span>Scanning GBIF pages. Species are deduplicated as each page arrives…</div>';
-        setStatus('Starting a paginated GBIF scan. Raw pages are discarded after processing to control memory use.');
+        $('mapStartPrompt').classList.add('hidden');
+        $('speciesList').innerHTML='<div class="side-empty"><span class="loader"></span>Scanning GBIF pages for '+esc(area.name)+'. Species are deduplicated as each page arrives…</div>';
+        $('speciesGallery').innerHTML='<div class="side-empty"><span class="loader"></span>Discoveries from '+esc(area.name)+' will appear here as pages arrive.</div>';
+        $('countryStatus').textContent='Scanning '+area.name+'. You can still pan the map, search for species, and open a detail modal while the scan runs.';
+        setStatus('Starting a paginated GBIF scan for '+area.name+'. Raw pages are discarded after processing to control memory use.');
         state.species.clear();
         state.markers.clear();
         if(state.markerLayer) state.markerLayer.clearLayers();
@@ -386,7 +521,7 @@
         updateStats();
         updateScanProgress(0,MAX_SCAN_RECORDS,'Connecting to GBIF…','Only unique species and a compact representative record are retained.');
         try{
-          const queryBase=GBIF+'/occurrence/search?hasCoordinate=true&hasGeospatialIssue=false';
+          const queryBase=GBIF+'/occurrence/search?hasCoordinate=true&hasGeospatialIssue=false'+(area.code?'&country='+encodeURIComponent(area.code):'');
           const first=await fetchJSON(queryBase+'&limit='+PAGE_SIZE+'&offset=0',null,0,true);
           const firstRows=Array.isArray(first.results)?first.results:[];
           if(!firstRows.length) throw new Error('GBIF returned no coordinate-bearing records for this query.');
@@ -396,7 +531,7 @@
           ingestSampleRecords(firstRows);
           state.scanProcessed=firstRows.length;
           renderSpeciesList();renderGallery();updateStats();
-          updateScanProgress(state.scanProcessed,target,'Scanning GBIF occurrence records…',
+          updateScanProgress(state.scanProcessed,target,'Scanning '+area.name+'…',
             number(totalAvailable)+' matching records indexed by GBIF; this browser scan is capped at '+number(MAX_SCAN_RECORDS)+'.');
           let failedPages=0;
           let stoppedByUser=false;
@@ -427,7 +562,7 @@
             ingestSampleRecords(rows);
             state.scanProcessed+=rows.length;
             updateStats();
-            updateScanProgress(state.scanProcessed,target,'Scanning GBIF occurrence records…',
+            updateScanProgress(state.scanProcessed,target,'Scanning '+area.name+'…',
               number(state.species.size)+' unique species found · '+number(state.sampleRecords)+' distinct records processed');
             if(state.scanProcessed%1200===0 || offset+limit>=target){
               renderSpeciesList();renderGallery();
@@ -440,7 +575,7 @@
           state.markers.forEach(marker=>bounds.extend(marker.getLatLng()));
           if(bounds.isValid())state.map.fitBounds(bounds,{padding:[30,30],maxZoom:5});
           const capReached=totalAvailable>MAX_SCAN_RECORDS && !stoppedByUser;
-          const summary=(stoppedByUser?'Scan stopped by you. ':'Scan finished. ')+
+          const summary=(stoppedByUser?'Scan stopped by you. ':'Scan finished for '+area.name+'. ')+
             'Processed '+number(state.scanProcessed)+' occurrence rows; deduplicated to '+number(state.species.size)+' unique species with one representative point each.';
           const caveat=capReached?' GBIF reports '+number(totalAvailable)+' matching records; this browser scan stops at '+number(MAX_SCAN_RECORDS)+' because high-offset occurrence searches can be restricted.':(totalAvailable>state.scanProcessed?' Some records may have been unavailable or the scan was stopped early.':' All records within this scan window were processed.');
           const failureNote=failedPages?(' '+number(failedPages)+' pages failed after retries. Use Scan again to retry.'): '';
@@ -458,8 +593,16 @@
           $('stopScanBtn').textContent='Unavailable';
         }finally{
           state.scanning=false;
-          $('reloadBtn').disabled=false;
-          $('reloadBtn').innerHTML='<i class="fa-solid fa-arrows-rotate"></i><span>Run full scan</span>';
+          state.hasScanned=state.sampleRecords>0;
+          $('scanCountry').disabled=false;
+          $('startScanBtn').disabled=!$('scanCountry').value;
+          $('startScanBtn').innerHTML='<i class="fa-solid fa-play"></i> Scan selected area';
+          $('reloadBtn').disabled=!$('scanCountry').value;
+          $('reloadBtn').innerHTML='<i class="fa-solid fa-arrows-rotate"></i><span>Scan selection</span>';
+          if(state.hasScanned){
+            $('mapStartPrompt').classList.add('hidden');
+            $('countryStatus').textContent='Last scan: '+state.activeScanCountryName+'. Change the area above and start another scan to replace the current map.';
+          }
         }
       }
       function initMap(){
@@ -520,7 +663,9 @@
         setStatus('Finding a georeferenced record for '+taxonName(taxon)+'…');
         $('searchBtn').disabled=true;
         try{
-          const data=await fetchJSON(GBIF+'/occurrence/search?speciesKey='+encodeURIComponent(key)+'&hasCoordinate=true&hasGeospatialIssue=false&limit=1&offset=0','first-occurrence:'+key,60000);
+          const chosenArea=selectedArea();
+          const countryParam=chosenArea&&chosenArea.code?'&country='+encodeURIComponent(chosenArea.code):'';
+          const data=await fetchJSON(GBIF+'/occurrence/search?speciesKey='+encodeURIComponent(key)+'&hasCoordinate=true&hasGeospatialIssue=false'+countryParam+'&limit=1&offset=0','first-occurrence:'+key+':'+(chosenArea&&chosenArea.code?chosenArea.code:'GLOBAL'),60000);
           const record=(data.results||[])[0];
           let species={
             key:String(key), scientificName:taxon.scientificName||taxon.canonicalName||taxonName(taxon),
@@ -534,11 +679,11 @@
             addSpecies(species,{map:true});
             const marker=state.markers.get(String(key));
             if(marker){state.map.setView([species.lat,species.lng],Math.max(5,state.map.getZoom()));}
-            setStatus('Added one representative point for '+species.canonicalName+'. Click it for global records.');
+            setStatus('Added one representative point for '+species.canonicalName+(chosenArea&&chosenArea.code?' in '+chosenArea.name:'')+'. Open the point for its worldwide records.');
           }else{
             species.lat=NaN;species.lng=NaN;species.representative=record||null;species.image=record?getImage(record):'';
             addSpecies(species,{map:false});
-            setStatus('Taxon found, but GBIF returned no coordinate-bearing record. Opening species details instead.');
+            setStatus('Taxon found, but no coordinate-bearing record was returned'+(chosenArea&&chosenArea.code?' for '+chosenArea.name:'')+'. Opening species details instead.');
           }
           openSpecies(species);
         }catch(error){setStatus('Could not find a georeferenced record for this species: '+error.message,true);}
@@ -783,6 +928,8 @@
       function onKingdomFilter(){renderSpeciesList();renderGallery();state.markerLayer.clearLayers();state.markers.clear();Array.from(state.species.values()).filter(passesFilter).forEach(addMarker);updateStats();}
       function init(){
         initMap();
+        $('scanCountry').addEventListener('change',onScanAreaChange);
+        $('startScanBtn').addEventListener('click',loadInitialSample);
         $('searchBtn').addEventListener('click',runSearch);
         $('speciesQuery').addEventListener('input',()=>{
           clearTimeout(state.debounce);
@@ -821,7 +968,11 @@
         });
         const savedKey=localStorage.getItem('biodiversityExplorerOpenAlexKey')||'';
         if(savedKey){$('openAlexKey').value=savedKey;$('openAlexKeyStatus').textContent='An OpenAlex key is saved in this browser.';}
-        loadInitialSample();
+        $('stopScanBtn').disabled=true;
+        $('startScanBtn').disabled=true;
+        $('reloadBtn').disabled=true;
+        setStatus('Choose a country or Worldwide to begin. The map will not start with a random sample.');
+        loadCountries();
       }
       window.biodiversityExplorer={reload:loadInitialSample,openSpecies:openSpecies};
       document.addEventListener('DOMContentLoaded',init);
