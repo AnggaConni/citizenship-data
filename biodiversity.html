@@ -271,7 +271,7 @@
         if(!list.length){root.innerHTML='<div class="side-empty"><i class="fa-solid fa-filter-circle-xmark"></i>No species match this filter.</div>';return;}
         root.innerHTML=list.map(sp=>{
           const name=esc(sp.canonicalName||sp.scientificName);
-          const image=sp.image?'<img class="species-thumb" loading="lazy" src="'+esc(sp.image)+'" alt="" onerror="this.outerHTML=\\'<span class=&quot;species-thumb thumb-empty&quot;><i class=&quot;fa-solid fa-leaf&quot;></i></span>\\'">':'<span class="species-thumb thumb-empty"><i class="fa-solid fa-leaf"></i></span>';
+          const image=sp.image?'<img class="species-thumb" loading="lazy" src="'+esc(sp.image)+'" alt="" onerror="this.style.display=&quot;none&quot;">':'<span class="species-thumb thumb-empty"><i class="fa-solid fa-leaf"></i></span>';
           return '<button class="species-item" type="button" data-species-key="'+esc(sp.key)+'">'+image+'<span><strong><em>'+name+'</em></strong><small>'+esc(sp.kingdom||'Kingdom not supplied')+' · '+(sp.representative && sp.representative.country?esc(sp.representative.country):'Global record')+'</small></span></button>';
         }).join('');
         root.querySelectorAll('[data-species-key]').forEach(btn=>btn.addEventListener('click',()=>openSpecies(state.species.get(btn.dataset.speciesKey))));
@@ -282,7 +282,7 @@
         if(!list.length){root.innerHTML='<p class="status">No species are available for the selected filter.</p>';return;}
         root.innerHTML=list.map(sp=>{
           const name=esc(sp.canonicalName||sp.scientificName);
-          const img=sp.image?'<img src="'+esc(sp.image)+'" alt="'+name+'" loading="lazy" onerror="this.style.display=\\'none\\'">':'<i class="fa-solid fa-leaf"></i>';
+          const img=sp.image?'<img src="'+esc(sp.image)+'" alt="'+name+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'<i class="fa-solid fa-leaf"></i>';
           const rec=sp.representative||{};
           return '<button class="taxon-card" type="button" data-gallery-key="'+esc(sp.key)+'"><span class="taxon-image">'+img+'</span><span class="taxon-info"><strong><em>'+name+'</em></strong><em>'+esc(sp.kingdom||'Taxonomy not supplied')+'</em><small><i class="fa-solid fa-location-dot"></i> '+esc(rec.country||'World record')+' · Explore species</small></span></button>';
         }).join('');
@@ -312,7 +312,7 @@
           renderSpeciesList();renderGallery();updateStats();
           if(!records.length) throw new Error('GBIF returned no coordinate-bearing records for this query.');
           setStatus('Loaded '+number(records.length)+' occurrence records and '+number(state.species.size)+' unique species. Select a point for worldwide records.');
-          if(state.markers.size) state.map.fitBounds(state.markerLayer.getBounds(),{padding:[30,30],maxZoom:5});
+          if(state.markers.size){const bounds=L.latLngBounds([]);state.markers.forEach(marker=>bounds.extend(marker.getLatLng()));if(bounds.isValid())state.map.fitBounds(bounds,{padding:[30,30],maxZoom:5});}
         }catch(error){
           console.error(error);
           $('speciesList').innerHTML='<div class="side-empty"><i class="fa-solid fa-triangle-exclamation"></i>Could not load the live GBIF sample.<br>'+esc(error.message)+'<br><button class="btn" style="margin-top:10px" onclick="window.biodiversityExplorer.reload()">Try again</button></div>';
@@ -435,6 +435,8 @@
       function openSpecies(species){
         if(!species)return;
         state.activeSpecies=species;
+        state.researchLoaded.delete(String(species.key));
+        state.datasetsLoaded.delete(String(species.key));
         state.records=[];state.recordTotal=0;state.recordOffset=0;state.recordLoading=false;
         $('modalScientificName').textContent=species.canonicalName||species.scientificName||'Species detail';
         $('modalCommonName').textContent='Loading taxonomic details and worldwide records…';
@@ -498,7 +500,7 @@
         else{
           root.innerHTML=state.records.map(record=>{
             const media=getMedia(record);
-            const image=media.length?'<img class="record-img" loading="lazy" src="'+esc(media[0].identifier)+'" alt="" onerror="this.style.visibility=\\'hidden\\'">':'<span class="record-img thumb-empty" style="display:grid;place-items:center"><i class="fa-solid fa-leaf"></i></span>';
+            const image=media.length?'<img class="record-img" loading="lazy" src="'+esc(media[0].identifier)+'" alt="" onerror="this.style.visibility=&quot;hidden&quot;">':'<span class="record-img thumb-empty" style="display:grid;place-items:center"><i class="fa-solid fa-leaf"></i></span>';
             const date=record.eventDate||record.year||'Date not supplied';
             const place=[record.locality,record.stateProvince,record.country].filter(Boolean).join(', ');
             const meta=[date,place,record.basisOfRecord].filter(Boolean).join(' · ');
@@ -531,6 +533,7 @@
         try{
           const query='speciesKey='+encodeURIComponent(key)+'&limit='+PAGE_SIZE+'&offset='+offset;
           const data=await fetchJSON(GBIF+'/occurrence/search?'+query,'occurrences:'+key+':'+offset,30000);
+          if(!state.activeSpecies || String(state.activeSpecies.key)!==key) return;
           const rows=Array.isArray(data.results)?data.results:[];
           if(reset){state.records=[];state.recordTotal=Number(data.count||0);}
           if(rows.length)state.records=state.records.concat(rows);
@@ -545,6 +548,7 @@
           addOccurrencePoints(state.records,!!reset);
           if(state.records.length===0)$('occurrenceSummary').innerHTML='<p>No occurrence records found for this species key. Try GBIF species search for a related accepted name.</p>';
         }catch(error){
+          if(!state.activeSpecies || String(state.activeSpecies.key)!==key) return;
           state.recordLoading=false;renderRecords();
           $('occurrenceSummary').innerHTML='<p class="status">The occurrence request failed: '+esc(error.message)+'. You can retry by closing and opening this species again.</p>';
           $('recordsStatus').textContent='Could not load worldwide records from GBIF.';
@@ -559,7 +563,7 @@
         root.innerHTML=chosen.map(item=>{
           const m=item.media, r=item.record, label=m.title||m.creator||'Occurrence image';
           const licence=m.license||m.rights||'Check the original record for licence';
-          return '<div class="media-card"><a href="'+esc(m.identifier)+'" target="_blank" rel="noopener noreferrer"><img src="'+esc(m.identifier)+'" loading="lazy" alt="'+esc(label)+'" onerror="this.closest(\\'.media-card\\').style.display=\\'none\\'"></a><div class="media-caption"><strong>'+esc(label)+'</strong><br>'+esc(m.creator||r.recordedBy||'Creator not supplied')+'<br>'+esc(licence)+'<br><a href="'+esc(occURL(r.key))+'" target="_blank" rel="noopener noreferrer">Source record</a></div></div>';
+          return '<div class="media-card"><a href="'+esc(m.identifier)+'" target="_blank" rel="noopener noreferrer"><img src="'+esc(m.identifier)+'" loading="lazy" alt="'+esc(label)+'" onerror="this.style.display=&quot;none&quot;"></a><div class="media-caption"><strong>'+esc(label)+'</strong><br>'+esc(m.creator||r.recordedBy||'Creator not supplied')+'<br>'+esc(licence)+'<br><a href="'+esc(occURL(r.key))+'" target="_blank" rel="noopener noreferrer">Source record</a></div></div>';
         }).join('');
       }
       function researchCard(title,detail,url,label){
