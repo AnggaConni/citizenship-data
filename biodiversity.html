@@ -653,7 +653,7 @@
           return '<article class="dataset-item"><strong>'+esc(title)+'</strong><p>'+esc(org)+'<br>'+esc(d.type||'Dataset')+'</p><a href="https://www.gbif.org/dataset/'+encodeURIComponent(d.key||'')+'" target="_blank" rel="noopener noreferrer">View dataset <i class="fa-solid fa-arrow-up-right-from-square"></i></a></article>';
         }).join(''):'<p class="status">No related dataset matched the species name. Datasets represented in occurrence records are listed separately.</p>';
       }
-      function onKingdomFilter(){renderSpeciesList();renderGallery();state.markerLayer.clearLayers();state.markers.clear();Array.from(state.species.values()).filter(passesFilter).forEach(addMarker);}
+      function onKingdomFilter(){renderSpeciesList();renderGallery();state.markerLayer.clearLayers();state.markers.clear();Array.from(state.species.values()).filter(passesFilter).forEach(addMarker);updateStats();}
       function init(){
         initMap();
         $('searchBtn').addEventListener('click',runSearch);
