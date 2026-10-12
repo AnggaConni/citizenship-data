@@ -18,6 +18,11 @@ on:
         required: true
         default: "0.5"
         type: string
+      include_iucn_data:
+        description: Optional targeted IUCN lookups only after IUCN confirms public caching/display is permitted
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: "17 2 * * 1"
 
@@ -49,11 +54,15 @@ jobs:
           COUNTRY_CODE: ${{ inputs.country_code || 'ALL' }}
           MAX_RECORDS: ${{ inputs.max_records_per_country || '300' }}
           GRID_SIZE: ${{ inputs.grid_size_degrees || '0.5' }}
+          INCLUDE_IUCN_DATA: ${{ inputs.include_iucn_data || 'false' }}
+          IUCN_API_KEY: ${{ secrets.IUCN_API_KEY }}
+          IUCN_PUBLICATION_APPROVED: ${{ vars.IUCN_PUBLICATION_APPROVED }}
         run: |
-          python scripts/build_biodiversity.py \
-            --country "$COUNTRY_CODE" \
-            --max-records "$MAX_RECORDS" \
-            --grid-size "$GRID_SIZE"
+          ARGS=(--country "$COUNTRY_CODE" --max-records "$MAX_RECORDS" --grid-size "$GRID_SIZE")
+          if [[ "${INCLUDE_IUCN_DATA,,}" == "true" ]]; then
+            ARGS+=(--include-iucn)
+          fi
+          python scripts/build_biodiversity.py "${ARGS[@]}"
 
       - name: Commit updated country JSON files
         run: |
