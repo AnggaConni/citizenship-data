@@ -9,6 +9,10 @@ This pipeline builds country-level JSON files primarily from two public sources,
 ## Files generated
 
 
+## On-demand species interpretation in the Atlas
+
+The static files remain a lightweight mapping index. When a visitor opens an occurrence, the browser may query the public GBIF Species API for its taxonomic hierarchy, vernacular names, descriptions, species profiles and available IUCN category reference. It may also request an exact scientific-name match from iNaturalist to retrieve a common name or descriptive summary. These responses are not copied into the static country JSON. The displayed status is source-labelled and may lag the latest IUCN assessment; users should follow the IUCN link to verify the current assessment and justification. If a source does not provide a threat explanation or conservation category, the interface says so rather than inferring that the species is safe or threatened.
+
 ## Output size and image handling
 
 The JSON datasets are lightweight spatial indexes for public static hosting. GBIF occurrence features contain coordinates, record keys, short taxonomic/location labels, and source identifiers. MAB GeoJSON contains reserve coordinates, names, country codes, and source record identifiers. Full descriptions and detailed metadata are fetched directly from GBIF or UNESCO DataHub only after a user selects a point. The browser may then load an image from a URL supplied by the source; the pipeline never downloads or embeds image assets.
