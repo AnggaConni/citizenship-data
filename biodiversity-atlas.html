@@ -94,6 +94,9 @@
     .region-metric-value{font:800 16px Manrope,sans-serif;margin-top:3px;overflow-wrap:anywhere}
     .region-api-status{font-size:10px;line-height:1.6;color:#426b4d;background:#edf6ed;border-radius:8px;padding:9px;margin-top:9px}
     .record-list{overflow:auto;max-height:410px}
+    .record-list-more{padding:12px;text-align:center;background:#fbfdf9;border-bottom:1px solid #edf1eb}
+    .record-list-more p{margin:0 0 8px;color:var(--muted);font-size:10px;line-height:1.6}
+    .record-list-more .button{width:100%;font-size:10px}
     .record{width:100%;text-align:left;display:block;border:0;border-bottom:1px solid #edf1eb;background:#fff;padding:12px 14px;cursor:pointer;color:var(--ink)}
     .record:hover{background:#f5f9f4}
     .record.active{background:#edf7ed;box-shadow:inset 3px 0 0 var(--green)}
@@ -344,7 +347,7 @@
         observationLayer: null, gridLayer: null, reserveLayer: null, clusterLayer: null,
         clusterGroups: [], activeScope: null, activeIndices: null, map: null, abort: null,
         gbifDetailCache: new Map(), mabDetailCache: new Map(), detailRequestToken: 0,
-        taxonInsightCache: new Map(), regionGalleryToken: 0
+        taxonInsightCache: new Map(), regionGalleryToken: 0, listVisibleLimit: 100
       };
 
       function escapeHtml(value) {
@@ -835,9 +838,14 @@
           select.value=preferred.code;select.disabled=false;
           $("record-search").disabled=false;$("list-search").disabled=false;
           select.addEventListener("change",()=>loadCountry(select.value));
-          $("record-search").addEventListener("input",renderRecords);
+          $("record-search").addEventListener("input",()=>{
+            state.listVisibleLimit=100;
+            renderRecords();
+          });
           $("list-search").addEventListener("input",()=>{
-            $("record-search").value=$("list-search").value;renderRecords();
+            state.listVisibleLimit=100;
+            $("record-search").value=$("list-search").value;
+            renderRecords();
           });
           $("reload-btn").addEventListener("click",()=>loadCountry(select.value,true));
           $("cluster-distance").addEventListener("change",()=>{if(state.dataset)resetToOverview(true);});
@@ -861,6 +869,7 @@
         $("layer-clusters").checked=true;$("layer-observations").checked=false;
         $("layer-grid").checked=false;$("layer-reserves").checked=true;
         $("record-search").value="";$("list-search").value="";
+        state.listVisibleLimit=100;
         setStatus("Loading "+country.name+" published sample…");
         $("reload-btn").disabled=true;
         $("record-list").innerHTML='<p class="empty-list">Loading country sample…</p>';
@@ -892,6 +901,7 @@
           }
 
           updateStats(dataset);updateCountrySource(dataset);updateMap(dataset);renderRecords();
+          $("record-detail").innerHTML='<p class="detail-placeholder">Dataset loaded successfully. Select a point on the map or a record in the list to inspect its full metadata, taxonomy, conservation references, and available images.</p>';
           const summary=dataset.summary||{};
           const complete=summary.complete_for_requested_sample!==false;
           setStatus(country.name+" sample loaded: "+fmt(state.observations.length)+
@@ -945,8 +955,10 @@
           list.innerHTML='<p class="empty-list">'+escapeHtml(emptyText)+'</p>';
           return;
         }
+        const visibleCount=Math.min(state.filtered.length,Math.max(1,state.listVisibleLimit||100));
         const fragment=document.createDocumentFragment();
-        state.filtered.forEach(feature=>{
+        for(let position=0;position<visibleCount;position++){
+          const feature=state.filtered[position];
           const i=state.observations.indexOf(feature),id=recordId(feature,i),p=properties(feature);
           const card=document.createElement("button");
           card.type="button";card.className="record"+(id===state.selectedId?" active":"");card.dataset.recordId=id;
@@ -957,7 +969,21 @@
             '<span class="mini-tag">'+escapeHtml(p.basisOfRecord||"Occurrence record")+'</span>';
           card.addEventListener("click",()=>selectRecord(id,true));
           fragment.appendChild(card);
-        });
+        }
+        if(visibleCount<state.filtered.length){
+          const more=document.createElement("div");
+          more.className="record-list-more";
+          more.innerHTML='<p>Showing '+fmt(visibleCount)+' of '+fmt(state.filtered.length)+' matching records. More are loaded only when requested.</p>';
+          const button=document.createElement("button");
+          button.type="button";button.className="button secondary";
+          button.textContent="Load 100 more records";
+          button.addEventListener("click",()=>{
+            state.listVisibleLimit=visibleCount+100;
+            renderRecords();
+          });
+          more.appendChild(button);
+          fragment.appendChild(more);
+        }
         list.replaceChildren(fragment);
       }
 
