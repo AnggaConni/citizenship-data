@@ -22,6 +22,9 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 API_BASE = "https://api.gbif.org/v1"
+UNESCO_API_BASE = "https://data.unesco.org/api/explore/v2.1"
+UNESCO_DATASET_ID = "mab001"
+UNESCO_DATASET_URL = "https://data.unesco.org/explore/dataset/mab001/information/"
 REPOSITORY_URL = "https://github.com/AnggaConni/citizenship-data"
 PAGE_SIZE = 300
 MAX_RECORDS_PER_COUNTRY = 9900  # Keep search offsets below 10,000.
@@ -34,8 +37,13 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def request_json(endpoint: str, params: dict | None = None, retries: int = 3) -> dict | list:
-    url = f"{API_BASE}/{endpoint.lstrip('/')}"
+def request_json(
+    endpoint: str,
+    params: dict | None = None,
+    retries: int = 3,
+    base_url: str = API_BASE,
+) -> dict | list:
+    url = f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
     if params:
         url += "?" + urlencode(params)
     last_error: Exception | None = None
@@ -213,38 +221,40 @@ def occurrence_feature(record: dict, country: dict) -> dict | None:
              or "stillimage" in str(item.get("type", "")).lower()
              or re.search(r"\.(jpe?g|png|webp|gif)(\?|$)", str(item.get("identifier", "")), re.I))
     ), None)
-    props = {
+    # Keep the complete interpreted GBIF occurrence payload in GeoJSON properties.
+    # Normalized aliases make common fields easier for a future UI to consume.
+    # GBIF does not guarantee a narrative description for every observation.
+    description_fields = (
+        "description", "taxonRemarks", "occurrenceRemarks", "habitat",
+        "eventRemarks", "fieldNotes", "identificationRemarks",
+    )
+    description_parts = []
+    for field in description_fields:
+        value = record.get(field)
+        if isinstance(value, str) and value.strip() and value.strip() not in description_parts:
+            description_parts.append(value.strip())
+    description = " — ".join(description_parts) if description_parts else None
+
+    props = dict(record)
+    props.update({
         "gbif_id": record.get("key"),
         "taxon_key": record.get("speciesKey") or record.get("taxonKey"),
         "scientific_name": record.get("species") or record.get("scientificName")
                            or record.get("acceptedScientificName"),
-        "taxon_rank": record.get("taxonRank"),
-        "kingdom": record.get("kingdom"),
-        "phylum": record.get("phylum"),
-        "class": record.get("class"),
-        "order": record.get("order"),
-        "family": record.get("family"),
-        "genus": record.get("genus"),
         "country_code": country["code"],
         "country": country["name"],
-        "event_date": record.get("eventDate"),
-        "year": record.get("year"),
-        "basis_of_record": record.get("basisOfRecord"),
-        "dataset_key": record.get("datasetKey"),
-        "institution_code": record.get("institutionCode"),
-        "recorded_by": record.get("recordedBy"),
-        "coordinate_uncertainty_m": record.get("coordinateUncertaintyInMeters"),
-        "license": record.get("license"),
         "image_url": image_url,
+        "description": description,
         "source_url": f"https://www.gbif.org/occurrence/{record.get('key')}" if record.get("key") else None,
-    }
-    props = {key: value for key, value in props.items() if value not in (None, "")}
+    })
     return {
         "type": "Feature",
         "id": str(record.get("key") or stable_record_id(record)),
         "geometry": {"type": "Point", "coordinates": [round(lon, 6), round(lat, 6)]},
         "properties": props,
     }
+
+
 
 
 def density_class(count: int) -> str:
@@ -302,8 +312,128 @@ def distribution_grid(point_features: list[dict], grid_size: float = 0.5) -> dic
     return {"type": "FeatureCollection", "features": features}
 
 
+def normalize_biosphere_record(record: dict) -> dict:
+    """Normalize one UNESCO MAB DataHub record while preserving all source fields."""
+    item = dict(record)
+    coordinates = item.get("coordinates")
+    lat = lon = None
+    if isinstance(coordinates, (list, tuple)) and len(coordinates) >= 2:
+        # UNESCO DataHub geo-point values are [latitude, longitude]; GeoJSON reverses that order.
+        try:
+            lat, lon = float(coordinates[0]), float(coordinates[1])
+        except (TypeError, ValueError):
+            lat = lon = None
+    elif isinstance(coordinates, dict):
+        try:
+            lat = float(coordinates.get("lat", coordinates.get("latitude")))
+            lon = float(coordinates.get("lon", coordinates.get("longitude")))
+        except (TypeError, ValueError):
+            lat = lon = None
+    if lat is not None and lon is not None and (
+        not math.isfinite(lat) or not math.isfinite(lon)
+        or not (-90 <= lat <= 90 and -180 <= lon <= 180)
+    ):
+        lat = lon = None
+
+    item["biosphere_id"] = item.get("mab_id") or item.get("uuid")
+    item["name"] = item.get("title_en") or item.get("title") or item.get("name")
+    item["country_code"] = str(item.get("iso2") or "").upper() or None
+    item["country"] = item.get("country_title_en") or item.get("country")
+    desc_parts = []
+    for field in ("introduction_en", "ecological_characteristics_en"):
+        value = item.get(field)
+        if isinstance(value, str) and value.strip():
+            desc_parts.append(value.strip())
+    item["description"] = "\n\n".join(desc_parts) if desc_parts else item.get("description")
+    item["_latitude"] = lat
+    item["_longitude"] = lon
+    item["source_url"] = item.get("url") or UNESCO_DATASET_URL
+    return item
+
+
+def biosphere_feature(record: dict) -> dict | None:
+    normalized = normalize_biosphere_record(record)
+    lat, lon = normalized.get("_latitude"), normalized.get("_longitude")
+    if lat is None or lon is None:
+        return None
+    props = {key: value for key, value in normalized.items() if not key.startswith("_")}
+    return {
+        "type": "Feature",
+        "id": str(normalized.get("biosphere_id") or normalized.get("uuid") or normalized.get("name") or ""),
+        "geometry": {"type": "Point", "coordinates": [round(lon, 6), round(lat, 6)]},
+        "properties": props,
+    }
+
+
+def fetch_biosphere_records() -> list[dict]:
+    """Fetch all published records from UNESCO's public MAB DataHub dataset."""
+    endpoint = f"catalog/datasets/{UNESCO_DATASET_ID}/records"
+    page_size = 100
+    first = request_json(endpoint, {"limit": page_size, "offset": 0}, base_url=UNESCO_API_BASE)
+    if not isinstance(first, dict):
+        raise RuntimeError("UNESCO DataHub response was not a JSON object.")
+    total = int(first.get("total_count") or 0)
+    results = first.get("results") if isinstance(first.get("results"), list) else []
+    records = []
+    for wrapper in results:
+        fields = wrapper.get("fields") if isinstance(wrapper, dict) else None
+        if isinstance(fields, dict):
+            records.append(normalize_biosphere_record(fields))
+    offset = len(results)
+    while offset < total:
+        response = request_json(
+            endpoint, {"limit": page_size, "offset": offset}, base_url=UNESCO_API_BASE
+        )
+        page = response.get("results", []) if isinstance(response, dict) else []
+        if not isinstance(page, list) or not page:
+            raise RuntimeError(f"UNESCO DataHub returned an empty page at offset {offset} of {total}.")
+        for wrapper in page:
+            fields = wrapper.get("fields") if isinstance(wrapper, dict) else None
+            if isinstance(fields, dict):
+                records.append(normalize_biosphere_record(fields))
+        offset += len(page)
+        time.sleep(0.1)
+    unique = {}
+    for record in records:
+        key = str(record.get("biosphere_id") or record.get("uuid") or (
+            str(record.get("name")) + "|" + str(record.get("country_code"))
+        ))
+        unique[key] = record
+    return list(unique.values())
+
+
+def build_biosphere_dataset(records: list[dict], error: str | None = None) -> dict:
+    normalized = [normalize_biosphere_record(record) for record in records]
+    features = [feature for record in normalized if (feature := biosphere_feature(record)) is not None]
+    return {
+        "dataset_type": "UNESCO Man and the Biosphere (MAB) reserves",
+        "schema_version": 1,
+        "generated_at_utc": utc_now(),
+        "source": {
+            "name": "UNESCO DataHub — Man and the Biosphere Programme",
+            "dataset_id": UNESCO_DATASET_ID,
+            "api": f"{UNESCO_API_BASE}/catalog/datasets/{UNESCO_DATASET_ID}/records",
+            "url": UNESCO_DATASET_URL,
+            "license": "CC BY-SA 4.0",
+            "attribution": "UNESCO",
+        },
+        "summary": {
+            "records": len(normalized),
+            "mapped_point_features": len(features),
+            "records_without_coordinates": len(normalized) - len(features),
+            "status": "updated" if records and not error else ("stale-fallback" if records else "unavailable"),
+            "error": error,
+            "geometry_note": "The source dataset supplies point coordinates, not official reserve boundary polygons. Do not render these points as reserve boundaries.",
+        },
+        "records": [{key: value for key, value in record.items() if not key.startswith("_")} for record in normalized],
+        "geojson": {"type": "FeatureCollection", "features": features},
+    }
+
+
 def build_dataset(country: dict, records: list[dict], total: int, raw_count: int,
-                  page_errors: list[dict], maximum: int, grid_size: float) -> dict:
+                  page_errors: list[dict], maximum: int, grid_size: float,
+                  biosphere_records: list[dict] | None = None,
+                  biosphere_error: str | None = None) -> dict:
     points = []
     for record in records:
         feature = occurrence_feature(record, country)
@@ -314,19 +444,24 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
         for feature in points
         if feature["properties"].get("taxon_key") or feature["properties"].get("scientific_name")
     }
+    grid = distribution_grid(points, grid_size)
+    reserves = [
+        record for record in (biosphere_records or [])
+        if str(record.get("country_code") or "").upper() == country["code"]
+    ]
+    reserve_features = [feature for record in reserves if (feature := biosphere_feature(record)) is not None]
     complete = not page_errors and len(records) >= min(total, maximum)
     generated = utc_now()
-    grid = distribution_grid(points, grid_size)
     return {
-        "dataset_type": "GBIF country biodiversity sample",
-        "schema_version": 1,
+        "dataset_type": "GBIF country biodiversity sample + UNESCO MAB records",
+        "schema_version": 2,
         "generated_at_utc": generated,
         "repository": REPOSITORY_URL,
         "source": {
             "name": "Global Biodiversity Information Facility (GBIF)",
             "api": "https://api.gbif.org/v1/occurrence/search",
             "documentation": "https://techdocs.gbif.org/en/openapi/v1/occurrence",
-            "attribution_note": "Record licences and attribution requirements vary by source dataset. Check each original GBIF record before reuse.",
+            "attribution_note": "GBIF occurrence records have varying licences and attribution requirements. Check each original record before reuse.",
         },
         "country": {"code": country["code"], "name": country["name"]},
         "query": {
@@ -344,6 +479,8 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
             "mapped_occurrence_points": len(points),
             "unique_taxa_in_sample": len(taxa),
             "distribution_grid_cells": len(grid["features"]),
+            "biosphere_reserves_in_country": len(reserves),
+            "biosphere_reserve_points_with_coordinates": len(reserve_features),
             "is_sample": total > len(records) or bool(page_errors) or len(points) < total,
             "complete_for_requested_sample": complete,
             "failed_pages": page_errors,
@@ -351,8 +488,17 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
         },
         "observations_geojson": {"type": "FeatureCollection", "features": points},
         "distribution_geojson": grid,
+        "biosphere_reserves": [{key: value for key, value in record.items() if not key.startswith("_")} for record in reserves],
+        "biosphere_geojson": {"type": "FeatureCollection", "features": reserve_features},
+        "biosphere_source_status": {
+            "dataset_id": UNESCO_DATASET_ID,
+            "url": UNESCO_DATASET_URL,
+            "license": "CC BY-SA 4.0",
+            "attribution": "UNESCO",
+            "error": biosphere_error,
+            "geometry_note": "Only source-provided reserve point coordinates are included here; official reserve boundary polygons are not provided by this endpoint.",
+        },
     }
-
 
 def read_json(path: Path) -> dict | None:
     try:
@@ -387,6 +533,26 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path) -
     else:
         countries_to_process = countries
 
+    output_dir.mkdir(parents=True, exist_ok=True)
+    biosphere_records: list[dict] = []
+    biosphere_error: str | None = None
+    biosphere_path = output_dir / "biosphere.json"
+    try:
+        biosphere_records = fetch_biosphere_records()
+        write_json(biosphere_path, build_biosphere_dataset(biosphere_records))
+        print(f"UNESCO MAB DataHub: {len(biosphere_records)} biosphere reserve records.", flush=True)
+    except Exception as exc:
+        biosphere_error = str(exc)[:500]
+        previous_biosphere = read_json(biosphere_path) if biosphere_path.exists() else None
+        if previous_biosphere and isinstance(previous_biosphere.get("records"), list):
+            biosphere_records = [
+                normalize_biosphere_record(row) for row in previous_biosphere["records"]
+                if isinstance(row, dict)
+            ]
+        else:
+            write_json(biosphere_path, build_biosphere_dataset([], biosphere_error))
+        print(f"WARNING: UNESCO MAB refresh failed; retaining previous data when available: {biosphere_error}", file=sys.stderr, flush=True)
+
     index_path = output_dir / "index.json"
     old_index = read_json(index_path) or {}
     entries_by_code = {
@@ -404,7 +570,10 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path) -
         print(f"[{number}/{len(countries_to_process)}] {country['name']} ({code})", flush=True)
         try:
             records, total, raw_count, page_errors = fetch_country_records(code, maximum)
-            dataset = build_dataset(country, records, total, raw_count, page_errors, maximum, grid_size)
+            dataset = build_dataset(
+                country, records, total, raw_count, page_errors, maximum, grid_size,
+                biosphere_records=biosphere_records, biosphere_error=biosphere_error,
+            )
             write_json(file_path, dataset)
             summary = dataset["summary"]
             status = "partial" if page_errors or not summary["complete_for_requested_sample"] else "updated"
@@ -421,6 +590,8 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path) -
                     "mapped_occurrence_points": summary["mapped_occurrence_points"],
                     "unique_taxa_in_sample": summary["unique_taxa_in_sample"],
                     "distribution_grid_cells": summary["distribution_grid_cells"],
+                    "biosphere_reserves_in_country": summary["biosphere_reserves_in_country"],
+                    "biosphere_reserve_points_with_coordinates": summary["biosphere_reserve_points_with_coordinates"],
                     "is_sample": summary["is_sample"],
                     "complete_for_requested_sample": summary["complete_for_requested_sample"],
                     "file_size_bytes": file_path.stat().st_size,
@@ -470,6 +641,14 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path) -
         "error_or_partial_count": sum(row.get("status") in ("error", "partial") for row in ordered_entries),
         "default_sample_cap_per_country": maximum,
         "grid_size_degrees": grid_size,
+        "biosphere": {
+            "file": "biosphere.json",
+            "source": UNESCO_DATASET_URL,
+            "license": "CC BY-SA 4.0",
+            "attribution": "UNESCO",
+            "records": len(biosphere_records),
+            "error": biosphere_error,
+        },
         "countries": ordered_entries,
         "note": "Samples are capped and may be incomplete. Distribution grid cells summarize returned occurrence records; they do not represent confirmed habitat or range boundaries.",
     })

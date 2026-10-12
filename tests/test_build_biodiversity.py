@@ -8,7 +8,7 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertEqual(pipeline.slugify_country("Côte d’Ivoire", "CI"), "cote-divoire")
         self.assertEqual(pipeline.slugify_country("United States of America", "US"), "united-states-of-america")
 
-    def test_occurrence_feature_uses_geojson_longitude_latitude_order(self):
+    def test_occurrence_feature_preserves_source_payload_and_description(self):
         record = {
             "key": 12345,
             "speciesKey": 987,
@@ -16,11 +16,17 @@ class BiodiversityPipelineTests(unittest.TestCase):
             "decimalLatitude": -6.2,
             "decimalLongitude": 106.8,
             "kingdom": "Animalia",
+            "habitat": "Urban areas",
+            "recordedBy": "Observer",
+            "media": [{"identifier": "https://example.org/cat.jpg"}],
         }
         feature = pipeline.occurrence_feature(record, {"code": "ID", "name": "Indonesia"})
         self.assertEqual(feature["geometry"]["type"], "Point")
         self.assertEqual(feature["geometry"]["coordinates"], [106.8, -6.2])
         self.assertEqual(feature["properties"]["taxon_key"], 987)
+        self.assertEqual(feature["properties"]["recordedBy"], "Observer")
+        self.assertIn("Urban areas", feature["properties"]["description"])
+        self.assertEqual(feature["properties"]["media"], record["media"])
 
     def test_distribution_grid_aggregates_points(self):
         features = [
@@ -37,6 +43,22 @@ class BiodiversityPipelineTests(unittest.TestCase):
         busiest = max(grid["features"], key=lambda item: item["properties"]["observation_count"])
         self.assertEqual(busiest["properties"]["observation_count"], 2)
         self.assertEqual(busiest["properties"]["unique_taxa_count"], 2)
+
+    def test_biosphere_geojson_reverses_lat_lon_and_keeps_description(self):
+        record = {
+            "mab_id": "TEST-1",
+            "title_en": "Example Biosphere",
+            "iso2": "ID",
+            "country_title_en": "Indonesia",
+            "coordinates": [-6.2, 106.8],
+            "introduction_en": "A reserve introduction.",
+            "ecological_characteristics_en": "Forest and wetlands.",
+        }
+        feature = pipeline.biosphere_feature(record)
+        self.assertEqual(feature["geometry"]["type"], "Point")
+        self.assertEqual(feature["geometry"]["coordinates"], [106.8, -6.2])
+        self.assertIn("A reserve introduction.", feature["properties"]["description"])
+        self.assertEqual(feature["properties"]["country_code"], "ID")
 
     def test_invalid_coordinates_are_rejected(self):
         self.assertIsNone(pipeline.valid_coordinates({"decimalLatitude": 91, "decimalLongitude": 0}))

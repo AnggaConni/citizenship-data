@@ -1,25 +1,33 @@
-# Country biodiversity data (pipeline under development)
+# Country biodiversity and biosphere data
 
-The Python pipeline queries the public GBIF Occurrence API country by country. It generates one JSON file per country plus index.json.
+This pipeline builds country-level JSON files from two separate public sources:
 
-Each country JSON contains:
+- **GBIF Occurrence API** for individual biodiversity observations and their source metadata.
+- **UNESCO DataHub — Man and the Biosphere Programme (dataset mab001)** for reserve names, country, published introduction/ecological characteristics, metadata and source-provided point coordinates.
 
-- observations_geojson: individual georeferenced occurrence points.
-- distribution_geojson: rectangular grid cells aggregated from those points, with occurrence and unique-taxon counts. This is a density layer, not a confirmed species-range or habitat boundary.
-- summary and query: sampling limits, record counts, generated timestamp, errors, and data-source context.
+## Files generated
+
+- indonesia.json and other country files: the requested GBIF occurrence sample, full source payload fields for each returned observation (where exposed by the API), a standardized description field when descriptive terms are present, point GeoJSON, density-grid GeoJSON, and matching UNESCO reserve records/features.
+- biosphere.json: the global UNESCO MAB dataset, with reserve records and GeoJSON point features.
+- index.json: country file metadata, sample counts, and biosphere source status.
 
 ## Run it
 
-In GitHub, open Actions → Build biodiversity country datasets → Run workflow.
+Open **Actions → Build biodiversity country datasets → Run workflow**.
 
-- country_code = ALL updates the countries returned by GBIF's country enumeration. Enter a two-letter GBIF country code (for example, ID) to run one country for testing.
-- The default is 300 records per country. Increase the cap for denser samples, up to 9,900 records per country. GBIF's public occurrence search is paginated at up to 300 results per page, and the script stays below the high-offset boundary.
-- The workflow also runs every Monday at 02:17 UTC.
+- country_code = ID updates Indonesia only; ALL updates all countries returned by GBIF enumeration.
+- max_records_per_country defaults to 300 and can be increased to at most 9,900. GBIF reports millions of matching records for some countries, but the search endpoint is capped/paginated; this pipeline deliberately creates a reproducible sample rather than a complete GBIF extract.
+- grid_size_degrees controls the rectangular grid used for the biodiversity density layer. A 0.5-degree cell is an exploratory count cell, not a species habitat boundary or a uniform-area cell.
+- The workflow also runs each Monday at 02:17 UTC.
 
-The pipeline uses only Python's standard library. It retries transient API errors, continues if an individual country fails, preserves any previous good file for a country that fails, and records partial/errors in index.json.
+## About descriptions and completeness
 
-## Interpretation and licensing
+GBIF does not provide a narrative description for every observation. The pipeline preserves source fields returned in the occurrence payload and derives a normalized description from available terms such as description, taxonRemarks, occurrenceRemarks, habitat, eventRemarks, fieldNotes, and identificationRemarks. If none are provided by a source record, the description can be null. This is not an encyclopedic description of every species.
 
-This is a reproducible, capped sample, not a complete extraction of GBIF. Coverage differs by country and is influenced by what datasets publish to GBIF, geographic coordinates, and the selected sample cap. Grid sizes are measured in degrees and therefore are not equal-area cells. GBIF occurrence records and attached media may have different licences; check each original record's metadata and conditions before reuse.
+## UNESCO MAB source and licensing
 
-The future frontend is not included yet. The output schema is intended to support an interactive map with individual points and a country-level observation-density overlay.
+The UNESCO DataHub mab001 dataset is provided under **CC BY-SA 4.0** and is attributed to UNESCO. Preserve this attribution and review the licence requirements before redistributing adapted datasets. The endpoint currently provides reserve coordinates as points, plus descriptive fields such as introduction_en and ecological_characteristics_en; it is not an official reserve-boundary polygon API. The point layer must not be styled as an entire reserve area.
+
+GBIF source record licences vary; individual record licence and source URL fields are retained. Check the original record and dataset-level requirements before reuse.
+
+The frontend is intentionally not included yet. Its future map can show individual occurrence points, density grid cells, and a separate UNESCO biosphere-reserve point layer.
