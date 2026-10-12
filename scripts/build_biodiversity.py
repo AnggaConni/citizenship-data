@@ -50,21 +50,20 @@ MAX_MAB_DESCRIPTION_CHARS = 3200
 # Publish useful, compact source fields rather than duplicating the entire
 # GBIF response, nested media objects, and other verbose payload fields.
 GBIF_MAP_FIELDS = (
-    "key", "datasetKey", "basisOfRecord", "occurrenceStatus", "taxonKey", "speciesKey",
+    "key", "datasetKey", "basisOfRecord", "taxonKey", "speciesKey",
     "scientificName", "acceptedScientificName", "species", "genus", "family", "order",
     "class", "kingdom", "country", "countryCode", "stateProvince", "county", "municipality",
-    "locality", "decimalLatitude", "decimalLongitude", "coordinateUncertaintyInMeters",
-    "eventDate", "recordedBy", "license",
+    "locality", "decimalLatitude", "decimalLongitude",
 )
 
 # MAB static files are a spatial index only. Long descriptions and image metadata
 # are fetched from UNESCO DataHub on demand when a user opens a reserve.
 MAB_API_FIELDS = (
-    "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "uuid", "url", "tbr",
+    "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "uuid", "url",
 )
 MAB_GEOJSON_FIELDS = (
-    "mab_id", "uuid", "api_record_id", "name", "title_en", "country_code", "country",
-    "iso2", "country_title_en", "tbr", "url", "source_url", "biosphere_id",
+    "mab_id", "api_record_id", "name", "country_code", "country",
+    "url", "source_url", "biosphere_id",
 )
 MAB_MAP_FIELDS = MAB_API_FIELDS + ("api_record_id",)
 
