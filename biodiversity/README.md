@@ -1,57 +1,54 @@
-# Country biodiversity and biosphere data
+# Country Biodiversity Atlas data
 
-This pipeline builds country-level JSON files primarily from two public sources, with optional, targeted IUCN enrichment for selected taxa:
+The pipeline publishes a lightweight spatial index for the Biodiversity Atlas. It uses incremental, append-only harvesting of GBIF occurrence records, plus UNESCO Man and the Biosphere (MAB) reserve points.
 
-- **GBIF Occurrence API** for individual biodiversity observations and their source metadata.
-- **UNESCO DataHub — Man and the Biosphere Programme (dataset mab001)** for reserve names, country, published introduction/ecological characteristics, metadata and source-provided point coordinates.
-- **IUCN Red List API v4 (optional)** for selected species assessment metadata. It remains disabled by default and is subject to separate usage and publication terms.
+## How daily harvesting works
+
+- GitHub Actions runs every day at 02:17 UTC (09:17 Jakarta time).
+- Each scheduled run processes **one country only**, selected from a persisted round-robin queue. The initial country is Indonesia (ID).
+- Each run aims to append up to **300 new unique, georeferenced GBIF records** for the selected country. It does not replace the existing collection.
+- Existing GBIF occurrence IDs are checked before appending. Duplicate IDs are skipped, while previously collected points are retained.
+- The file biodiversity/harvest-state.json saves the next country in the rotation and the current query cursor for every country. It is committed alongside the JSON datasets, so the cursor survives between GitHub Actions runs.
+- For a manually triggered run, set country_code to NEXT for the next queued country or an ISO-2 code such as ID to process one specific country. Avoid ALL for normal daily incremental harvesting because it attempts every country in a single run.
+- max_records_per_country is the maximum new unique records to append in that run, from 1 to 300. A batch may append fewer than 300 if the source has fewer available records, the batch encounters many duplicates, or an API request fails.
+
+**The 300 records are not necessarily observations first created in the last 24 hours.** The cursor progresses through the GBIF country query and, when the occurrence-search offset limit is reached, through year/month and date partitions. This lets the collector continue beyond the first search pages while avoiding repeated records. The daily job stores only records that are new to this repository.
 
 ## Files generated
 
+- index.json — country dataset listing, cumulative counts, last batch totals, source status, and rotation metadata.
+- harvest-state.json — persisted country rotation and query cursors.
+- indonesia.json and other country files — cumulative, deduplicated point GeoJSON, a derived density grid, summaries, and matching UNESCO MAB point features. Older verbose point metadata is compacted to the current map-only schema the next time that country is processed.
+- biosphere.json — global UNESCO MAB GeoJSON source points. This shared reference file may be refreshed, but it is not duplicated as a detailed reserve catalogue inside every country file.
+- iucn-assessments.json — optional targeted output, disabled until applicable public caching/display permission has been confirmed from IUCN.
 
-## On-demand species interpretation in the Atlas
+## Lightweight map index and on-demand details
 
-The static files remain a lightweight mapping index. When a visitor opens an occurrence, the browser may query the public GBIF Species API for its taxonomic hierarchy, vernacular names, descriptions, species profiles and available IUCN category reference. It may also request an exact scientific-name match from iNaturalist to retrieve a common name or descriptive summary. These responses are not copied into the static country JSON. The displayed status is source-labelled and may lag the latest IUCN assessment; users should follow the IUCN link to verify the current assessment and justification. If a source does not provide a threat explanation or conservation category, the interface says so rather than inferring that the species is safe or threatened.
+GBIF occurrence JSON contains only fields needed for the initial map: record key, coordinates, scientific name, selected taxonomy/location labels, and source link. Full observation details, descriptions and media URLs are fetched directly from GBIF when a visitor opens a record. UNESCO reserve metadata and image URLs are likewise requested from UNESCO DataHub on demand when a user opens a MAB point.
 
-## Output size and image handling
+Image assets are not downloaded or embedded in the static JSON. A 45 MiB size guard rejects an oversized generated file before it can overwrite the existing dataset.
 
-The JSON datasets are lightweight spatial indexes for public static hosting. GBIF occurrence features contain coordinates, record keys, short taxonomic/location labels, and source identifiers. MAB GeoJSON contains reserve coordinates, names, country codes, and source record identifiers. Full descriptions and detailed metadata are fetched directly from GBIF or UNESCO DataHub only after a user selects a point. The browser may then load an image from a URL supplied by the source; the pipeline never downloads or embeds image assets.
+## Data interpretation
 
-The UNESCO MAB API request selects only fields required for the map. The output does not repeat a full MAB record in a separate records array or duplicate reserve details across every country file. A 45 MiB guard stops the pipeline before it writes an oversized JSON file.
+The cumulative country dataset grows over time, but it is **not a complete biodiversity inventory**. The occurrence-search endpoint restricts deep offsets, so the harvester uses date partitions to broaden coverage; exact coverage and batch size depend on GBIF's returned records and API limits. Density grid cells count the stored sample only and do not indicate confirmed habitat or species-range boundaries. UNESCO MAB coordinates are points, not official reserve polygons.
 
-If a previous workflow run fails with a GitHub size-limit error, the rejected generated files are not published to main. After applying the compact schema, rerun the country workflow with the desired sample cap to regenerate smaller files. Existing published JSON may remain on the old schema until that successful run completes.
-
-
-- indonesia.json and other country files: the requested GBIF occurrence sample, full source payload fields for each returned observation (where exposed by the API), a standardized description field when descriptive terms are present, point GeoJSON, density-grid GeoJSON, and matching UNESCO reserve records/features.
-- biosphere.json: the global UNESCO MAB dataset, with reserve records and GeoJSON point features.
-- index.json: country file metadata, sample counts, and biosphere source status.
+Descriptions are not guaranteed for every species or occurrence. The Atlas asks public source APIs for taxonomic hierarchy, vernacular names, descriptions, profiles, available conservation-status references, and image URLs on demand. If a source only provides a short distribution note—or no description—the interface should identify that limitation rather than invent a natural-history description. GBIF's conservation-status reference may lag a current IUCN assessment; verify the original IUCN assessment when this information informs decisions.
 
 ## Optional IUCN enrichment — permission gate
 
-The repository secret IUCN_API_KEY is used only by the GitHub Actions runner and is never written into generated files. Add selected species to iucn_targets.json using their genus and species names. The pipeline does not automatically query every GBIF taxon: a single run is capped at 25 explicitly listed species.
+The repository secret IUCN_API_KEY is used only by the GitHub Actions runner and is never written into generated files. The pipeline does not automatically query every taxon; optional IUCN enrichment uses a small, manually curated target list.
 
-**Do not enable IUCN enrichment just because an API key is available.** IUCN's API is non-commercial, discourages scraping or bulk extraction, and has terms governing redistribution and derivative works. This workflow writes selected assessment fields to a public JSON file, so first obtain confirmation from IUCN that this public caching/display use is permitted. Once you have confirmation, add the repository variable IUCN_PUBLICATION_APPROVED with value true and run the workflow with include_iucn_data = true. Keep this input false until then. If the publication approval variable is absent, the script refuses to write IUCN results.
+**Do not enable IUCN enrichment just because an API key is available.** Before enabling public caching or display, obtain confirmation from IUCN that the intended use is permitted. Once authorized, set repository variable IUCN_PUBLICATION_APPROVED=true and run with include_iucn_data=true. Store the key only in GitHub Actions secrets, not in source code or generated JSON.
 
-When enabled, the optional output is iucn-assessments.json; it contains only selected assessment fields (category, date, publication year, criteria, URL, scope and extinction flags), not the complete API response. It also records the returned Red List version. The API key must be stored as the Actions secret IUCN_API_KEY, never as a repository variable or in a source file.
-
-
-## Run it
+## Run it manually
 
 Open **Actions → Build biodiversity country datasets → Run workflow**.
 
-- country_code = ID updates Indonesia only; ALL updates all countries returned by GBIF enumeration.
-- max_records_per_country defaults to 300 and can be increased to at most 9,900. GBIF reports millions of matching records for some countries, but the search endpoint is capped/paginated; this pipeline deliberately creates a reproducible sample rather than a complete GBIF extract.
-- grid_size_degrees controls the rectangular grid used for the biodiversity density layer. A 0.5-degree cell is an exploratory count cell, not a species habitat boundary or a uniform-area cell.
-- The workflow also runs each Monday at 02:17 UTC.
+- country_code = NEXT — process the next country in the daily rotation (default).
+- country_code = ID — process one specific country and append its next batch.
+- country_code = ALL — explicitly process every country in one run; use sparingly.
+- max_records_per_country = 300 — maximum new unique records to append in this run.
+- grid_size_degrees = 0.5 — grid-cell size for the density overlay.
+- include_iucn_data = false — keep disabled unless IUCN has confirmed the intended public caching/display use.
 
-## About descriptions and completeness
-
-GBIF does not provide a narrative description for every observation. The pipeline preserves source fields returned in the occurrence payload and derives a normalized description from available terms such as description, taxonRemarks, occurrenceRemarks, habitat, eventRemarks, fieldNotes, and identificationRemarks. If none are provided by a source record, the description can be null. This is not an encyclopedic description of every species.
-
-## UNESCO MAB source and licensing
-
-The UNESCO DataHub mab001 dataset is provided under **CC BY-SA 4.0** and is attributed to UNESCO. Preserve this attribution and review the licence requirements before redistributing adapted datasets. The endpoint currently provides reserve coordinates as points, plus descriptive fields such as introduction_en and ecological_characteristics_en; it is not an official reserve-boundary polygon API. The point layer must not be styled as an entire reserve area. The importer supports the flattened `results[]` fields returned by UNESCO DataHub Explore API v2.1, as well as older/nested field wrappers. It treats a zero-record API response as a refresh error rather than silently replacing the reserve file with an empty dataset.
-
-GBIF source record licences vary; individual record licence and source URL fields are retained. Check the original record and dataset-level requirements before reuse.
-
-The pipeline publishes a compact spatial index only: coordinates, record/reserve IDs, scientific or reserve names, a few short labels, and source identifiers. Long descriptions, detailed taxonomy/occurrence metadata, and image URLs are not copied into the mapping JSON. When a user opens a GBIF point, the browser requests that record from the GBIF Occurrence API; when a user opens a MAB reserve point, the browser requests reserve details from the UNESCO DataHub Explore API. Image URLs, if supplied by those APIs, are read on demand and the browser loads the image directly. Nothing is stored as a downloaded image or long description in the static dataset. The published-data frontend is available as the [Biodiversity Atlas](../biodiversity-atlas.html). It reads `index.json` and the selected country JSON directly, visualizes occurrence points and density-grid cells, supports record search and details, and shows UNESCO biosphere-reserve points when the source data contains mappable coordinates. The first published country dataset is an Indonesia pilot sample (currently capped at 300 occurrence records per run), not a complete biodiversity inventory. The live browser-based scanner in `biodiversity.html` is a separate experience and makes its own API requests. The Atlas also computes heuristic spatial clusters in the browser from the sample points; the cluster radius can be adjusted (25–150 km). Clicking a cluster zooms to the grouped source points, while isolated observations remain as individual markers. The polygon envelopes use a local convex hull and are illustrative summaries only—not authoritative species ranges, habitat boundaries or reserve boundaries. Clicking a UNESCO MAB point zooms to sampled occurrence records within 50 km of its source coordinate; this is a proximity view, not evidence that those records fall inside a reserve.
+The published interface is the Biodiversity Atlas (../biodiversity-atlas.html). The live browser-based scanner in ../biodiversity.html is separate and issues its own API requests.
