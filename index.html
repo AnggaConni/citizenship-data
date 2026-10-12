@@ -27,6 +27,10 @@
     .top{background:radial-gradient(ellipse at 87% 12%,rgba(63,146,93,.22),transparent 32rem),radial-gradient(ellipse at 6% 0%,rgba(43,133,128,.2),transparent 29rem),var(--night);color:var(--text);position:relative;overflow:hidden}
     .top:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(rgba(196,228,207,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(196,228,207,.14) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,#000,transparent 90%)}
     .nav,.hero,.cards-wrap{position:relative;z-index:1}
+    .iucn-stop{position:relative;z-index:2;margin:0 auto 18px;padding:15px 17px;border:1px solid rgba(255,104,104,.7);border-radius:15px;background:linear-gradient(125deg,rgba(87,15,20,.94),rgba(40,18,21,.96));color:#ffe7e7;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+    .iucn-stop-head{display:flex;align-items:center;gap:10px;margin:0 0 6px;color:#ff7777;font:800 13px Manrope,sans-serif;letter-spacing:.04em}
+    .iucn-stop p{margin:0;color:#f9dede;font-size:12px;line-height:1.7}
+    .iucn-stop strong{color:#fff}
     .terms-notice{position:relative;z-index:1;margin:0 auto 28px;padding:19px 20px;max-width:1160px;border:1px solid rgba(212,241,123,.32);border-radius:16px;background:rgba(12,40,29,.9);color:#e6f4e9;box-shadow:0 14px 32px rgba(0,0,0,.12)}
     .terms-notice-head{display:flex;align-items:center;gap:10px;margin-bottom:7px;color:#d4f17b;font:700 14px Manrope,sans-serif}
     .terms-notice-intro{margin:0;color:#d7e8dc;font-size:12px;line-height:1.7}
@@ -164,6 +168,10 @@
 <body>
   <section class="top">
     <div class="wrap">
+      <div class="iucn-stop" role="alert" aria-label="IUCN data not approved">
+        <div class="iucn-stop-head"><i class="fa-solid fa-ban" aria-hidden="true"></i> IUCN RED LIST — NOT APPROVED YET</div>
+        <p><strong>Direct IUCN API access and scraping are stopped.</strong> Direct assessment data are hidden and not published while permission is pending. This independent project does not claim IUCN approval. Any conservation category separately returned by GBIF is identified as a GBIF-sourced reference, not a direct IUCN lookup.</p>
+      </div>
       <header class="nav">
         <a class="brand" href="./index.html" aria-label="Open Data Explorers home">
           <span class="brand-symbol"><i class="fa-solid fa-compass" aria-hidden="true"></i></span>
