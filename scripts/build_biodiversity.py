@@ -616,10 +616,39 @@ def distribution_grid(point_features: list[dict], grid_size: float = 0.5) -> dic
     return {"type": "FeatureCollection", "features": features}
 
 
+def extract_unesco_fields(item: object) -> dict | None:
+    """Extract dataset fields from the current and legacy UNESCO DataHub response shapes."""
+    if not isinstance(item, dict):
+        return None
+
+    # Legacy-shaped and record-wrapped responses.
+    fields = item.get("fields")
+    if isinstance(fields, dict):
+        return dict(fields)
+    record = item.get("record")
+    if isinstance(record, dict):
+        nested = record.get("fields")
+        if isinstance(nested, dict):
+            return dict(nested)
+        if any(key in record for key in (
+            "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "geo_point_2d"
+        )):
+            return dict(record)
+
+    # Explore API v2.1 returns dataset fields directly in each results[] item.
+    if any(key in item for key in (
+        "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "geo_point_2d"
+    )):
+        return dict(item)
+    return None
+
+
 def normalize_biosphere_record(record: dict) -> dict:
     """Normalize one UNESCO MAB DataHub record while preserving all source fields."""
     item = dict(record)
     coordinates = item.get("coordinates")
+    if coordinates is None:
+        coordinates = item.get("geo_point_2d") or item.get("geopoint") or item.get("geo_point")
     lat = lon = None
     if isinstance(coordinates, (list, tuple)) and len(coordinates) >= 2:
         # UNESCO DataHub geo-point values are [latitude, longitude]; GeoJSON reverses that order.
@@ -670,39 +699,70 @@ def biosphere_feature(record: dict) -> dict | None:
 
 
 def fetch_biosphere_records() -> list[dict]:
-    """Fetch all published records from UNESCO's public MAB DataHub dataset."""
+    """Fetch all published records from UNESCO's public MAB DataHub dataset.
+
+    Supports the flattened results used by Explore API v2.1 as well as older/nested
+    response shapes. An empty response is treated as a failure so an upstream schema
+    change cannot silently overwrite the published reserve dataset with zero records.
+    """
     endpoint = f"catalog/datasets/{UNESCO_DATASET_ID}/records"
     page_size = 100
     first = request_json(endpoint, {"limit": page_size, "offset": 0}, base_url=UNESCO_API_BASE)
     if not isinstance(first, dict):
         raise RuntimeError("UNESCO DataHub response was not a JSON object.")
-    total = int(first.get("total_count") or 0)
+
+    def total_count(response: dict, fallback: int = 0) -> int:
+        pagination = response.get("pagination") if isinstance(response.get("pagination"), dict) else {}
+        raw = response.get("total_count", response.get("nhits", pagination.get("total_count", fallback)))
+        try:
+            return max(0, int(raw or 0))
+        except (TypeError, ValueError):
+            return max(0, fallback)
+
+    total = total_count(first)
     results = first.get("results") if isinstance(first.get("results"), list) else []
-    records = []
-    for wrapper in results:
-        fields = wrapper.get("fields") if isinstance(wrapper, dict) else None
-        if isinstance(fields, dict):
+    records: list[dict] = []
+    for item in results:
+        fields = extract_unesco_fields(item)
+        if fields is not None:
             records.append(normalize_biosphere_record(fields))
+
     offset = len(results)
     while offset < total:
         response = request_json(
             endpoint, {"limit": page_size, "offset": offset}, base_url=UNESCO_API_BASE
         )
-        page = response.get("results", []) if isinstance(response, dict) else []
+        if not isinstance(response, dict):
+            raise RuntimeError(f"UNESCO DataHub returned an unexpected response at offset {offset}.")
+        page = response.get("results", [])
         if not isinstance(page, list) or not page:
-            raise RuntimeError(f"UNESCO DataHub returned an empty page at offset {offset} of {total}.")
-        for wrapper in page:
-            fields = wrapper.get("fields") if isinstance(wrapper, dict) else None
-            if isinstance(fields, dict):
+            raise RuntimeError(
+                f"UNESCO DataHub returned an empty page at offset {offset} of {total}."
+            )
+        for item in page:
+            fields = extract_unesco_fields(item)
+            if fields is not None:
                 records.append(normalize_biosphere_record(fields))
         offset += len(page)
         time.sleep(0.1)
-    unique = {}
+
+    unique: dict[str, dict] = {}
     for record in records:
         key = str(record.get("biosphere_id") or record.get("uuid") or (
             str(record.get("name")) + "|" + str(record.get("country_code"))
         ))
         unique[key] = record
+
+    if total > 0 and not unique:
+        raise RuntimeError(
+            f"UNESCO DataHub reported {total} MAB records, but none matched a supported "
+            "record shape. The API response may have changed; retaining previously published data."
+        )
+    if total == 0 and not unique:
+        raise RuntimeError(
+            "UNESCO DataHub returned zero MAB records. Refusing to replace the published dataset "
+            "with an empty file; verify the upstream API response."
+        )
     return list(unique.values())
 
 
