@@ -1,5 +1,6 @@
 import json
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -124,6 +125,32 @@ class BiodiversityPipelineTests(unittest.TestCase):
             {"taxon": {"scientific_name": "Unknown species"}, "assessments": []},
         )
         self.assertEqual(result["status"], "no_assessment_found")
+
+    @patch("scripts.build_biodiversity.request_json")
+    def test_fetch_biosphere_records_reads_flattened_v21_results(self, request_mock):
+        request_mock.return_value = {
+            "total_count": 2,
+            "results": [
+                {
+                    "mab_id": "TEST-MAB-A",
+                    "title_en": "Reserve A",
+                    "iso2": "ID",
+                    "country_title_en": "Indonesia",
+                    "coordinates": {"lat": -6.2, "lon": 106.8},
+                },
+                {
+                    "mab_id": "TEST-MAB-B",
+                    "title_en": "Reserve B",
+                    "iso2": "ID",
+                    "country_title_en": "Indonesia",
+                    "coordinates": {"lat": -7.1, "lon": 110.4},
+                },
+            ],
+        }
+        records = pipeline.fetch_biosphere_records()
+        self.assertEqual(len(records), 2)
+        self.assertEqual({row["biosphere_id"] for row in records}, {"TEST-MAB-A", "TEST-MAB-B"})
+        self.assertEqual(records[0]["country_code"], "ID")
 
     def test_unesco_v21_flattened_results_are_supported(self):
         record = {
