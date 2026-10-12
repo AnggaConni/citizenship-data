@@ -963,10 +963,19 @@
           renderSessionCacheStatus();
           $("record-detail").innerHTML='<p class="detail-placeholder">Dataset loaded successfully. Select a point on the map or a record in the list to inspect its full metadata, taxonomy, conservation references, and available images.</p>';
           const summary=dataset.summary||{};
-          const complete=summary.complete_for_requested_sample!==false;
-          setStatus(country.name+" sample loaded: "+fmt(state.observations.length)+
-            " original point records. "+(complete?"Requested sample returned.":"Partial sample; some pages were unavailable."),
-            complete?"ok":"warn");
+          const added=Number(summary.new_occurrence_records_added);
+          const failedPages=Array.isArray(summary.failed_pages)?summary.failed_pages.length:0;
+          if(Number.isFinite(added)){
+            setStatus(country.name+" atlas loaded: "+fmt(state.observations.length)+
+              " cumulative points; last batch appended "+fmt(added)+" new unique record(s)."+
+              (failedPages?" Some API pages had errors; the saved data remains available.":""),
+              failedPages?"warn":"ok");
+          }else{
+            const complete=summary.complete_for_requested_sample!==false;
+            setStatus(country.name+" sample loaded: "+fmt(state.observations.length)+
+              " original point records. "+(complete?"Dataset loaded.":"Some source pages were unavailable."),
+              complete?"ok":"warn");
+          }
         }catch(error){
           if(error.name==="AbortError")return;
           console.error(error);
