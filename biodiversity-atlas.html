@@ -36,6 +36,11 @@
     .hero-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
     .chip{border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 10px;color:#d9eddf;font-size:10px}
     .chip strong{color:#fff}
+    .iucn-stop{display:flex;gap:12px;align-items:flex-start;margin:0 0 15px;padding:14px 16px;border:1px solid #dc7777;background:#fff0f0;color:#842b2b;border-radius:13px;box-shadow:var(--shadow)}
+    .iucn-stop-icon{font-size:19px;color:#bd3030;line-height:1.3}
+    .iucn-stop h2{font:800 12px Manrope,sans-serif;color:#b42323;margin:0 0 5px;letter-spacing:.04em}
+    .iucn-stop p{font-size:11px;line-height:1.7;margin:0;color:#7e3131}
+    .iucn-stop strong{color:#9f1d1d}
     .notice-wrap{margin-top:22px;margin-bottom:18px}
     .notice{display:grid;grid-template-columns:auto 1fr;gap:14px;background:#fff7e6;border:1px solid #edd5a8;color:#634a1d;padding:17px 19px;border-radius:15px;box-shadow:var(--shadow)}
     .notice-icon{font-size:21px;padding-top:2px;color:#986718}
@@ -214,6 +219,10 @@
   </header>
 
   <div class="wrap notice-wrap">
+    <aside class="iucn-stop" role="alert" aria-label="IUCN data not approved">
+      <div class="iucn-stop-icon" aria-hidden="true">⛔</div>
+      <div><h2>IUCN RED LIST — NOT APPROVED YET</h2><p><strong>Direct IUCN API requests and scraping are stopped.</strong> IUCN assessment data are hidden and not published while permission is pending. A conservation category returned separately by GBIF, if shown, is a GBIF-sourced reference—not a direct IUCN lookup.</p></div>
+    </aside>
     <aside class="notice" aria-labelledby="sample-title">
       <div class="notice-icon" aria-hidden="true">⚠</div>
       <div>
@@ -321,7 +330,7 @@
     <section class="sources" aria-label="Data source information">
       <article class="source-card"><h3>GBIF occurrence records</h3><p>Sampled occurrence data with coordinates and source fields. Individual records may have distinct licences. <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Check the original source ↗</a></p></article>
       <article class="source-card"><h3>UNESCO Man and the Biosphere</h3><p>Reserve metadata and point coordinates are shown only when present in the published dataset. A point is not an official reserve boundary. <a href="https://data.unesco.org/explore/dataset/mab001/information/" target="_blank" rel="noopener noreferrer">Dataset information ↗</a></p></article>
-      <article class="source-card"><h3>Conservation status references</h3><p>GBIF’s public taxonomic category reference may be displayed when available; it is not a direct query to the authenticated IUCN API and may lag the latest IUCN assessment. Direct IUCN API queries remain disabled until permission is confirmed. Once authorised, a curated assessment JSON published by the Python workflow can be enabled through the data index, and the Atlas will use it without a frontend code change. Users may always open the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a> manually.</p></article>
+      <article class="source-card"><h3>Conservation status references</h3><p>GBIF’s public taxonomic category reference may be displayed when available; it is not a direct IUCN query and may lag the latest assessment. Direct IUCN API requests and scraping are stopped — NOT APPROVED YET. Direct assessment data are hidden and not published. Users may still open the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a> manually.</p></article>
     </section>
 
     <aside class="disclaimer"><strong>Use and interpretation disclaimer.</strong> This is a free-to-access, independent exploratory tool. The data may be incomplete, outdated, misidentified or spatially imprecise; missing observations do not prove a species is absent. Neither the grid nor an occurrence point should be interpreted as a confirmed habitat, full distribution range, conservation status, or protected-area boundary. Check the original records, attribution and licence before reusing data. The software licence applies to the code and does not override third-party data terms. <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">Software licence</a> · <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">Full project disclaimer</a>.</aside>
