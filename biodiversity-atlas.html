@@ -1503,9 +1503,10 @@
             fetchJsonOptional(gbifBase+"/vernacularNames"),
             fetchJsonOptional(gbifBase+"/descriptions"),
             fetchJsonOptional(gbifBase+"/speciesProfiles"),
-            fetchJsonOptional(gbifBase+"/iucnRedListCategory")
+            Promise.resolve(null) // IUCN category request stopped while permission is pending
           ]:[Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null)];
-          const [taxon,vernacularPayload,descriptionsPayload,profilesPayload,gbifStatusPayload]=await Promise.all(gbifRequests);
+          const [taxon,vernacularPayload,descriptionsPayload,profilesPayload]=await Promise.all(gbifRequests);
+          const gbifStatusPayload=null; // No conservation category is fetched from this endpoint.
 
           const parentScientificName=taxon&&String(taxon.rank||"").toUpperCase()==="SUBSPECIES"&&
             taxon.species&&normalizeScientificName(taxon.species)!==normalizeScientificName(scientificName)
@@ -1626,8 +1627,7 @@
         const directStatus=iucnAssessment
           ?normalizeConservationStatus(iucnAssessment.red_list_category_code||iucnAssessment.red_list_category,"IUCN Red List assessment")
           :null;
-        const gbifStatus=info?.gbifStatus||
-          normalizeConservationStatus(occurrence?.iucnRedListCategory,"GBIF occurrence record")||null;
+        const gbifStatus=null; // Hide IUCN-derived categories while permission is pending.
         const conservation=directStatus||gbifStatus;
         const directAssessmentAvailable=!!directStatus;
         const isAtRisk=conservation&&["CR","EN","VU","EW","EX","RE"].includes(conservation.code);
@@ -1659,9 +1659,7 @@
           statusMarkup=
             '<div class="species-status-row"><div class="species-status-pill unknown">No category found</div>'+
             '<div class="species-status-copy">GBIF did not return a category for this taxon. This does not mean the species is safe, unassessed, or unthreatened. '+
-            (directIucnDisplayEnabled()
-              ?'No matching record was found in the authorised published IUCN assessment file. '
-              :'Direct IUCN assessment lookup and publication are currently disabled pending permission. ')+
+            'Direct IUCN API lookup, scraping, and assessment publication are stopped — NOT APPROVED YET. '+
             '<a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Open IUCN Red List search manually ↗</a></div></div>';
         }
         const facts=profileFacts(info?.profiles);
@@ -1670,7 +1668,7 @@
           ?'<p class="species-description">'+escapeHtml(description)+'</p><p class="species-insights-intro">'+(looksLikeDistributionNote?"This appears to be a brief range/distribution note, not a full natural-history description. ":"Description source: ")+escapeHtml(descriptionSource||"external source")+'. This text is not itself a conservation assessment.</p>'
           :'<p class="species-insights-intro">No full natural-history description was returned by these APIs. Some checklists provide only a short geographic range note; the linked taxon profiles may have more information.</p>';
         return '<h4>About this species</h4>'+
-          '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. GBIF’s conservation category is allowed; direct IUCN assessment data are used only if an explicitly authorised static dataset is available.</p>'+
+          '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. Direct IUCN API requests and scraping are stopped — NOT APPROVED YET. Direct assessment data are hidden and not published.</p>'+
           (common?'<p class="species-common-name">'+escapeHtml(common)+'</p>':'')+
           '<p class="species-scientific-name">'+escapeHtml(scientific)+(taxon.authorship?" · "+escapeHtml(taxon.authorship):"")+'</p>'+
           '<div class="species-section"><h5 class="species-section-title">Conservation status</h5>'+statusMarkup+
