@@ -1,8 +1,9 @@
 # Open Data Explorers
 
-**Open Data Explorers** is an independent, no-fee project for exploring curated citizenship knowledge and biodiversity information. It brings together two web explorers and a Python pipeline that builds country-level biodiversity datasets.
+**Open Data Explorers** is an independent, no-fee project for exploring curated citizenship knowledge and biodiversity information. It brings together three user-facing experiences—Curated Data, the live Biodiversity Explorer, and the Biodiversity Atlas—backed by a Python pipeline that publishes country-level sample datasets.
 
 - **Live site:** https://anggaconni.github.io/citizenship-data/
+- **Biodiversity Atlas:** https://anggaconni.github.io/citizenship-data/biodiversity-atlas.html
 - **Source code:** https://github.com/AnggaConni/citizenship-data
 - **Software terms:** [LICENSE](./LICENSE)
 - **Biodiversity pipeline documentation:** [biodiversity/README.md](./biodiversity/README.md)
@@ -32,7 +33,11 @@ The explorer deduplicates occurrences by species for its main map and provides s
 
 Open the [Biodiversity Explorer](./biodiversity.html).
 
-### 3. Biodiversity Distribution Pipeline
+### 3. Biodiversity Atlas
+
+The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interface for the pipeline outputs. It reads the country index and generated JSON files directly, so visitors can select a country, inspect sample summaries, view occurrence points and density-grid cells, search records, and inspect source-linked details without triggering another API scan. **The first published dataset is an Indonesia pilot sample**; it is capped and must not be interpreted as a complete inventory.
+
+### 4. Biodiversity Distribution Pipeline
 
 A Python pipeline, run through GitHub Actions, that produces country-level JSON and GeoJSON from:
 
