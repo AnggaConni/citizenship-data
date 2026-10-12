@@ -115,6 +115,20 @@
     .detail-species{font:800 20px/1.35 Manrope,sans-serif;letter-spacing:-.02em;margin:0 0 5px;overflow-wrap:anywhere}
     .detail-scientific{font-style:italic;font-size:12px;color:#55725e;margin-bottom:13px}
     .detail-img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:0 0 13px;background:#eff3ed}
+
+    .detail-img,.region-card-image-grid img{cursor:zoom-in}
+    .image-lightbox[hidden]{display:none!important}
+    .image-lightbox{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(10px,2vw,28px);background:rgba(3,10,7,.94);backdrop-filter:blur(8px)}
+    .image-lightbox-toolbar{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(1450px,100%);margin:0 auto 12px;color:#f0f8f2;font-size:12px}
+    .image-lightbox-caption{min-width:0;overflow-wrap:anywhere;color:#d5e5d8}
+    .image-lightbox-actions{display:flex;align-items:center;gap:8px;flex:none}
+    .image-lightbox-link,.image-lightbox-close{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:9px 12px;background:rgba(255,255,255,.09);color:white;text-decoration:none;font-size:11px;font-weight:800;cursor:pointer}
+    .image-lightbox-link:hover,.image-lightbox-close:hover{background:rgba(255,255,255,.18)}
+    .image-lightbox-stage{display:flex;align-items:center;justify-content:center;min-height:0;max-height:calc(100vh - 100px);width:100%;flex:1}
+    .image-lightbox-image{display:block;max-width:min(100%,1450px);max-height:calc(100vh - 112px);width:auto;height:auto;object-fit:contain;border-radius:8px;box-shadow:0 20px 90px rgba(0,0,0,.45);cursor:zoom-out}
+    .image-lightbox-image[hidden]{display:none}
+    .image-lightbox-empty{color:#e2eee4;font-size:12px;text-align:center;padding:20px}
+    @media(max-width:600px){.image-lightbox{padding:9px}.image-lightbox-toolbar{align-items:flex-start;flex-direction:column}.image-lightbox-actions{width:100%;justify-content:space-between}.image-lightbox-stage{max-height:calc(100vh - 135px)}.image-lightbox-image{max-height:calc(100vh - 145px);max-width:100%}.image-lightbox-link,.image-lightbox-close{font-size:10px;padding:8px 10px}}
     .properties{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
     .prop{min-width:0;background:#f5f8f3;border-radius:9px;padding:9px}
     .prop-label{font-size:9px;color:var(--muted);margin-bottom:4px}
@@ -1890,5 +1904,88 @@
       loadIndex();
     })();
   </script>
+
+  <div class="image-lightbox" id="image-lightbox" role="dialog" aria-modal="true" aria-label="Image preview" tabindex="-1" hidden>
+    <div class="image-lightbox-toolbar">
+      <div id="image-lightbox-caption" class="image-lightbox-caption">Image preview</div>
+      <div class="image-lightbox-actions">
+        <a id="image-lightbox-newtab" class="image-lightbox-link" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Open image in new tab</a>
+        <button id="image-lightbox-close" class="image-lightbox-close" type="button"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Close <span aria-hidden="true">(Esc)</span></button>
+      </div>
+    </div>
+    <div class="image-lightbox-stage">
+      <img id="image-lightbox-image" class="image-lightbox-image" alt="">
+      <div id="image-lightbox-empty" class="image-lightbox-empty" hidden>Image preview is unavailable. Use “Open image in new tab” to check the original source.</div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const overlay = document.getElementById("image-lightbox");
+      const preview = document.getElementById("image-lightbox-image");
+      const caption = document.getElementById("image-lightbox-caption");
+      const newTab = document.getElementById("image-lightbox-newtab");
+      const closeButton = document.getElementById("image-lightbox-close");
+      const empty = document.getElementById("image-lightbox-empty");
+      let previousFocus = null;
+
+      function openImagePreview(image) {
+        const imageUrl = image.currentSrc || image.src || image.getAttribute("src") || "";
+        if (!imageUrl) return;
+        previousFocus = image;
+        preview.hidden = false;
+        empty.hidden = true;
+        preview.alt = image.alt || "Expanded source image";
+        preview.onload = () => { preview.hidden = false; empty.hidden = true; };
+        preview.onerror = () => { preview.hidden = true; empty.hidden = false; };
+        preview.src = imageUrl;
+        newTab.href = imageUrl;
+        caption.textContent = image.alt || "Image preview";
+        overlay.hidden = false;
+        document.body.style.overflow = "hidden";
+        closeButton.focus();
+      }
+
+      function closeImagePreview() {
+        if (overlay.hidden) return;
+        overlay.hidden = true;
+        preview.removeAttribute("src");
+        document.body.style.overflow = "";
+        if (previousFocus && previousFocus.isConnected) previousFocus.focus({preventScroll:true});
+        previousFocus = null;
+      }
+
+      // Event delegation also covers images inserted later when record details load.
+      document.addEventListener("click", event => {
+        const image = event.target.closest("#record-detail img, .region-card-image-grid img");
+        if (!image || image.hidden) return;
+        event.preventDefault();
+        event.stopPropagation();
+        openImagePreview(image);
+      }, true);
+
+      closeButton.addEventListener("click", closeImagePreview);
+      overlay.addEventListener("click", event => {
+        if (event.target === overlay || event.target === preview) closeImagePreview();
+      });
+      document.addEventListener("keydown", event => {
+        if (overlay.hidden) return;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeImagePreview();
+        }
+        if (event.key === "Tab") {
+          const focusable = [newTab, closeButton].filter(el => !el.disabled);
+          if (event.shiftKey && document.activeElement === focusable[0]) {
+            event.preventDefault();
+            focusable[focusable.length - 1].focus();
+          } else if (!event.shiftKey && document.activeElement === focusable[focusable.length - 1]) {
+            event.preventDefault();
+            focusable[0].focus();
+          }
+        }
+      });
+    })();
+  </script>
+
 </body>
 </html>
