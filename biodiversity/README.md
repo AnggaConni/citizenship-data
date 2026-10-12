@@ -1,17 +1,16 @@
 # Country biodiversity and biosphere data
 
-This pipeline builds country-level JSON files from two separate public sources:
+This pipeline builds country-level JSON files primarily from two public sources, with optional, targeted IUCN enrichment for selected taxa:
 
 - **GBIF Occurrence API** for individual biodiversity observations and their source metadata.
 - **UNESCO DataHub — Man and the Biosphere Programme (dataset mab001)** for reserve names, country, published introduction/ecological characteristics, metadata and source-provided point coordinates.
+- **IUCN Red List API v4 (optional)** for selected species assessment metadata. It remains disabled by default and is subject to separate usage and publication terms.
 
 ## Files generated
 
 - indonesia.json and other country files: the requested GBIF occurrence sample, full source payload fields for each returned observation (where exposed by the API), a standardized description field when descriptive terms are present, point GeoJSON, density-grid GeoJSON, and matching UNESCO reserve records/features.
 - biosphere.json: the global UNESCO MAB dataset, with reserve records and GeoJSON point features.
 - index.json: country file metadata, sample counts, and biosphere source status.
-
-- IUCN Red List API v4 for assessment metadata from an explicit, manually curated species allowlist. This connector is optional and remains disabled unless deliberately enabled in a workflow dispatch.
 
 ## Optional IUCN enrichment — permission gate
 
