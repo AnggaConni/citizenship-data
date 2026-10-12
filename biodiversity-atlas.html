@@ -1617,7 +1617,8 @@
         const directStatus=iucnAssessment
           ?normalizeConservationStatus(iucnAssessment.red_list_category_code||iucnAssessment.red_list_category,"IUCN Red List assessment")
           :null;
-        const gbifStatus=info?.gbifStatus||null;
+        const gbifStatus=info?.gbifStatus||
+          normalizeConservationStatus(occurrence?.iucnRedListCategory,"GBIF occurrence record")||null;
         const conservation=directStatus||gbifStatus;
         const directAssessmentAvailable=!!directStatus;
         const isAtRisk=conservation&&["CR","EN","VU","EW","EX","RE"].includes(conservation.code);
