@@ -61,6 +61,93 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertNotIn("unneeded_upstream_payload", props)
         self.assertLess(len(json.dumps(feature)), 1500)
 
+    def test_build_dataset_appends_new_records_and_compacts_old_payload(self):
+        previous = {
+            "schema_version": 3,
+            "country": {"code": "ID", "name": "Indonesia"},
+            "observations_geojson": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature", "id": "1",
+                        "geometry": {"type": "Point", "coordinates": [106.8, -6.2]},
+                        "properties": {
+                            "key": 1, "gbif_id": 1, "taxon_key": 10,
+                            "scientific_name": "Felis catus", "kingdom": "Animalia",
+                            "description": "Old verbose description", "media": [{"identifier": "https://example.org/a.jpg"}],
+                        },
+                    },
+                    {
+                        "type": "Feature", "id": "2",
+                        "geometry": {"type": "Point", "coordinates": [107.0, -6.3]},
+                        "properties": {"key": 2, "gbif_id": 2, "scientific_name": "Canis lupus"},
+                    },
+                ],
+            },
+        }
+        records = [
+            {"key": 2, "scientificName": "Canis lupus", "decimalLatitude": -6.3, "decimalLongitude": 107.0},
+            {"key": 3, "speciesKey": 30, "species": "Felis catus", "decimalLatitude": -6.4, "decimalLongitude": 107.1},
+        ]
+        dataset = pipeline.build_dataset(
+            {"code": "ID", "name": "Indonesia"}, records, 3812893, len(records), [],
+            300, 0.5, previous_dataset=previous,
+            harvest_meta={"mode": "incremental-append", "batch_goal_met": False},
+        )
+        features = dataset["observations_geojson"]["features"]
+        self.assertEqual(len(features), 3)
+        self.assertEqual(dataset["summary"]["previous_points_retained"], 2)
+        self.assertEqual(dataset["summary"]["new_occurrence_records_added"], 1)
+        self.assertEqual(dataset["summary"]["mapped_occurrence_points"], 3)
+        self.assertNotIn("description", features[0]["properties"])
+        self.assertNotIn("media", features[0]["properties"])
+        self.assertEqual({str(f["properties"]["gbif_id"]) for f in features}, {"1", "2", "3"})
+
+    @patch("scripts.build_biodiversity.request_json")
+    def test_incremental_fetch_deduplicates_and_resumes_cursor(self, request_mock):
+        def row(key, lat=-6.2, lon=106.8):
+            return {
+                "key": key, "speciesKey": key + 10, "species": "Test taxon",
+                "decimalLatitude": lat, "decimalLongitude": lon,
+            }
+        request_mock.side_effect = [
+            {"count": 1000, "results": [row(1), row(2)]},
+            {"count": 1000, "results": [row(3)]},
+        ]
+        cursor = {"mode": "country", "offset": 300, "year": 2026, "month": 10, "day": None}
+        records, raw_count, errors, next_cursor, meta = pipeline.fetch_incremental_records(
+            "ID", 2, cursor, {"1"}
+        )
+        self.assertEqual([r["key"] for r in records], [2, 3])
+        self.assertEqual(raw_count, 3)
+        self.assertEqual(errors, [])
+        self.assertEqual(next_cursor["offset"], 303)
+        self.assertEqual(meta["pages_queried"], 2)
+        self.assertEqual(request_mock.call_args_list[0].args[1]["offset"], 300)
+        self.assertEqual(request_mock.call_args_list[1].args[1]["offset"], 302)
+        self.assertEqual(request_mock.call_args_list[1].args[1]["limit"], 1)
+
+    @patch("scripts.build_biodiversity.request_json")
+    def test_incremental_fetch_splits_overfull_month_into_days(self, request_mock):
+        record = {
+            "key": 42, "speciesKey": 99, "species": "Test taxon",
+            "decimalLatitude": -6.2, "decimalLongitude": 106.8,
+        }
+        request_mock.side_effect = [
+            {"count": 12000, "results": [record]},
+            {"count": 1, "results": [record]},
+        ]
+        cursor = {"mode": "month", "offset": 0, "year": 2024, "month": 5, "day": None}
+        records, raw_count, errors, next_cursor, meta = pipeline.fetch_incremental_records(
+            "ID", 1, cursor, set()
+        )
+        self.assertEqual(len(records), 1)
+        self.assertEqual(raw_count, 1)
+        self.assertEqual(errors, [])
+        self.assertEqual(request_mock.call_args_list[1].args[1]["eventDate"], "2024-05-01")
+        self.assertEqual(next_cursor["day"], 2)
+        self.assertEqual(meta["pages_queried"], 2)
+
     def test_distribution_grid_aggregates_points(self):
         features = [
             {"type": "Feature", "geometry": {"type": "Point", "coordinates": [106.8, -6.2]},
