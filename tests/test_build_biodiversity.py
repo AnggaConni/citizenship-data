@@ -60,6 +60,59 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertIn("A reserve introduction.", feature["properties"]["description"])
         self.assertEqual(feature["properties"]["country_code"], "ID")
 
+
+    def test_iucn_target_normalization_and_allowlist_deduplication(self):
+        self.assertEqual(
+            pipeline.normalize_iucn_target({"genus_name": "Pongo", "species_name": "pygmaeus"})["scientific_name"],
+            "Pongo pygmaeus",
+        )
+        self.assertIsNone(pipeline.normalize_iucn_target({"genus_name": "", "species_name": "pygmaeus"}))
+
+    def test_iucn_response_prefers_latest_global_assessment(self):
+        target = {
+            "genus_name": "Pongo",
+            "species_name": "pygmaeus",
+            "scientific_name": "Pongo pygmaeus",
+        }
+        payload = {
+            "taxon": {"sis_id": 111, "scientific_name": "Pongo pygmaeus"},
+            "assessments": [
+                {
+                    "latest": True,
+                    "assessment_date": "2022-01-01",
+                    "year_published": "2022",
+                    "red_list_category_code": "EN",
+                    "criteria": "A2",
+                    "assessment_id": 2,
+                    "url": "https://www.iucnredlist.org/species/111/2",
+                    "scopes": [{"code": "4", "description": {"en": "Mediterranean"}}],
+                },
+                {
+                    "latest": True,
+                    "assessment_date": "2016-01-01",
+                    "year_published": "2016",
+                    "red_list_category_code": "CR",
+                    "criteria": "A2",
+                    "assessment_id": 1,
+                    "url": "https://www.iucnredlist.org/species/111/1",
+                    "scopes": [{"code": "1", "description": {"en": "Global"}}],
+                },
+            ],
+        }
+        result = pipeline.normalize_iucn_response(target, payload)
+        self.assertEqual(result["status"], "assessed")
+        self.assertEqual(result["red_list_category_code"], "CR")
+        self.assertEqual(result["red_list_category"], "Critically Endangered")
+        self.assertEqual(result["scope_code"], "1")
+        self.assertEqual(result["assessment_url"], "https://www.iucnredlist.org/species/111/1")
+
+    def test_iucn_response_handles_species_without_assessment(self):
+        result = pipeline.normalize_iucn_response(
+            {"scientific_name": "Unknown species"},
+            {"taxon": {"scientific_name": "Unknown species"}, "assessments": []},
+        )
+        self.assertEqual(result["status"], "no_assessment_found")
+
     def test_invalid_coordinates_are_rejected(self):
         self.assertIsNone(pipeline.valid_coordinates({"decimalLatitude": 91, "decimalLongitude": 0}))
         self.assertIsNone(pipeline.valid_coordinates({"decimalLatitude": "north", "decimalLongitude": 0}))
