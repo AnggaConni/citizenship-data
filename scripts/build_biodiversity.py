@@ -49,44 +49,25 @@ MAX_MAB_DESCRIPTION_CHARS = 3200
 
 # Publish useful, compact source fields rather than duplicating the entire
 # GBIF response, nested media objects, and other verbose payload fields.
-GBIF_PUBLIC_FIELDS = (
-    "key", "datasetKey", "datasetName", "publishingOrgKey", "publishingCountry",
-    "occurrenceID", "basisOfRecord", "occurrenceStatus", "taxonKey", "acceptedTaxonKey",
-    "kingdomKey", "phylumKey", "classKey", "orderKey", "familyKey", "genusKey", "speciesKey",
-    "taxonomicStatus", "scientificName", "acceptedScientificName", "verbatimScientificName",
-    "kingdom", "phylum", "class", "order", "family", "genus", "species", "genericName",
-    "specificEpithet", "infraspecificEpithet", "taxonRank", "taxonConceptID",
-    "country", "countryCode", "continent", "stateProvince", "county", "municipality",
-    "locality", "waterBody", "island", "islandGroup", "decimalLatitude", "decimalLongitude",
-    "coordinateUncertaintyInMeters", "coordinatePrecision", "verbatimCoordinates", "geodeticDatum",
-    "elevation", "elevationAccuracy", "depth", "depthAccuracy", "eventDate", "year", "month", "day",
-    "startDayOfYear", "endDayOfYear", "eventTime", "samplingProtocol", "sampleSizeValue",
-    "sampleSizeUnit", "eventRemarks", "fieldNumber", "recordNumber", "recordedBy",
-    "identifiedBy", "dateIdentified", "identificationReferences", "identificationVerificationStatus",
-    "occurrenceRemarks", "organismQuantity", "organismQuantityType", "organismScope",
-    "preparations", "disposition", "lifeStage", "sex", "individualCount", "establishmentMeans",
-    "degreeOfEstablishment", "pathway", "habitat", "catalogNumber", "collectionCode",
-    "institutionCode", "institutionID", "collectionID", "datasetID", "license", "rightsHolder",
-    "references", "informationWithheld", "dataGeneralizations", "accessRights", "modified",
-    "lastInterpreted", "lastCrawled", "lastParsed", "repatriated", "description", "taxonRemarks",
+GBIF_MAP_FIELDS = (
+    "key", "datasetKey", "basisOfRecord", "occurrenceStatus", "taxonKey", "speciesKey",
+    "scientificName", "acceptedScientificName", "species", "genus", "family", "order",
+    "class", "kingdom", "country", "countryCode", "stateProvince", "county", "municipality",
+    "locality", "decimalLatitude", "decimalLongitude", "coordinateUncertaintyInMeters",
+    "eventDate", "recordedBy", "license",
 )
-GBIF_NARRATIVE_FIELDS = {"description", "taxonRemarks", "occurrenceRemarks", "habitat"}
 
-# UNESCO Explore API returns only these columns. Image fields are URLs; image assets
-# themselves are not downloaded or embedded in the JSON files.
+# MAB static files are a spatial index only. Long descriptions and image metadata
+# are fetched from UNESCO DataHub on demand when a user opens a reserve.
 MAB_API_FIELDS = (
-    "mab_id", "title_en", "iso2", "country_title_en", "date", "introduction_en",
-    "ecological_characteristics_en", "coordinates", "createdat", "updatedat", "uuid",
-    "tbr", "main_image_url", "website", "ecological_img_url", "socio_economic_img_url",
-    "url", "regional_network", "thematic_network",
+    "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "uuid", "url", "tbr",
 )
-MAB_NARRATIVE_FIELDS = {"introduction_en", "ecological_characteristics_en"}
 MAB_GEOJSON_FIELDS = (
-    "mab_id", "uuid", "name", "title_en", "country_code", "country", "iso2",
-    "country_title_en", "date", "tbr", "regional_network", "thematic_network",
-    "main_image_url", "ecological_img_url", "socio_economic_img_url", "website",
-    "url", "source_url", "biosphere_id",
+    "mab_id", "uuid", "api_record_id", "name", "title_en", "country_code", "country",
+    "iso2", "country_title_en", "tbr", "url", "source_url", "biosphere_id",
 )
+MAB_MAP_FIELDS = MAB_API_FIELDS + ("api_record_id",)
+
 
 
 def utc_now() -> str:
@@ -590,35 +571,12 @@ def compact_scalar_fields(record: dict, fields: tuple[str, ...],
 
 
 def occurrence_feature(record: dict, country: dict) -> dict | None:
+    """Create a lightweight mapping feature; full record metadata is requested by the browser."""
     coordinates = valid_coordinates(record)
     if coordinates is None:
         return None
     lat, lon = coordinates
-    media = record.get("media") if isinstance(record.get("media"), list) else []
-    image_url = next((
-        str(item.get("identifier")) for item in media
-        if isinstance(item, dict)
-        and str(item.get("identifier", "")).startswith(("https://", "http://"))
-        and ("image" in str(item.get("type", "")).lower()
-             or "stillimage" in str(item.get("type", "")).lower()
-             or re.search(r"\.(jpe?g|png|webp|gif)(\?|$)", str(item.get("identifier", "")), re.I))
-    ), None)
-
-    description_parts = []
-    for field in (
-        "description", "taxonRemarks", "occurrenceRemarks", "habitat",
-        "eventRemarks", "fieldNotes", "identificationRemarks",
-    ):
-        value = bounded_text(record.get(field), MAX_GBIF_NARRATIVE_CHARS)
-        if value and value not in description_parts:
-            description_parts.append(value)
-    description = bounded_text(" — ".join(description_parts), MAX_GBIF_NARRATIVE_CHARS * 2)
-
-    # No image binary is requested. Keep the best matching image URL for the
-    # frontend to load later, not the complete "media" array from the API.
-    props = compact_scalar_fields(
-        record, GBIF_PUBLIC_FIELDS, GBIF_NARRATIVE_FIELDS, MAX_GBIF_NARRATIVE_CHARS
-    )
+    props = compact_scalar_fields(record, GBIF_MAP_FIELDS, set(), 500)
     props.update({
         "gbif_id": record.get("key"),
         "taxon_key": record.get("speciesKey") or record.get("taxonKey"),
@@ -626,8 +584,6 @@ def occurrence_feature(record: dict, country: dict) -> dict | None:
                            or record.get("acceptedScientificName"),
         "country_code": country["code"],
         "country": country["name"],
-        "image_url": image_url,
-        "description": description,
         "source_url": f"https://www.gbif.org/occurrence/{record.get('key')}" if record.get("key") else None,
     })
     props = {key: value for key, value in props.items() if value is not None and value != ""}
@@ -695,43 +651,40 @@ def distribution_grid(point_features: list[dict], grid_size: float = 0.5) -> dic
 
 
 def extract_unesco_fields(item: object) -> dict | None:
-    """Extract dataset fields from the current and legacy UNESCO DataHub response shapes."""
+    """Extract source fields plus the API record identifier from supported response shapes."""
     if not isinstance(item, dict):
         return None
-
-    # Legacy-shaped and record-wrapped responses.
     fields = item.get("fields")
     if isinstance(fields, dict):
-        return dict(fields)
-    record = item.get("record")
-    if isinstance(record, dict):
-        nested = record.get("fields")
-        if isinstance(nested, dict):
-            return dict(nested)
-        if any(key in record for key in (
+        result = dict(fields)
+    else:
+        record = item.get("record")
+        if isinstance(record, dict) and isinstance(record.get("fields"), dict):
+            result = dict(record["fields"])
+        elif isinstance(record, dict) and any(key in record for key in (
             "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "geo_point_2d"
         )):
-            return dict(record)
-
-    # Explore API v2.1 returns dataset fields directly in each results[] item.
-    if any(key in item for key in (
-        "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "geo_point_2d"
-    )):
-        return dict(item)
-    return None
+            result = dict(record)
+        elif any(key in item for key in (
+            "mab_id", "title_en", "iso2", "country_title_en", "coordinates", "geo_point_2d"
+        )):
+            result = dict(item)
+        else:
+            return None
+    record_id = item.get("recordid") or item.get("record_id") or item.get("recordId")
+    if record_id:
+        result["api_record_id"] = str(record_id)
+    return result
 
 
 def normalize_biosphere_record(record: dict) -> dict:
-    """Normalize a UNESCO MAB record into a compact allowlisted schema."""
-    item = compact_scalar_fields(
-        record, MAB_API_FIELDS, MAB_NARRATIVE_FIELDS, MAX_MAB_NARRATIVE_CHARS
-    )
+    """Normalize a compact UNESCO MAB map-index entry; detailed fields stay upstream."""
+    item = compact_scalar_fields(record, MAB_MAP_FIELDS, set(), 500)
     coordinates = record.get("coordinates")
     if coordinates is None:
         coordinates = record.get("geo_point_2d") or record.get("geopoint") or record.get("geo_point")
     lat = lon = None
     if isinstance(coordinates, (list, tuple)) and len(coordinates) >= 2:
-        # UNESCO DataHub coordinates are [latitude, longitude]; GeoJSON reverses the order.
         try:
             lat, lon = float(coordinates[0]), float(coordinates[1])
         except (TypeError, ValueError):
@@ -754,12 +707,6 @@ def normalize_biosphere_record(record: dict) -> dict:
     item["name"] = item.get("title_en") or item.get("title") or item.get("name")
     item["country_code"] = str(item.get("iso2") or item.get("country_code") or "").upper() or None
     item["country"] = item.get("country_title_en") or item.get("country")
-    desc_parts = [
-        item[field].strip() for field in ("introduction_en", "ecological_characteristics_en")
-        if isinstance(item.get(field), str) and item[field].strip()
-    ]
-    description = "\n\n".join(desc_parts) if desc_parts else item.get("description")
-    item["description"] = bounded_text(description, MAX_MAB_DESCRIPTION_CHARS)
     item["_latitude"] = lat
     item["_longitude"] = lon
     item["source_url"] = item.get("url") or UNESCO_DATASET_URL
@@ -771,7 +718,7 @@ def biosphere_feature(record: dict) -> dict | None:
     lat, lon = normalized.get("_latitude"), normalized.get("_longitude")
     if lat is None or lon is None:
         return None
-    # Map features carry metadata and URLs only; long narrative text stays in records[].
+    # Map features carry only identifiers and compact labels; the detail API is called on demand.
     props = {
         key: normalized[key]
         for key in MAB_GEOJSON_FIELDS
@@ -878,11 +825,6 @@ def build_biosphere_dataset(records: list[dict], error: str | None = None) -> di
             "error": error,
             "geometry_note": "The source dataset supplies point coordinates, not official reserve boundary polygons. Do not render these points as reserve boundaries.",
         },
-        "records": [
-            {key: value for key, value in record.items()
-             if not key.startswith("_") and key != "description"}
-            for record in normalized
-        ],
         "geojson": {"type": "FeatureCollection", "features": features},
     }
 
@@ -945,7 +887,6 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
         },
         "observations_geojson": {"type": "FeatureCollection", "features": points},
         "distribution_geojson": grid,
-        "biosphere_reserves": [{key: value for key, value in record.items() if not key.startswith("_")} for record in reserves],
         "biosphere_geojson": {"type": "FeatureCollection", "features": reserve_features},
         "biosphere_source_status": {
             "dataset_id": UNESCO_DATASET_ID,
