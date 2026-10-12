@@ -5,12 +5,14 @@ on:
     paths:
       - "scripts/**"
       - "tests/**"
+      - "biodiversity-atlas.html"
       - ".github/workflows/biodiversity-data.yml"
       - ".github/workflows/python-ci.yml"
   pull_request:
     paths:
       - "scripts/**"
       - "tests/**"
+      - "biodiversity-atlas.html"
       - ".github/workflows/biodiversity-data.yml"
       - ".github/workflows/python-ci.yml"
   workflow_dispatch:
@@ -30,3 +32,18 @@ jobs:
           python-version: "3.12"
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
+
+      - name: Check Biodiversity Atlas JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path("biodiversity-atlas.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>", html, flags=re.IGNORECASE)
+          inline = "\n".join(script for script in scripts if script.strip())
+          if not inline.strip():
+              raise SystemExit("No inline JavaScript found in biodiversity-atlas.html")
+          Path("/tmp/biodiversity-atlas.js").write_text(inline, encoding="utf-8")
+          PY
+          node --check /tmp/biodiversity-atlas.js
