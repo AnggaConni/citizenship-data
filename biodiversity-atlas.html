@@ -618,6 +618,7 @@
         if(grid&&Array.isArray(grid.features))state.gridLayer.addData(grid);
         const reserves=dataset.biosphere_geojson;
         if(reserves&&Array.isArray(reserves.features))state.reserveLayer.addData(reserves);
+        const mabPointCount=state.reserveLayer.getLayers().length;
         const radiusKm=Number($("cluster-distance").value)||75;
         const clustered=buildHeuristicDistribution(radiusKm);
         state.clusterGroups=clustered.groups;
@@ -627,7 +628,9 @@
         $("reset-region-btn").hidden=true;
         $("region-note").textContent=
           "At "+radiusKm+" km radius, "+state.clusterGroups.length+" heuristic regions were created from nearby points. "+
-          (clustered.isolatedCount||0)+" sparse/isolated records remain as standalone markers. Click a region to zoom in and reveal its original points.";
+          (clustered.isolatedCount||0)+" sparse/isolated records remain as standalone markers. Click a region to zoom in and reveal its original points. "+
+          (mabPointCount ? mabPointCount+" UNESCO MAB source point(s) are available in this country dataset." :
+            "No mappable UNESCO MAB points are included in the currently published data file yet; this is a data-availability issue, not evidence that the country has no biosphere reserves.");
         drawAllLayersAndFit();
       }
 
