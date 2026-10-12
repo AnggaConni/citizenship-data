@@ -1,0 +1,9 @@
+{
+  "dataset_type": "GBIF country dataset index",
+  "schema_version": 1,
+  "generated_at_utc": null,
+  "country_count_in_index": 0,
+  "available_country_count": 0,
+  "countries": [],
+  "note": "Not generated yet. Run the Build biodiversity country datasets workflow. Country files are capped samples; grid cells summarize occurrence records and do not define confirmed species ranges."
+}

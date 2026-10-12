@@ -1,0 +1,68 @@
+name: Build biodiversity country datasets
+
+on:
+  workflow_dispatch:
+    inputs:
+      country_code:
+        description: Country ISO-2 code, or ALL to update every country
+        required: true
+        default: ALL
+        type: string
+      max_records_per_country:
+        description: Sample cap per country (1–9900; default 300 keeps data size manageable)
+        required: true
+        default: "300"
+        type: string
+      grid_size_degrees:
+        description: Distribution grid cell size in degrees
+        required: true
+        default: "0.5"
+        type: string
+  schedule:
+    - cron: "17 2 * * 1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: biodiversity-country-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test data processing helpers
+        run: python -m unittest discover -s tests -v
+
+      - name: Fetch GBIF occurrence samples and build GeoJSON
+        env:
+          COUNTRY_CODE: ${{ inputs.country_code || 'ALL' }}
+          MAX_RECORDS: ${{ inputs.max_records_per_country || '300' }}
+          GRID_SIZE: ${{ inputs.grid_size_degrees || '0.5' }}
+        run: |
+          python scripts/build_biodiversity.py \
+            --country "$COUNTRY_CODE" \
+            --max-records "$MAX_RECORDS" \
+            --grid-size "$GRID_SIZE"
+
+      - name: Commit updated country JSON files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add biodiversity/*.json
+          if git diff --cached --quiet; then
+            echo "No biodiversity data changes to commit."
+          else
+            git commit -m "Refresh GBIF country biodiversity datasets"
+            git push
+          fi
