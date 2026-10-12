@@ -321,7 +321,7 @@
     <section class="sources" aria-label="Data source information">
       <article class="source-card"><h3>GBIF occurrence records</h3><p>Sampled occurrence data with coordinates and source fields. Individual records may have distinct licences. <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Check the original source ↗</a></p></article>
       <article class="source-card"><h3>UNESCO Man and the Biosphere</h3><p>Reserve metadata and point coordinates are shown only when present in the published dataset. A point is not an official reserve boundary. <a href="https://data.unesco.org/explore/dataset/mab001/information/" target="_blank" rel="noopener noreferrer">Dataset information ↗</a></p></article>
-      <article class="source-card"><h3>Conservation status references</h3><p>Automated IUCN and IUCN-derived category lookup is disabled until applicable permission is confirmed. The Atlas does not request IUCN assessment categories from the IUCN API, GBIF’s category endpoint, or iNaturalist status fields. Users can open the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a> themselves; that manual link does not mean the Atlas downloads or stores assessment data.</p></article>
+      <article class="source-card"><h3>Conservation status references</h3><p>Automated IUCN and IUCN-derived category lookup is disabled until applicable permission is confirmed. The Atlas does not request the IUCN API or GBIF’s category endpoint, and strips IUCN/conservation-status fields from iNaturalist responses before caching them in page memory. Users can open the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a> themselves; that manual link does not mean the Atlas downloads or stores assessment data.</p></article>
     </section>
 
     <aside class="disclaimer"><strong>Use and interpretation disclaimer.</strong> This is a free-to-access, independent exploratory tool. The data may be incomplete, outdated, misidentified or spatially imprecise; missing observations do not prove a species is absent. Neither the grid nor an occurrence point should be interpreted as a confirmed habitat, full distribution range, conservation status, or protected-area boundary. Check the original records, attribution and licence before reusing data. The software licence applies to the code and does not override third-party data terms. <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">Software licence</a> · <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">Full project disclaimer</a>.</aside>
@@ -370,8 +370,22 @@
           " cache hits during this page session. No data is written to localStorage, sessionStorage, or IndexedDB.";
       }
 
+      function stripConservationStatusFields(value) {
+        if(Array.isArray(value))return value.map(stripConservationStatusFields);
+        if(!value||typeof value!=="object")return value;
+        const output={};
+        const blocked=/^(conservation_status|conservationStatus|iucn|iucn_status|iucnStatus|iucnRedListCategory|iucn_category|red_list_category|redListCategory)$/i;
+        for(const [key,child] of Object.entries(value)){
+          if(blocked.test(key))continue;
+          output[key]=stripConservationStatusFields(child);
+        }
+        return output;
+      }
+
       async function fetchJsonSession(url, options = {}) {
-        const cacheKey = String(url);
+        const requestUrl = String(url);
+        const stripStatus = options.stripConservationStatus === true;
+        const cacheKey = requestUrl + (stripStatus ? "::strip-conservation-status" : "");
         const force = options.force === true;
         const headers = options.headers || { Accept: "application/json" };
         if (!force && state.sessionJsonCache.has(cacheKey)) {
@@ -383,9 +397,10 @@
         // Keep response data in this page's JS memory only; don't rely on the
         // browser's persistent HTTP cache for API/JSON responses.
         const request = (async () => {
-          const response = await fetch(cacheKey, { headers, cache: "no-store" });
+          const response = await fetch(requestUrl, { headers, cache: "no-store" });
           if (!response.ok) throw new Error("Request returned HTTP " + response.status);
-          return await response.json();
+          const payload = await response.json();
+          return stripStatus ? stripConservationStatusFields(payload) : payload;
         })();
         state.sessionJsonCache.set(cacheKey, request);
         renderSessionCacheStatus();
@@ -1309,15 +1324,15 @@
           const waitMs = Math.max(0, 1000 - (Date.now() - lastINatRequestAt));
           if (waitMs) await new Promise(resolve => setTimeout(resolve, waitMs));
           lastINatRequestAt = Date.now();
-          return await fetchJsonOptional(url);
+          return await fetchJsonOptional(url,{stripConservationStatus:true});
         });
         inatRequestQueue = task.then(() => undefined, () => undefined);
         return task;
       }
 
-      async function fetchJsonOptional(url) {
+      async function fetchJsonOptional(url, options = {}) {
         try{
-          return await fetchJsonSession(url);
+          return await fetchJsonSession(url, options);
         }catch(error){
           console.info("Optional species reference unavailable:",url,String(error.message||error));
           return null;
@@ -1345,36 +1360,6 @@
         return String(value||"").trim().toLowerCase()
           .replace(/\s+/g," ")
           .replace(/\s+\([^)]*\)$/,"");
-      }
-
-      const IUCN_LABELS = {
-        EX:["EX","Extinct"],EW:["EW","Extinct in the Wild"],RE:["RE","Regionally Extinct"],
-        CR:["CR","Critically Endangered"],EN:["EN","Endangered"],VU:["VU","Vulnerable"],
-        NT:["NT","Near Threatened"],LC:["LC","Least Concern"],DD:["DD","Data Deficient"],
-        NE:["NE","Not Evaluated"],NA:["NA","Not Applicable"],
-        EXTINCT:["EX","Extinct"],EXTINCT_IN_THE_WILD:["EW","Extinct in the Wild"],
-        REGIONALLY_EXTINCT:["RE","Regionally Extinct"],CRITICALLY_ENDANGERED:["CR","Critically Endangered"],
-        ENDANGERED:["EN","Endangered"],VULNERABLE:["VU","Vulnerable"],
-        NEAR_THREATENED:["NT","Near Threatened"],LEAST_CONCERN:["LC","Least Concern"],
-        DATA_DEFICIENT:["DD","Data Deficient"],NOT_EVALUATED:["NE","Not Evaluated"],
-        NOT_APPLICABLE:["NA","Not Applicable"]
-      };
-
-      function normalizeStatus(raw) {
-        if(raw===null||raw===undefined||raw==="")return null;
-        if(typeof raw==="object"){
-          raw=raw.category||raw.code||raw.status_name||raw.status||raw.iucn||raw.name;
-        }
-        if(raw===null||raw===undefined||raw==="")return null;
-        const value=String(raw).trim();
-        const code=value.toUpperCase().replace(/[\s-]+/g,"_");
-        const tuple=IUCN_LABELS[code];
-        if(tuple)return {code:tuple[0],label:tuple[1],raw:value};
-        const compact=value.toUpperCase();
-        if(IUCN_LABELS[compact])return {code:IUCN_LABELS[compact][0],label:IUCN_LABELS[compact][1],raw:value};
-        const numeric={"0":"NE","5":"DD","10":"LC","20":"NT","30":"VU","40":"EN","50":"CR","60":"EW","70":"EX"};
-        if(numeric[value]&&IUCN_LABELS[numeric[value]])return {code:IUCN_LABELS[numeric[value]][0],label:IUCN_LABELS[numeric[value]][1],raw:value};
-        return {code:"",label:value.replace(/_/g," "),raw:value};
       }
 
       function chooseVernacularName(names, inatTaxon) {
@@ -1493,8 +1478,7 @@
           ["Habitat",/^(habitat|habitats|environment|ecology|ecologicalpreferences)$/i],
           ["Threat information",/^(threat|threats|threatenedstatus|threatfactors)$/i],
           ["Population trend",/^(populationtrend|trend)$/i],
-          ["Distribution",/^(distribution|range|geographicrange)$/i],
-          ["Conservation information",/^(conservationstatus|conservation|conservationactions)$/i]
+          ["Distribution",/^(distribution|range|geographicrange)$/i]
         ];
         const normalKey=key=>String(key).replace(/[_\s-]/g,"");
         (Array.isArray(profiles)?profiles:[]).forEach(profile=>{
