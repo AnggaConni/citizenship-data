@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Build country-level GBIF occurrence samples and density-grid GeoJSON.
+"""Build country-level GBIF occurrence records and record-density GeoJSON.
 
-The output is a capped exploratory sample. Grid cells summarize returned
-occurrence records; they are not species-range boundaries or habitat polygons.
-Uses only the Python standard library.
+The output is a bounded, incrementally collected set of provider occurrence
+records. Grid cells summarize retained records; they are not species-range
+boundaries or habitat polygons. Uses only the Python standard library.
 """
 from __future__ import annotations
 
@@ -529,13 +529,13 @@ def fetch_country_records(country_code: str, maximum: int) -> tuple[list[dict], 
         rows = page.get("results", []) if isinstance(page, dict) else []
         if not isinstance(rows, list) or not rows:
             if offset < target:
-                errors.append({"offset": offset, "message": "GBIF returned an empty page before the sample target."})
+                errors.append({"offset": offset, "message": "GBIF returned an empty page before the requested retrieval limit."})
             break
         all_rows.extend(row for row in rows if isinstance(row, dict))
         offset += len(rows)
         if len(rows) < limit:
             if offset < target:
-                errors.append({"offset": offset, "message": "Short page received before the expected sample target."})
+                errors.append({"offset": offset, "message": "Short page received before the requested retrieval limit."})
             break
     raw_count = len(all_rows)
     return unique_records(all_rows), total, raw_count, errors
@@ -589,7 +589,7 @@ def compact_existing_occurrence(feature: dict, country: dict) -> dict | None:
 
 
 def initial_harvest_cursor(previous_dataset: dict | None) -> dict:
-    """Resume after a previous country-wide sample; then use date partitions."""
+    """Resume after the previously retrieved country records; then use date partitions."""
     now = datetime.now(timezone.utc)
     old_points = (
         previous_dataset.get("observations_geojson", {}).get("features", [])
@@ -1180,7 +1180,7 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
             "batch_goal_met": len(added_points) >= maximum,
             "failed_pages": page_errors,
             "harvest": harvest,
-            "interpretation": "Cumulative, deduplicated GBIF occurrence points appended in rotating daily batches. Stored points remain a partial sample, not a census or confirmed species range.",
+            "interpretation": "Cumulative, deduplicated GBIF occurrence points appended in rotating daily batches. The current published record set is incomplete relative to GBIF's full catalogue; it is not a census or a confirmed species range.",
         },
         "observations_geojson": {"type": "FeatureCollection", "features": points},
         "distribution_geojson": grid,
@@ -1212,7 +1212,7 @@ def write_json(path: Path, value: dict) -> None:
         limit_mb = MAX_PUBLISHED_JSON_BYTES / (1024 * 1024)
         raise ValueError(
             f"Refusing to publish {path.name}: {size_mb:.2f} MB exceeds the "
-            f"{limit_mb:.0f} MiB safety limit. Slim the dataset or reduce the sample size."
+            f"{limit_mb:.0f} MiB safety limit. Slim the dataset or reduce the number of records retained per run."
         )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(payload, encoding="utf-8")
@@ -1445,7 +1445,7 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
         },
         "iucn": iucn_summary,
         "countries": ordered_entries,
-        "note": "Country JSON files retain prior unique GBIF points and append new records in rotating daily batches. GBIF IDs are deduplicated. Date partitions help avoid deep-search offsets; samples remain incomplete and grid cells are not habitat/range boundaries.",
+        "note": "Country JSON files retain prior unique GBIF records and append new records in rotating daily batches. GBIF IDs are deduplicated. Date partitions help avoid deep-search offsets; coverage remains incomplete relative to all GBIF records, and grid cells are not habitat/range boundaries.",
     })
     write_json(state_path, harvest_state)
     print(
