@@ -43,7 +43,7 @@ DEFAULT_RECORDS_PER_COUNTRY = 300
 USER_AGENT = "OpenDataExplorers-BiodiversityPipeline/1.0"
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "biodiversity"
 MAX_PUBLISHED_JSON_BYTES = 45 * 1024 * 1024
-MAX_GBIF_NARRATIVE_CHARS = 1200
+MAX_GBIF_NARRATIVE_CHARS = 600
 MAX_MAB_NARRATIVE_CHARS = 1800
 MAX_MAB_DESCRIPTION_CHARS = 3200
 
@@ -69,12 +69,8 @@ GBIF_PUBLIC_FIELDS = (
     "institutionCode", "institutionID", "collectionID", "datasetID", "license", "rightsHolder",
     "references", "informationWithheld", "dataGeneralizations", "accessRights", "modified",
     "lastInterpreted", "lastCrawled", "lastParsed", "repatriated", "description", "taxonRemarks",
-    "fieldNotes", "identificationRemarks",
 )
-GBIF_NARRATIVE_FIELDS = {
-    "description", "taxonRemarks", "occurrenceRemarks", "habitat", "eventRemarks",
-    "fieldNotes", "identificationRemarks",
-}
+GBIF_NARRATIVE_FIELDS = {"description", "taxonRemarks", "occurrenceRemarks", "habitat"}
 
 # UNESCO Explore API returns only these columns. Image fields are URLs; image assets
 # themselves are not downloaded or embedded in the JSON files.
@@ -882,7 +878,11 @@ def build_biosphere_dataset(records: list[dict], error: str | None = None) -> di
             "error": error,
             "geometry_note": "The source dataset supplies point coordinates, not official reserve boundary polygons. Do not render these points as reserve boundaries.",
         },
-        "records": [{key: value for key, value in record.items() if not key.startswith("_")} for record in normalized],
+        "records": [
+            {key: value for key, value in record.items()
+             if not key.startswith("_") and key != "description"}
+            for record in normalized
+        ],
         "geojson": {"type": "FeatureCollection", "features": features},
     }
 
@@ -966,19 +966,17 @@ def read_json(path: Path) -> dict | None:
 
 
 def write_json(path: Path, value: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False) + "\n",
-        encoding="utf-8",
-    )
-    size_bytes = path.stat().st_size
+    payload = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False) + "\n"
+    size_bytes = len(payload.encode("utf-8"))
     if size_bytes > MAX_PUBLISHED_JSON_BYTES:
         size_mb = size_bytes / (1024 * 1024)
         limit_mb = MAX_PUBLISHED_JSON_BYTES / (1024 * 1024)
         raise ValueError(
             f"Refusing to publish {path.name}: {size_mb:.2f} MB exceeds the "
-            f"{limit_mb:.0f} MB safety limit. Slim the dataset or reduce the sample size."
+            f"{limit_mb:.0f} MiB safety limit. Slim the dataset or reduce the sample size."
         )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(payload, encoding="utf-8")
 
 
 def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
