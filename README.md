@@ -14,7 +14,7 @@ This project is freely accessible and is not operated as a paid service. However
 
 1. **Software licence.** The repository has a custom licence focused on personal, educational, research, non-profit, and social-impact use. It permits copying and modifying the software for the uses described in [LICENSE](./LICENSE), subject to its conditions. Commercial use or inclusion in a paid product requires prior written permission from the author. This is not an unrestricted commercial-use licence.
 2. **Third-party data.** GBIF occurrence records, UNESCO DataHub records, map tiles, photographs, and publication metadata retain the applicable source terms, record-level licences, attribution requirements, and usage limits. The repository's software licence does not replace or override those terms.
-3. **IUCN Red List.** Direct IUCN API enrichment and publication of assessment records are disabled by default. A status category supplied through GBIF's own public taxonomic reference may be displayed, with a caveat that GBIF's mirror can lag the latest assessment; this is not a direct IUCN API request. Having an IUCN API key does not itself authorize redistribution. Direct IUCN data remain gated until permission for public caching/display is confirmed with IUCN.
+3. **IUCN Red List — 🔴 NOT APPROVED YET.** Direct IUCN API requests, scraping, enrichment, caching, and publication are **stopped** while permission is pending. IUCN assessment data are hidden and are not served by this project. The workflow no longer offers an enable switch, and the pipeline refuses direct IUCN lookup even if an API key or old approval variable exists. A conservation category returned by GBIF may still be shown only as a **GBIF-sourced reference**; it is not direct IUCN API data and may lag the latest IUCN assessment. This does not imply IUCN approval.
 4. **Independent project.** This project is not an official UNESCO, GBIF, IUCN, OpenAlex, Crossref, or OpenStreetMap product. References to these organisations identify data sources only; they do not imply affiliation, sponsorship, review, approval, or endorsement.
 
 ## What is included?
@@ -45,13 +45,13 @@ A Python pipeline, run through GitHub Actions, that produces country-level JSON 
 
 - **GBIF Occurrence API:** capped samples of georeferenced occurrence records, including source fields and record links when supplied.
 - **UNESCO DataHub — Man and the Biosphere dataset (mab001):** reserve metadata and source-provided point coordinates.
-- **IUCN Red List API v4 (optional):** targeted assessment metadata for a small, explicitly curated list of selected species. It remains disabled by default and must not be enabled for public-output caching before the applicable permission is confirmed.
+- **IUCN Red List:** potential future source only. **🔴 NOT APPROVED YET — direct requests/scraping stopped; assessment data hidden and not published.** Do not enable direct collection or distribute cached assessment data while permission remains pending.
 
 The generated density grid summarizes the returned sample. It is **not** a confirmed habitat boundary, a species-range polygon, a completeness measure, or evidence that a species is currently present throughout a grid cell. Likewise, UNESCO source points must not be presented as official reserve boundaries.
 
 Explore the [pipeline folder](./biodiversity/) and its [usage and source notes](./biodiversity/README.md).
 
-The country pipeline publishes lightweight spatial indexes for the initial map. Full GBIF occurrence metadata and UNESCO MAB descriptions are fetched from the source APIs only when a visitor opens a point or reserve; those descriptions are not copied into static mapping JSON. Source images, when available, are loaded by URL on demand rather than downloaded into the repository. The pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit. GBIF's public IUCN-category reference is queried on demand and may be shown as a GBIF-sourced reference, clearly identified as such. The frontend does not call the authenticated IUCN API or read IUCN-derived status fields from iNaturalist. Direct IUCN assessments will appear automatically only when the data index explicitly marks the curated static assessment file as authorised and available; no frontend change will be required after permission is granted and the pipeline publishes that file.
+The country pipeline publishes lightweight spatial indexes for the initial map. Full GBIF occurrence metadata and UNESCO MAB descriptions are fetched from the source APIs only when a visitor opens a point or reserve; those descriptions are not copied into static mapping JSON. Source images, when available, are loaded by URL on demand rather than downloaded into the repository. The pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit. A conservation category independently returned by GBIF may be shown only as a GBIF-sourced reference, clearly identified as such. The frontend does not call the authenticated IUCN API or read IUCN-derived status fields from iNaturalist. Direct IUCN assessments are currently hidden and not published.
 
 ## Data-use and interpretation rules
 
@@ -69,12 +69,12 @@ The scheduled workflow runs daily at 02:17 UTC (09:17 Jakarta time) and appends 
 1. Open **Actions → Build biodiversity country datasets → Run workflow**.
 2. Use **country_code = NEXT** to take the next country in the rotation, or enter one ISO-2 code such as **ID** to process a specific country.
 3. Keep **max_records_per_country = 300** for up to 300 new unique records in the run. A run may add fewer when there are many duplicates, few remaining records, or a source/API issue.
-4. Use **grid_size_degrees = 0.5** for the density grid. Keep **include_iucn_data = false** unless IUCN has confirmed that the proposed public caching/display use is permitted.
+4. Use **grid_size_degrees = 0.5** for the density grid. Direct IUCN lookup is disabled in code and is not an available workflow option.
 5. Review the action logs and the country’s cumulative counts after the workflow succeeds.
 
 The workflow persists its rotation and page cursor in biodiversity/harvest-state.json. It progresses through country-wide result pages up to GBIF’s safe search-offset limit, then uses year/month and date partitions to continue without repeatedly fetching the same first page. This batch is **not necessarily records first created within the last 24 hours**; it is a new-to-this-repository batch of records reached by the saved cursor. Use **country_code = ALL** only when intentionally running every country in one manual run.
 
-For IUCN enrichment, keep include_iucn_data false unless IUCN has confirmed that the intended caching/public-display use is permitted. Once authorized, use a short curated list in biodiversity/iucn_targets.json; the workflow requires the repository variable IUCN_PUBLICATION_APPROVED=true as an additional explicit gate. Store credentials only in GitHub Actions secrets, never in code or generated JSON.
+**IUCN status: 🔴 NOT APPROVED YET.** Direct IUCN scraping/API requests are stopped, and direct assessment output is hidden/not published. The workflow has no IUCN enable input, and the pipeline hard-fails if a legacy caller passes the old flag. Revisit integration only after explicit written permission and a separate implementation review.
 
 See biodiversity/README.md for cursor, deduplication, and data-source details.
 
