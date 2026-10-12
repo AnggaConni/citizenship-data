@@ -64,14 +64,19 @@ The country pipeline publishes lightweight spatial indexes for the initial map. 
 
 ## Run the biodiversity pipeline
 
-1. Open **Actions → Build biodiversity country datasets → Run workflow** in GitHub.
-2. Set country_code to an ISO-2 code such as ID, or ALL to update the countries returned by GBIF's country enumeration.
-3. Choose a sample limit and grid size. The default is 300 occurrence records per country; supported sample limits are capped to keep processing and published JSON sizes manageable.
-4. Review workflow logs and generated data before using the results.
+The scheduled workflow runs daily at 02:17 UTC (09:17 Jakarta time) and appends up to **300 new unique GBIF records for one country per run**. Countries are processed one at a time in a persisted round-robin rotation, beginning with Indonesia. Previously stored points are retained and GBIF IDs are deduplicated.
 
-For IUCN enrichment, keep include_iucn_data set to false unless IUCN has confirmed that the intended caching/public-display use is permitted. Once authorized, use a short curated list in biodiversity/iucn_targets.json; the workflow requires the repository variable IUCN_PUBLICATION_APPROVED=true as an additional explicit gate. Store credentials only in GitHub Actions secrets, never in code or generated JSON.
+1. Open **Actions → Build biodiversity country datasets → Run workflow**.
+2. Use **country_code = NEXT** to take the next country in the rotation, or enter one ISO-2 code such as **ID** to process a specific country.
+3. Keep **max_records_per_country = 300** for up to 300 new unique records in the run. A run may add fewer when there are many duplicates, few remaining records, or a source/API issue.
+4. Use **grid_size_degrees = 0.5** for the density grid. Keep **include_iucn_data = false** unless IUCN has confirmed that the proposed public caching/display use is permitted.
+5. Review the action logs and the country’s cumulative counts after the workflow succeeds.
 
-See [biodiversity/README.md](./biodiversity/README.md) for more detail.
+The workflow persists its rotation and page cursor in biodiversity/harvest-state.json. It progresses through country-wide result pages up to GBIF’s safe search-offset limit, then uses year/month and date partitions to continue without repeatedly fetching the same first page. This batch is **not necessarily records first created within the last 24 hours**; it is a new-to-this-repository batch of records reached by the saved cursor. Use **country_code = ALL** only when intentionally running every country in one manual run.
+
+For IUCN enrichment, keep include_iucn_data false unless IUCN has confirmed that the intended caching/public-display use is permitted. Once authorized, use a short curated list in biodiversity/iucn_targets.json; the workflow requires the repository variable IUCN_PUBLICATION_APPROVED=true as an additional explicit gate. Store credentials only in GitHub Actions secrets, never in code or generated JSON.
+
+See biodiversity/README.md for cursor, deduplication, and data-source details.
 
 ## Disclaimer
 
