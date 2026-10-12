@@ -51,7 +51,7 @@ The generated density grid summarizes the returned sample. It is **not** a confi
 
 Explore the [pipeline folder](./biodiversity/) and its [usage and source notes](./biodiversity/README.md).
 
-The country pipeline publishes lightweight spatial indexes for the initial map. Full GBIF occurrence metadata and UNESCO MAB descriptions are fetched from the source APIs only when a visitor opens a point or reserve; those descriptions are not copied into static mapping JSON. Source images, when available, are loaded by URL on demand rather than downloaded into the repository. The pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit.
+The country pipeline publishes lightweight spatial indexes for the initial map. Full GBIF occurrence metadata and UNESCO MAB descriptions are fetched from the source APIs only when a visitor opens a point or reserve; those descriptions are not copied into static mapping JSON. Source images, when available, are loaded by URL on demand rather than downloaded into the repository. The pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit. Automated IUCN and IUCN-derived conservation-status lookups are disabled pending permission; the frontend does not call the authenticated IUCN API or GBIF's IUCN category endpoint.
 
 ## Data-use and interpretation rules
 
