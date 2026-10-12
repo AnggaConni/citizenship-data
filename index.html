@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#071a16">
-  <meta name="description" content="Explore human-curated citizenship data, live GBIF biodiversity observations, and an automated Python pipeline building country-level biodiversity GeoJSON datasets.">
+  <meta name="description" content="Free-to-access independent data explorers for curated citizenship knowledge and biodiversity. Read the software licence and third-party data disclaimer before reuse.">
   <title>Open Data Explorers | Curated Knowledge & Living Biodiversity</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +27,16 @@
     .top{background:radial-gradient(ellipse at 87% 12%,rgba(63,146,93,.22),transparent 32rem),radial-gradient(ellipse at 6% 0%,rgba(43,133,128,.2),transparent 29rem),var(--night);color:var(--text);position:relative;overflow:hidden}
     .top:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(rgba(196,228,207,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(196,228,207,.14) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,#000,transparent 90%)}
     .nav,.hero,.cards-wrap{position:relative;z-index:1}
+    .terms-notice{position:relative;z-index:1;margin:0 auto 28px;padding:19px 20px;max-width:1160px;border:1px solid rgba(212,241,123,.32);border-radius:16px;background:rgba(12,40,29,.9);color:#e6f4e9;box-shadow:0 14px 32px rgba(0,0,0,.12)}
+    .terms-notice-head{display:flex;align-items:center;gap:10px;margin-bottom:7px;color:#d4f17b;font:700 14px Manrope,sans-serif}
+    .terms-notice-intro{margin:0;color:#d7e8dc;font-size:12px;line-height:1.7}
+    .terms-notice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:13px}
+    .terms-notice-item{padding:12px;border-radius:11px;background:rgba(255,255,255,.045);border:1px solid rgba(222,241,226,.1)}
+    .terms-notice-item h3{font-size:12px;line-height:1.45;margin:0 0 5px;color:#f2f8f3}
+    .terms-notice-item p{margin:0;color:#c2d9c9;font-size:11px;line-height:1.7}
+    .terms-notice strong{color:#fff}
+    .terms-notice a{color:#d4f17b;text-decoration:underline;text-underline-offset:3px}
+    .terms-notice-foot{border-top:1px solid rgba(222,241,226,.13);padding-top:10px;margin-top:12px;color:#b8d0c0;font-size:11px;line-height:1.65}
     .nav{padding:23px 0;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid rgba(226,245,231,.12)}
     .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
     .brand-symbol{width:43px;height:43px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(140deg,var(--mint),var(--lime));color:#143c2a;font-size:20px;box-shadow:0 8px 28px rgba(110,218,154,.15)}
@@ -145,7 +155,7 @@
     footer a:hover{text-decoration:underline}
     .disclaimer{max-width:790px;line-height:1.75;margin-top:8px}
     @media(max-width:1050px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:900px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.timeline{grid-template-columns:repeat(3,minmax(0,1fr))}.project-card{padding:22px}.light-heading{align-items:start;flex-direction:column}}
+    @media(max-width:900px){.terms-notice-grid{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.timeline{grid-template-columns:repeat(3,minmax(0,1fr))}.project-card{padding:22px}.light-heading{align-items:start;flex-direction:column}}
     @media(max-width:680px){.wrap{width:calc(100% - 28px)}.nav{padding:17px 0}.nav-label{display:none}.nav a.source-link{font-size:10px}.hero{padding:44px 0 28px}.cards-wrap{padding-bottom:45px}.cards,.two-col,.faq{grid-template-columns:1fr}.project-card h3{font-size:21px}.feature-list{margin-bottom:18px}.main{padding:36px 0}.steps{grid-template-columns:1fr 1fr;gap:9px}.step{padding:13px}.timeline{grid-template-columns:1fr 1fr}.section-panel,.info-card{padding:16px}.bottom-cta{align-items:flex-start;flex-direction:column;padding:19px}.footer-inner{flex-direction:column}.hero h1{font-size:41px}}
     @media(max-width:420px){.steps{grid-template-columns:1fr}.timeline{grid-template-columns:1fr}.tag{font-size:8px;padding:6px 7px}.card-top{align-items:flex-start}.project-card{padding:18px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
@@ -176,6 +186,26 @@
           <span class="hero-chip"><i class="fa-solid fa-gears"></i> Automated Python pipeline</span>
         </div>
       </section>
+
+      <aside class="terms-notice wrap" aria-labelledby="terms-notice-title">
+        <div class="terms-notice-head" id="terms-notice-title"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> Transparency, licensing &amp; data-use disclaimer</div>
+        <p class="terms-notice-intro"><strong>Free to access.</strong> This is an independent public-interest project: no access fees, subscriptions, or paid features are required. Free website access does not remove the terms attached to third-party data or grant unrestricted rights to reuse it.</p>
+        <div class="terms-notice-grid">
+          <section class="terms-notice-item" aria-label="Software licence">
+            <h3><i class="fa-brands fa-github" aria-hidden="true"></i> Software licence</h3>
+            <p>The repository has a custom licence. Copying and adapting the code is permitted for the personal, educational, research, non-profit and social-impact uses described in the <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">LICENSE</a>. Commercial use or inclusion in a paid product requires the author's prior written permission. This licence does not license third-party data.</p>
+          </section>
+          <section class="terms-notice-item" aria-label="Third-party data and IUCN">
+            <h3><i class="fa-solid fa-database" aria-hidden="true"></i> Third-party data &amp; IUCN</h3>
+            <p>GBIF records, UNESCO DataHub content, map tiles, photographs and publication metadata have their own licences, attribution rules and API terms. IUCN enrichment is disabled by default. Having an API key is not permission to republish IUCN data; public caching/display remains gated pending IUCN's confirmation.</p>
+          </section>
+          <section class="terms-notice-item" aria-label="Independence and interpretation">
+            <h3><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Independent &amp; exploratory</h3>
+            <p>This is not an official UNESCO, GBIF or IUCN product, and no endorsement is implied. Samples and density cells may be incomplete; map points do not prove current presence, full species ranges, or protected-area boundaries. Verify critical information against the original source.</p>
+          </section>
+        </div>
+        <div class="terms-notice-foot">Data and software are provided “as is”, without warranty. Check each source's terms before copying, republishing or using information for conservation decisions, policy, research or publication. <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">Read the full README disclaimer</a>.</div>
+      </aside>
 
       <section class="cards-wrap" aria-labelledby="choose-title">
         <div class="section-head">
@@ -333,7 +363,7 @@
         <details><summary>Why can the same species have many global records but just one main-map point?</summary><p>The main map is designed to explore unique species, not render every occurrence. Clicking the species then opens a separate global-record view where the app loads occurrence records in smaller pages and maps the loaded coordinate-bearing records.</p></details>
         <details><summary>Are all species shown with photos?</summary><p>No. Images are obtained from multimedia fields attached to occurrence records. Some species have no attached images, some image URLs may no longer work, and licences or attribution requirements vary by image.</p></details>
         <details><summary>Does the Citizenship Explorer use the GBIF database?</summary><p>No. It is a separate, manually curated project using its own project-managed storage endpoint. The biodiversity scanner does not write its results into the citizenship data store.</p></details>
-        <details><summary>Is this an official UNESCO or GBIF product?</summary><p>No. Open Data Explorers is an independent project. It uses source APIs and map data from the providers named here; it is not an official UNESCO, GBIF, OpenAlex, Crossref, or OpenStreetMap application.</p></details>
+        <details><summary>Is this an official UNESCO or GBIF product?</summary><p>No. Open Data Explorers is an independent project. It is not an official UNESCO, GBIF, IUCN, OpenAlex, Crossref, or OpenStreetMap application, and source references do not imply sponsorship, approval, or endorsement.</p></details>
       </div>
     </section>
 
@@ -345,7 +375,7 @@
 
   <footer>
     <div class="wrap footer-inner">
-      <div><strong>Open Data Explorers</strong><div class="disclaimer">An independent project by its creator. Source datasets and APIs have their own terms, limitations, update cycles, and licensing conditions. Always consult the original record before using data or images in research, education, policy, or publication.</div></div>
+      <div><strong>Open Data Explorers</strong><div class="disclaimer">Free to access; independently developed and not an official UNESCO, GBIF or IUCN product. The repository uses a custom non-commercial software licence; third-party data retains its own terms and attribution rules. IUCN enrichment is disabled by default pending permission for public caching/display. Data can be incomplete and is provided without warranty. Read the <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">README disclaimer</a> and <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">software licence</a> before reuse.</div></div>
       <div><a href="./curated-data.html">Citizenship Explorer</a> · <a href="./biodiversity.html">Biodiversity Explorer</a> · <a href="https://github.com/AnggaConni/citizenship-data/tree/main/biodiversity">Biodiversity data pipeline</a> · <a href="https://github.com/AnggaConni/citizenship-data">GitHub repository</a></div>
     </div>
   </footer>
