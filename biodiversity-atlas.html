@@ -256,6 +256,7 @@
         <button class="button secondary" id="reset-region-btn" type="button" hidden>← Back to all clusters</button>
         <span id="generated-at"></span>
       </div>
+      <div id="session-cache-status" class="toolbar-note" aria-live="polite">Temporary memory cache · empty · cleared when this page closes or reloads</div>
       <div class="stats" aria-label="Dataset summary">
         <article class="stat"><div class="stat-label">Occurrence records in sample</div><div class="stat-value" id="stat-records">—</div><div class="stat-note" id="stat-records-note">Published observations</div></article>
         <article class="stat"><div class="stat-label">Unique taxa in sample</div><div class="stat-value" id="stat-taxa">—</div><div class="stat-note">Based on returned records</div></article>
@@ -347,8 +348,69 @@
         observationLayer: null, gridLayer: null, reserveLayer: null, clusterLayer: null,
         clusterGroups: [], activeScope: null, activeIndices: null, map: null, abort: null,
         gbifDetailCache: new Map(), mabDetailCache: new Map(), detailRequestToken: 0,
-        taxonInsightCache: new Map(), regionGalleryToken: 0, listVisibleLimit: 100
+        taxonInsightCache: new Map(), sessionJsonCache: new Map(),
+        regionGalleryToken: 0, listVisibleLimit: 100, sessionCacheHits: 0
       };
+
+      function sessionCacheCount() {
+        return new Set([
+          ...state.sessionJsonCache.keys(),
+          ...Array.from(state.gbifDetailCache.keys(), key => "gbif:" + key),
+          ...Array.from(state.mabDetailCache.keys(), key => "mab:" + key),
+          ...Array.from(state.taxonInsightCache.keys(), key => "taxon:" + key)
+        ]).size;
+      }
+
+      function renderSessionCacheStatus() {
+        const node = $("session-cache-status");
+        if (!node) return;
+        node.textContent = "Temporary memory cache · " + sessionCacheCount() +
+          " items · cleared when this page closes or reloads";
+        node.title = state.sessionCacheHits +
+          " cache hits during this page session. No data is written to localStorage, sessionStorage, or IndexedDB.";
+      }
+
+      async function fetchJsonSession(url, options = {}) {
+        const cacheKey = String(url);
+        const force = options.force === true;
+        const headers = options.headers || { Accept: "application/json" };
+        if (!force && state.sessionJsonCache.has(cacheKey)) {
+          state.sessionCacheHits++;
+          renderSessionCacheStatus();
+          return await state.sessionJsonCache.get(cacheKey);
+        }
+
+        // Keep response data in this page's JS memory only; don't rely on the
+        // browser's persistent HTTP cache for API/JSON responses.
+        const request = (async () => {
+          const response = await fetch(cacheKey, { headers, cache: "no-store" });
+          if (!response.ok) throw new Error("Request returned HTTP " + response.status);
+          return await response.json();
+        })();
+        state.sessionJsonCache.set(cacheKey, request);
+        renderSessionCacheStatus();
+        try {
+          const payload = await request;
+          state.sessionJsonCache.set(cacheKey, payload);
+          renderSessionCacheStatus();
+          return payload;
+        } catch (error) {
+          if (state.sessionJsonCache.get(cacheKey) === request) {
+            state.sessionJsonCache.delete(cacheKey);
+          }
+          renderSessionCacheStatus();
+          throw error;
+        }
+      }
+
+      function clearSessionMemoryCache() {
+        state.sessionJsonCache.clear();
+        state.gbifDetailCache.clear();
+        state.mabDetailCache.clear();
+        state.taxonInsightCache.clear();
+        state.sessionCacheHits = 0;
+        renderSessionCacheStatus();
+      }
 
       function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -818,9 +880,7 @@
       async function loadIndex() {
         setStatus("Loading published country index…");
         try {
-          const response=await fetch(DATA_INDEX_URL,{cache:"no-cache"});
-          if(!response.ok)throw new Error("Country index returned HTTP "+response.status);
-          state.index=await response.json();
+          state.index=await fetchJsonSession(DATA_INDEX_URL);
           state.countries=(state.index.countries||[]).filter(item=>item&&item.available&&item.file);
           const select=$("country-select");
           select.innerHTML="";
@@ -875,10 +935,8 @@
         $("record-list").innerHTML='<p class="empty-list">Loading country sample…</p>';
         $("record-detail").innerHTML='<p class="detail-placeholder">Loading records…</p>';
         try{
-          const url="./biodiversity/"+encodeURIComponent(country.file)+(force?"?refresh="+Date.now():"");
-          const response=await fetch(url,{cache:force?"reload":"default",signal});
-          if(!response.ok)throw new Error("Dataset returned HTTP "+response.status);
-          const dataset=await response.json();
+          const url="./biodiversity/"+encodeURIComponent(country.file);
+          const dataset=await fetchJsonSession(url,{force});
           if(signal.aborted||state.activeCode!==code)return;
           state.dataset=dataset;
           const collection=dataset.observations_geojson||{};
@@ -889,18 +947,16 @@
           // Fall back to the global MAB file if an older country JSON does not embed mappable reserve points.
           if(!Array.isArray(dataset.biosphere_geojson?.features)||dataset.biosphere_geojson.features.length===0){
             try{
-              const mabResponse=await fetch("./biodiversity/biosphere.json",{cache:"default",signal});
-              if(mabResponse.ok){
-                const mabData=await mabResponse.json();
+              const mabData=await fetchJsonSession("./biodiversity/biosphere.json");
                 const mabFeatures=((mabData.geojson||{}).features||[]).filter(feature=>
                   String(properties(feature).country_code||"").toUpperCase()===code
                 );
                 if(mabFeatures.length)dataset.biosphere_geojson={type:"FeatureCollection",features:mabFeatures};
-              }
-            }catch(mabError){if(mabError.name==="AbortError")return;}
+            }catch(mabError){console.info("MAB map-index fallback unavailable:",String(mabError.message||mabError));}
           }
 
           updateStats(dataset);updateCountrySource(dataset);updateMap(dataset);renderRecords();
+          renderSessionCacheStatus();
           $("record-detail").innerHTML='<p class="detail-placeholder">Dataset loaded successfully. Select a point on the map or a record in the list to inspect its full metadata, taxonomy, conservation references, and available images.</p>';
           const summary=dataset.summary||{};
           const complete=summary.complete_for_requested_sample!==false;
@@ -992,9 +1048,7 @@
         if(state.gbifDetailCache.has(cacheKey))return state.gbifDetailCache.get(cacheKey);
         const request=(async()=>{
           const url="https://api.gbif.org/v1/occurrence/"+encodeURIComponent(cacheKey);
-          const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
-          if(!response.ok)throw new Error("GBIF detail API returned HTTP "+response.status);
-          const detail=await response.json();
+          const detail=await fetchJsonSession(url);
           if(!detail||typeof detail!=="object")throw new Error("GBIF detail response was not an object");
           return detail;
         })();
@@ -1237,9 +1291,7 @@
 
       async function fetchJsonOptional(url) {
         try{
-          const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
-          if(!response.ok)throw new Error("HTTP "+response.status);
-          return await response.json();
+          return await fetchJsonSession(url);
         }catch(error){
           console.info("Optional species reference unavailable:",url,String(error.message||error));
           return null;
@@ -1602,9 +1654,7 @@
         let lastError=null;
         for(const url of urls){
           try{
-            const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
-            if(!response.ok)throw new Error("UNESCO DataHub returned HTTP "+response.status);
-            const payload=await response.json();
+            const payload=await fetchJsonSession(url);
             const fields=unpackMabFields(payload);
             if(fields){
               state.mabDetailCache.set(cacheKey,fields);
@@ -1660,7 +1710,12 @@
       }
 
 
+      window.addEventListener("pagehide", clearSessionMemoryCache, { once: true });
+      window.addEventListener("pageshow", event => {
+        if (event.persisted) renderSessionCacheStatus();
+      });
       initMap();
+      renderSessionCacheStatus();
       loadIndex();
     })();
   </script>
