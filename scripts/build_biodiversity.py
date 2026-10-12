@@ -251,14 +251,25 @@ def normalize_iucn_response(target: dict, payload: dict) -> dict:
     scopes = chosen.get("scopes") if isinstance(chosen.get("scopes"), list) else []
     scope_name = None
     scope_code = None
-    for scope in scopes:
-        if not isinstance(scope, dict):
-            continue
-        if str(scope.get("code") or "") in _assessment_scope_codes(chosen):
-            scope_code = str(scope.get("code")) if scope.get("code") is not None else None
-            desc = scope.get("description")
-            scope_name = desc.get("en") if isinstance(desc, dict) else None
-            break
+    global_scope = next((
+        scope for scope in scopes
+        if isinstance(scope, dict) and (
+            str(scope.get("code") or "") == "1"
+            or (
+                isinstance(scope.get("description"), dict)
+                and str(scope["description"].get("en") or "").casefold() == "global"
+            )
+        )
+    ), None)
+    chosen_scope = global_scope or next(
+        (scope for scope in scopes if isinstance(scope, dict)), None
+    )
+    if chosen_scope:
+        scope_code = str(chosen_scope.get("code")) if chosen_scope.get("code") is not None else None
+        desc = chosen_scope.get("description")
+        scope_name = desc.get("en") if isinstance(desc, dict) else None
+        if scope_name is None and scope_code == "1":
+            scope_name = "Global"
 
     record = {
         "requested_name": target["scientific_name"],
