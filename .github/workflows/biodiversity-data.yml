@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       country_code:
-        description: Country ISO-2 code, or ALL to update every country
+        description: NEXT (next country in daily rotation) or one ISO-2 country code; avoid ALL for normal incremental harvesting
         required: true
-        default: ALL
+        default: NEXT
         type: string
       max_records_per_country:
-        description: Sample cap per country (1–9900; default 300 keeps data size manageable)
+        description: Maximum new unique records to append in this run (1–300; default 300)
         required: true
         default: "300"
         type: string
@@ -24,7 +24,7 @@ on:
         default: false
         type: boolean
   schedule:
-    - cron: "17 2 * * 1"
+    - cron: "17 2 * * *"
 
 permissions:
   contents: write
@@ -51,7 +51,7 @@ jobs:
 
       - name: Fetch GBIF occurrence samples and build GeoJSON
         env:
-          COUNTRY_CODE: ${{ inputs.country_code || 'ALL' }}
+          COUNTRY_CODE: ${{ inputs.country_code || 'NEXT' }}
           MAX_RECORDS: ${{ inputs.max_records_per_country || '300' }}
           GRID_SIZE: ${{ inputs.grid_size_degrees || '0.5' }}
           INCLUDE_IUCN_DATA: ${{ inputs.include_iucn_data || 'false' }}
