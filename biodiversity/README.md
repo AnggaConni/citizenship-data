@@ -36,7 +36,7 @@ GBIF does not provide a narrative description for every observation. The pipelin
 
 ## UNESCO MAB source and licensing
 
-The UNESCO DataHub mab001 dataset is provided under **CC BY-SA 4.0** and is attributed to UNESCO. Preserve this attribution and review the licence requirements before redistributing adapted datasets. The endpoint currently provides reserve coordinates as points, plus descriptive fields such as introduction_en and ecological_characteristics_en; it is not an official reserve-boundary polygon API. The point layer must not be styled as an entire reserve area.
+The UNESCO DataHub mab001 dataset is provided under **CC BY-SA 4.0** and is attributed to UNESCO. Preserve this attribution and review the licence requirements before redistributing adapted datasets. The endpoint currently provides reserve coordinates as points, plus descriptive fields such as introduction_en and ecological_characteristics_en; it is not an official reserve-boundary polygon API. The point layer must not be styled as an entire reserve area. The importer supports the flattened `results[]` fields returned by UNESCO DataHub Explore API v2.1, as well as older/nested field wrappers. It treats a zero-record API response as a refresh error rather than silently replacing the reserve file with an empty dataset.
 
 GBIF source record licences vary; individual record licence and source URL fields are retained. Check the original record and dataset-level requirements before reuse.
 
