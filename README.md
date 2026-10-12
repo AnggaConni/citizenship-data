@@ -1,74 +1,79 @@
-# 🌍 Global Biodiversity & Biosphere 2026 (BioSphere)
+# Open Data Explorers
 
-**BioSphere** is a progressive Web GIS (Geographic Information System) application designed to visualize, monitor, and manage Biodiversity and Biosphere Reserve data. The application is built using a serverless architecture, with Google Sheets acting as the primary database.
+**Open Data Explorers** is an independent, no-fee project for exploring curated citizenship knowledge and biodiversity information. It brings together two web explorers and a Python pipeline that builds country-level biodiversity datasets.
 
-### Key Features
+- **Live site:** https://anggaconni.github.io/citizenship-data/
+- **Source code:** https://github.com/AnggaConni/citizenship-data
+- **Software terms:** [LICENSE](./LICENSE)
+- **Biodiversity pipeline documentation:** [biodiversity/README.md](./biodiversity/README.md)
 
-#### 1. Interactive Map (GIS)
+## Important: please read the disclaimer
 
-- Multi-Layer Visualization: Displays biodiversity points (blue), ecological factors (orange), and biosphere reserve zones (green) within a single interactive map.
-- GIS Drawing Tools: Built-in editor for drawing conservation areas or habitat polygons directly on the map.
-- Advanced Popups: Rich detail popups featuring image carousels, embedded YouTube videos, and anti-phishing link cards.
+This project is freely accessible and is not operated as a paid service. However, **free access to the website does not mean every included dataset is public domain or free of third-party restrictions**.
 
-#### 2. Analytical Dashboard
+1. **Software licence.** The repository has a custom licence focused on personal, educational, research, non-profit, and social-impact use. It permits copying and modifying the software for the uses described in [LICENSE](./LICENSE), subject to its conditions. Commercial use or inclusion in a paid product requires prior written permission from the author. This is not an unrestricted commercial-use licence.
+2. **Third-party data.** GBIF occurrence records, UNESCO DataHub records, map tiles, photographs, and publication metadata retain the applicable source terms, record-level licences, attribution requirements, and usage limits. The repository's software licence does not replace or override those terms.
+3. **IUCN Red List.** IUCN enrichment is optional and disabled by default. Having an API key does not itself authorize redistribution. Public caching or display of IUCN assessment metadata will remain gated until permission for that specific use is confirmed with IUCN. Do not treat the IUCN API key as permission to republish its data.
+4. **Independent project.** This project is not an official UNESCO, GBIF, IUCN, OpenAlex, Crossref, or OpenStreetMap product. References to these organisations identify data sources only; they do not imply affiliation, sponsorship, review, approval, or endorsement.
 
-- Real-time data visualization using Chart.js (Distribution Status & Top Countries).
-- Paginated data tables with instant search.
-- Automatically generated KPI (Key Performance Indicator) statistics.
+## What is included?
 
-#### 3. Security & Data Integrity
+### 1. Citizenship Data Explorer
 
-- Contributor Mode (Login): CRUD features are restricted to authenticated users.
-- Input Validation: Basic HTML sanitization and URL validation to prevent XSS.
-- Lock Service: Prevents data conflicts during concurrent backend operations.
+A manually curated knowledge base for structured citizenship and country-related information. Records are selected and maintained by a human curator and served through project-owner-managed storage. The interface provides map, detail, curation, and export features; the fact that a record appears in the explorer does not mean an external authority has verified it.
 
-#### 4. Data Interoperability
+Open the [Citizenship Data Explorer](./curated-data.html).
 
-- CSV Export: Download complete datasets for analysis.
-- DCMI Export: Supports Dublin Core metadata standard.
+### 2. Biodiversity Explorer
 
-### Installation & Setup
+A browser-based explorer for georeferenced species occurrence records. Users select a country—or explicitly choose Worldwide—and the browser requests pages of public GBIF data asynchronously. Results are processed as they arrive so the map, search, and species details can remain usable during the scan.
 
-#### Step 1: Prepare Google Sheets
+The explorer deduplicates occurrences by species for its main map and provides source links where available. It is designed for discovery, not as an exhaustive download of GBIF or an authoritative species-range map.
 
-Create three sheets:
+Open the [Biodiversity Explorer](./biodiversity.html).
 
-**Nodes (Biodiversity Data)**  
-Headers:
-ID, Local Name, Latin Name, Country, Lat, Lng, AffectedBy Local Name, AffectedBy Latin Name, AffectedBy Country, AffectedBy Lat, AffectedBy Lng, Connection Type, Contact, Geometry JSON, Youtube URL, UNESCO Status, Research Links, Image URL, Description
+### 3. Biodiversity Distribution Pipeline
 
-**Biosphere (Biosphere Reserve Data)**  
-Headers:
-ID, Name Bio, Country, Region, UNESCO Year, Status, Area Total Ha, Youtube URL, Geometry JSON, Research Links, Image URL, Description
+A Python pipeline, run through GitHub Actions, that produces country-level JSON and GeoJSON from:
 
-**Users (Authentication)**  
-Headers:
-Username, Password
+- **GBIF Occurrence API:** capped samples of georeferenced occurrence records, including source fields and record links when supplied.
+- **UNESCO DataHub — Man and the Biosphere dataset (mab001):** reserve metadata and source-provided point coordinates.
+- **IUCN Red List API v4 (optional):** targeted assessment metadata for a small, explicitly curated list of selected species. It remains disabled by default and must not be enabled for public-output caching before the applicable permission is confirmed.
 
-#### Step 2: Deploy Backend (Google Apps Script)
+The generated density grid summarizes the returned sample. It is **not** a confirmed habitat boundary, a species-range polygon, a completeness measure, or evidence that a species is currently present throughout a grid cell. Likewise, UNESCO source points must not be presented as official reserve boundaries.
 
-Extensions → Apps Script  
-Copy backend.gs → Deploy → Web App
+Explore the [pipeline folder](./biodiversity/) and its [usage and source notes](./biodiversity/README.md).
 
-Configuration:
-- Execute as: Me
-- Who has access: Anyone
+## Data-use and interpretation rules
 
-#### Step 3: Configure Frontend
+- Follow each source's attribution, licence, API terms, rate limits, and any redistribution requirements.
+- Check the original source record and its licence before reusing an occurrence, image, or research result.
+- Do not interpret a missing record as proof that a species is absent.
+- Do not treat a sample, representative map point, or density grid as a complete biodiversity inventory or formal conservation assessment.
+- Verify critical information with the original data provider and relevant experts before using it for conservation decisions, policy, research conclusions, or publication.
+- Respect third-party rights even when the website and source code are available without charge.
 
-Edit:
+## Run the biodiversity pipeline
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
+1. Open **Actions → Build biodiversity country datasets → Run workflow** in GitHub.
+2. Set country_code to an ISO-2 code such as ID, or ALL to update the countries returned by GBIF's country enumeration.
+3. Choose a sample limit and grid size. The default is 300 occurrence records per country; supported sample limits are capped to keep processing and published JSON sizes manageable.
+4. Review workflow logs and generated data before using the results.
 
-### Tech Stack
+For IUCN enrichment, keep include_iucn_data set to false unless IUCN has confirmed that the intended caching/public-display use is permitted. Once authorized, use a short curated list in biodiversity/iucn_targets.json; the workflow requires the repository variable IUCN_PUBLICATION_APPROVED=true as an additional explicit gate. Store credentials only in GitHub Actions secrets, never in code or generated JSON.
 
-Frontend: HTML5, Tailwind CSS, Leaflet.js, Chart.js  
-Backend: Google Apps Script  
-Database: Google Sheets
+See [biodiversity/README.md](./biodiversity/README.md) for more detail.
 
-### Security Notes
+## Disclaimer
 
-- Anti-XSS protection
-- Anti-phishing external links
-- LockService concurrency protection
+All tools and datasets are provided "as is", without warranty of any kind, subject to the applicable licences and terms. Source data can be incomplete, delayed, misclassified, or changed by its provider. Images and links may become unavailable. Maps and generated summaries are not professional advice or official determinations of species presence, distribution, conservation status, or protected-area boundaries.
 
+The software is provided "as is", without warranty of any kind, subject to the full terms in [LICENSE](./LICENSE). Users are responsible for checking source licences, providing attribution, and obtaining any permissions needed for their own reuse or redistribution.
+
+## Contributing and reuse
+
+You are welcome to inspect, copy, and adapt the code for the permitted personal, educational, research, non-profit, and social-impact purposes described in [LICENSE](./LICENSE). If distributing modifications, follow the licence's source-availability and redistribution conditions. Contact the author for written permission before commercial use.
+
+---
+
+**Built independently for free access, open knowledge, and responsible data exploration.** Third-party data remains under its own terms.
