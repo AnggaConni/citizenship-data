@@ -66,16 +66,16 @@
     .project-card:before{content:"";position:absolute;width:250px;height:250px;right:-115px;top:-120px;border-radius:50%;filter:blur(1px);opacity:.26;z-index:-1;transition:transform .3s}
     .project-card.citizenship:before{background:radial-gradient(circle,#62b9ff,transparent 68%)}
     .project-card.biodiversity:before{background:radial-gradient(circle,#56e0a0,transparent 68%)}
-    .project-card.biodiversity-pipeline:before{background:radial-gradient(circle,#a78bfa,transparent 68%)}
+    .project-card.biodiversity-atlas:before{background:radial-gradient(circle,#a78bfa,transparent 68%)}
     .project-card:hover{transform:translateY(-4px);border-color:rgba(177,233,190,.42);box-shadow:0 20px 50px rgba(0,0,0,.18)}
     .project-card:hover:before{transform:scale(1.15)}
     .card-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
     .card-icon{width:49px;height:49px;display:grid;place-items:center;border-radius:15px;font-size:21px}
     .citizenship .card-icon{background:rgba(72,175,255,.12);border:1px solid rgba(104,197,255,.22);color:#85ceff}
     .biodiversity .card-icon{background:rgba(80,224,155,.12);border:1px solid rgba(96,236,167,.2);color:#75e8ae}
-    .biodiversity-pipeline .card-icon{background:rgba(167,139,250,.12);border:1px solid rgba(196,181,253,.22);color:#c4b5fd}
-    .biodiversity-pipeline .tag .tiny-dot{background:#c4b5fd}
-    .biodiversity-pipeline .card-action>span:first-child{color:#c4b5fd}
+    .biodiversity-atlas .card-icon{background:rgba(167,139,250,.12);border:1px solid rgba(196,181,253,.22);color:#c4b5fd}
+    .biodiversity-atlas .tag .tiny-dot{background:#c4b5fd}
+    .biodiversity-atlas .card-action>span:first-child{color:#c4b5fd}
     .tag{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(219,242,225,.16);background:rgba(255,255,255,.04);border-radius:999px;padding:7px 9px;color:#d1e5d7;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
     .tag .tiny-dot{width:6px;height:6px;border-radius:50%;background:#8ce1ab}
     .project-card h3{font:800 23px Manrope,sans-serif;letter-spacing:-.04em;margin:24px 0 8px}
@@ -240,7 +240,7 @@
             <div class="card-action"><span>Open Biodiversity Explorer</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
           </a>
 
-          <a class="project-card biodiversity-pipeline" href="./biodiversity-atlas.html" aria-label="Open Biodiversity Atlas">
+          <a class="project-card biodiversity-atlas" href="./biodiversity-atlas.html" aria-label="Open Biodiversity Atlas">
             <div class="card-top"><span class="card-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><span class="tag"><span class="tiny-dot"></span> Published data · Interactive map</span></div>
             <h3>Biodiversity Atlas</h3>
             <p class="card-intro">Explore country-level data already produced by the Python pipeline—starting with an Indonesia pilot sample. Browse georeferenced GBIF occurrence records, inspect individual source records, and switch a sample-density grid on an interactive map.</p>
