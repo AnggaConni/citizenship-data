@@ -47,7 +47,7 @@
     .section-kicker{font-size:9px;letter-spacing:.15em;text-transform:uppercase;font-weight:800;color:var(--green)}
     h2{font:800 22px Manrope,sans-serif;margin:5px 0 0;letter-spacing:-.025em}
     .toolbar-note{font-size:11px;color:var(--muted);max-width:450px;line-height:1.65}
-    .dataset-controls{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1.2fr) auto;gap:12px;align-items:end;background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;box-shadow:var(--shadow)}
+    .dataset-controls{display:grid;grid-template-columns:minmax(180px,1fr) minmax(200px,1.15fr) minmax(145px,.7fr) auto;gap:12px;align-items:end;background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;box-shadow:var(--shadow)}
     .field{display:flex;flex-direction:column;gap:6px;min-width:0}
     label{font-size:10px;font-weight:800;color:#536b59}
     input,select{width:100%;min-width:0;padding:11px 12px;border:1px solid #d9e3d7;border-radius:10px;background:#fcfdfb;color:var(--ink);font-size:12px}
@@ -78,6 +78,8 @@
     .legend-dot{width:9px;height:9px;border-radius:50%;background:#247cbd;border:1px solid #fff;box-shadow:0 0 0 1px #247cbd}
     .legend-square{width:10px;height:10px;background:#5cae77;border-radius:2px}
     .legend-reserve{width:9px;height:9px;background:#a45ab4;border-radius:50%;box-shadow:0 0 0 2px #eadcf0}
+    .legend-region{width:12px;height:10px;background:rgba(36,120,79,.25);border:2px solid #24784f;border-radius:3px}
+    .region-note{padding:10px 15px;background:#f5f9f3;border-bottom:1px solid #edf1eb;color:#58735d;font-size:10px;line-height:1.6}
     .side{display:flex;flex-direction:column;min-height:0}
     .search-tools{padding:12px;border-bottom:1px solid #edf1eb}
     .search-tools input{margin-bottom:9px}
@@ -172,16 +174,27 @@
           <label for="record-search">Search the current sample</label>
           <input id="record-search" type="search" placeholder="Scientific name, locality, recorder…" autocomplete="off" disabled>
         </div>
+        <div class="field">
+          <label for="cluster-distance">Heuristic cluster radius</label>
+          <select id="cluster-distance" aria-label="Heuristic clustering radius">
+            <option value="25">25 km</option>
+            <option value="50">50 km</option>
+            <option value="75" selected>75 km</option>
+            <option value="100">100 km</option>
+            <option value="150">150 km</option>
+          </select>
+        </div>
         <button class="button" id="reload-btn" type="button"><span aria-hidden="true">↻</span> Reload dataset</button>
       </div>
       <div class="status-row">
         <div class="status-text"><span class="status-dot" id="status-dot"></span><span id="status-text" role="status" aria-live="polite">Loading published country index…</span></div>
+        <button class="button secondary" id="reset-region-btn" type="button" hidden>← Back to all clusters</button>
         <span id="generated-at"></span>
       </div>
       <div class="stats" aria-label="Dataset summary">
         <article class="stat"><div class="stat-label">Occurrence records in sample</div><div class="stat-value" id="stat-records">—</div><div class="stat-note" id="stat-records-note">Published observations</div></article>
         <article class="stat"><div class="stat-label">Unique taxa in sample</div><div class="stat-value" id="stat-taxa">—</div><div class="stat-note">Based on returned records</div></article>
-        <article class="stat"><div class="stat-label">Sample density cells</div><div class="stat-value" id="stat-cells">—</div><div class="stat-note">Rectangular degree grid</div></article>
+        <article class="stat"><div class="stat-label">Heuristic distribution clusters</div><div class="stat-value" id="stat-clusters">—</div><div class="stat-note">Grouped by selected distance</div></article>
         <article class="stat"><div class="stat-label">GBIF matching-record count</div><div class="stat-value" id="stat-total">—</div><div class="stat-note">Provider total at last pipeline run</div></article>
       </div>
     </section>
@@ -190,19 +203,22 @@
       <div>
         <article class="panel">
           <div class="panel-head">
-            <div><div class="panel-title">Occurrence map</div><div class="panel-sub">Select a point to inspect its source record. Zoom and pan to explore locations.</div></div>
+            <div><div class="panel-title">Occurrence map</div><div class="panel-sub">Overview: click a shaded region to zoom in and reveal its original occurrence points.</div></div>
             <a id="country-source" class="button secondary" href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Source ↗</a>
           </div>
           <div class="layer-toggles" aria-label="Map layers">
-            <label class="toggle"><input type="checkbox" id="layer-observations" checked> Occurrence points</label>
-            <label class="toggle"><input type="checkbox" id="layer-grid" checked> Sample density grid</label>
+            <label class="toggle"><input type="checkbox" id="layer-clusters" checked> Heuristic regions</label>
+            <label class="toggle"><input type="checkbox" id="layer-observations"> Occurrence points</label>
+            <label class="toggle"><input type="checkbox" id="layer-grid"> Sample density grid</label>
             <label class="toggle"><input type="checkbox" id="layer-reserves" checked> UNESCO MAB points</label>
           </div>
+          <div class="region-note" id="region-note">Heuristic regions summarize where records in this sample are clustered. Click one to zoom in and show its source points. Isolated records appear as individual markers. Polygons are exploratory envelopes, not species ranges or habitat boundaries.</div>
           <div id="map" role="application" aria-label="Interactive map displaying published biodiversity sample records"></div>
           <div class="map-legend">
-            <span class="legend-item"><i class="legend-dot"></i> Occurrence record</span>
-            <span class="legend-item"><i class="legend-square"></i> Grid cell with sampled records</span>
-            <span class="legend-item"><i class="legend-reserve"></i> UNESCO biosphere-reserve point</span>
+            <span class="legend-item"><i class="legend-region"></i> Heuristic region envelope</span>
+            <span class="legend-item"><i class="legend-dot"></i> Original occurrence record</span>
+            <span class="legend-item"><i class="legend-square"></i> Sample density grid</span>
+            <span class="legend-item"><i class="legend-reserve"></i> UNESCO MAB source point</span>
           </div>
         </article>
 
@@ -245,11 +261,14 @@
     (() => {
       "use strict";
       const DATA_INDEX_URL = "./biodiversity/index.json";
-      const $ = (id) => document.getElementById(id);
+      const RESERVE_NEARBY_RADIUS_KM = 50;
+      const MIN_CLUSTER_POINTS = 3;
+      const $ = id => document.getElementById(id);
       const state = {
         index: null, dataset: null, countries: [], activeCode: null,
         observations: [], filtered: [], markersById: new Map(), selectedId: null,
-        observationLayer: null, gridLayer: null, reserveLayer: null, map: null, abort: null
+        observationLayer: null, gridLayer: null, reserveLayer: null, clusterLayer: null,
+        clusterGroups: [], activeScope: null, activeIndices: null, map: null, abort: null
       };
 
       function escapeHtml(value) {
@@ -293,6 +312,11 @@
         const safe = safeHttpUrl(url);
         return safe ? '<a class="button secondary" href="' + escapeHtml(safe) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(text) + ' ↗</a>' : "";
       }
+      function toggleLayer(show, layer) {
+        if (!layer || !state.map) return;
+        if (show) layer.addTo(state.map);
+        else state.map.removeLayer(layer);
+      }
 
       function initMap() {
         state.map = L.map("map", { preferCanvas: true, worldCopyJump: true }).setView([-2.5, 118], 4);
@@ -300,21 +324,68 @@
           maxZoom: 19,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(state.map);
-        state.observationLayer = L.layerGroup().addTo(state.map);
+
+        state.observationLayer = L.layerGroup();
         state.gridLayer = L.geoJSON(null, {
           style: feature => {
-            const p = feature.properties || {};
-            const c = Number(p.observation_count || 0);
+            const p = properties(feature), c = Number(p.observation_count || 0);
             const color = c >= 50 ? "#246b43" : c >= 10 ? "#42945c" : c >= 3 ? "#84bd73" : "#beddaa";
             return { color, weight: 1, opacity: .6, fillColor: color, fillOpacity: .24 };
           },
           onEachFeature: (feature, layer) => {
-            const p = feature.properties || {};
+            const p = properties(feature);
             layer.bindPopup(
               "<strong>Sample density cell</strong><br>Records in sample: " + escapeHtml(fmt(p.observation_count)) +
               "<br>Unique taxa: " + escapeHtml(fmt(p.unique_taxa_count)) +
               "<br><em>This grid is based only on the returned sample.</em>"
             );
+          }
+        });
+        state.clusterLayer = L.geoJSON(null, {
+          style: feature => {
+            const p = properties(feature);
+            const selected = state.activeScope && state.activeScope.type === "cluster" &&
+              state.activeScope.id === String(p.cluster_id || "");
+            return {
+              color: selected ? "#154c32" : "#24784f",
+              weight: selected ? 3 : 1.5,
+              opacity: .9,
+              fillColor: selected ? "#8fcba0" : "#57ae79",
+              fillOpacity: selected ? .12 : .27
+            };
+          },
+          pointToLayer: (feature, latlng) => {
+            const isolated = properties(feature).feature_type === "isolated";
+            return L.circleMarker(latlng, {
+              radius: isolated ? 4 : 5,
+              color: isolated ? "#667c6d" : "#24784f",
+              weight: 1.4,
+              fillColor: isolated ? "#b7c4b8" : "#57ae79",
+              fillOpacity: .9
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const p = properties(feature);
+            if (p.feature_type === "cluster") {
+              layer.bindPopup(
+                "<strong>Heuristic distribution region " + escapeHtml(p.cluster_id) + "</strong><br>" +
+                "Sample records: " + escapeHtml(fmt(p.record_count)) +
+                "<br>Unique taxa: " + escapeHtml(fmt(p.unique_taxa_count)) +
+                "<br>Grouping radius: " + escapeHtml(fmt(p.radius_km)) + " km" +
+                "<br><em>Click this region to zoom in and show the original points. This is not an official range boundary.</em>"
+              );
+              layer.on("click", () => activateCluster(String(p.cluster_id)));
+            } else {
+              layer.bindPopup(
+                "<strong>Isolated sample observation</strong><br>" +
+                escapeHtml(p.scientific_name || "Unidentified taxon") +
+                "<br><em>Not enough nearby records to form a region; click to inspect the point.</em>"
+              );
+              layer.on("click", () => activateScope(
+                "isolated", String(p.point_index), [Number(p.point_index)],
+                "One isolated sample record", layer.getBounds()
+              ));
+            }
           }
         }).addTo(state.map);
         state.reserveLayer = L.geoJSON(null, {
@@ -323,20 +394,22 @@
           }),
           onEachFeature: (feature, layer) => {
             const p = properties(feature);
-            layer.bindPopup("<strong>" + escapeHtml(p.name || p.title_en || "Biosphere reserve") + "</strong><br>" +
+            layer.bindPopup(
+              "<strong>" + escapeHtml(p.name || p.title_en || "Biosphere reserve") + "</strong><br>" +
               escapeHtml(p.country || p.country_title_en || "Country not provided") +
-              "<br><em>Source-provided point; not the reserve boundary.</em>" +
-              (safeHttpUrl(p.source_url || p.url) ? '<br><a href="' + escapeHtml(safeHttpUrl(p.source_url || p.url)) + '" target="_blank" rel="noopener noreferrer">Source ↗</a>' : ""));
+              "<br><em>Source-provided point; not the reserve boundary. Click to inspect nearby sampled records.</em>" +
+              (safeHttpUrl(p.source_url || p.url) ? '<br><a href="' + escapeHtml(safeHttpUrl(p.source_url || p.url)) + '" target="_blank" rel="noopener noreferrer">Source ↗</a>' : "")
+            );
+            layer.on("click", () => activateReserveNeighborhood(feature));
           }
         }).addTo(state.map);
+
         $("layer-observations").addEventListener("change", e => toggleLayer(e.target.checked, state.observationLayer));
         $("layer-grid").addEventListener("change", e => toggleLayer(e.target.checked, state.gridLayer));
+        $("layer-clusters").addEventListener("change", e => toggleLayer(e.target.checked, state.clusterLayer));
         $("layer-reserves").addEventListener("change", e => toggleLayer(e.target.checked, state.reserveLayer));
       }
-      function toggleLayer(show, layer) {
-        if (show) layer.addTo(state.map);
-        else state.map.removeLayer(layer);
-      }
+
       function updateCountrySource(dataset) {
         const url = safeHttpUrl(dataset && dataset.source && dataset.source.api);
         const link = $("country-source");
@@ -376,6 +449,10 @@
             renderRecords();
           });
           $("reload-btn").addEventListener("click", () => loadCountry(select.value, true));
+          $("cluster-distance").addEventListener("change", () => {
+            if (state.dataset) resetToOverview(true);
+          });
+          $("reset-region-btn").addEventListener("click", () => resetToOverview(true));
           await loadCountry(preferred.code);
         } catch (error) {
           console.error(error);
@@ -392,6 +469,15 @@
         const signal = state.abort.signal;
         state.activeCode = code;
         state.selectedId = null;
+        state.activeScope = null;
+        state.activeIndices = null;
+        $("reset-region-btn").hidden = true;
+        $("layer-clusters").checked = true;
+        $("layer-observations").checked = false;
+        $("layer-grid").checked = false;
+        $("layer-reserves").checked = true;
+        $("record-search").value = "";
+        $("list-search").value = "";
         setStatus("Loading " + country.name + " published sample…");
         $("reload-btn").disabled = true;
         $("record-list").innerHTML = '<p class="empty-list">Loading country sample…</p>';
@@ -408,8 +494,6 @@
             f && f.geometry && f.geometry.type === "Point" && Array.isArray(f.geometry.coordinates) &&
             f.geometry.coordinates.length >= 2 && f.geometry.coordinates.every(v => Number.isFinite(Number(v)))
           ) : [];
-          $("record-search").value = "";
-          $("list-search").value = "";
           updateStats(dataset);
           updateCountrySource(dataset);
           updateMap(dataset);
@@ -418,7 +502,7 @@
           const complete = summary.complete_for_requested_sample !== false;
           setStatus(
             country.name + " sample loaded: " + fmt(state.observations.length) +
-            " mapped records. " + (complete ? "Requested sample returned." : "Partial sample; some pages were unavailable."),
+            " original point records. " + (complete ? "Requested sample returned." : "Partial sample; some pages were unavailable."),
             complete ? "ok" : "warn"
           );
         } catch (error) {
@@ -437,7 +521,7 @@
         $("stat-records").textContent = fmt(s.mapped_occurrence_points ?? state.observations.length);
         $("stat-records-note").textContent = "From " + fmt(s.unique_occurrence_records ?? state.observations.length) + " unique records";
         $("stat-taxa").textContent = fmt(s.unique_taxa_in_sample ?? "—");
-        $("stat-cells").textContent = fmt(s.distribution_grid_cells ?? 0);
+        $("stat-clusters").textContent = fmt(state.clusterGroups.length);
         $("stat-total").textContent = fmt(s.total_matching_records_reported_by_gbif ?? "—");
         const date = dataset.generated_at_utc ? new Date(dataset.generated_at_utc) : null;
         $("generated-at").textContent = date && !Number.isNaN(date.valueOf())
@@ -445,136 +529,503 @@
           : "";
       }
 
-      function updateMap(dataset) {
-        state.observationLayer.clearLayers();
-        state.gridLayer.clearLayers();
-        state.reserveLayer.clearLayers();
-        state.markersById.clear();
-
-        const grid = dataset.distribution_geojson;
-        if (grid && Array.isArray(grid.features)) state.gridLayer.addData(grid);
-        const reserves = dataset.biosphere_geojson;
-        if (reserves && Array.isArray(reserves.features)) state.reserveLayer.addData(reserves);
-
-        state.observations.forEach((feature, index) => {
-          const props = properties(feature);
-          const [lon, lat] = feature.geometry.coordinates.map(Number);
-          if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
-          const id = recordId(feature, index);
-          const marker = L.circleMarker([lat, lon], {
-            radius: 5, color: "#174e8b", weight: 1.2, fillColor: "#43a0e4", fillOpacity: .8
-          });
-          marker.bindPopup("<strong>" + escapeHtml(displayName(props)) + "</strong><br>" +
-            escapeHtml(props.locality || props.stateProvince || props.country || "Location recorded") +
-            "<br><small>GBIF occurrence " + escapeHtml(props.gbif_id || props.key || id) + "</small>");
-          marker.on("click", () => selectRecord(id, false));
-          marker.addTo(state.observationLayer);
-          state.markersById.set(id, {marker, feature, index});
-        });
-
-        const layers = [state.observationLayer, state.gridLayer, state.reserveLayer];
-        const available = layers.flatMap(layer => layer.getLayers());
-        if (available.length) {
-          try {
-            const bounds = L.featureGroup(available).getBounds();
-            if (bounds.isValid()) state.map.fitBounds(bounds.pad(.08), { maxZoom: 8 });
-          } catch { state.map.setView([-2.5, 118], 4); }
-        } else {
-          state.map.setView([-2.5, 118], 4);
+      function haversineKm(a, b) {
+        const rad = Math.PI / 180;
+        const lat1 = a.lat * rad, lat2 = b.lat * rad;
+        const dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
+        const q = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+        return 6371.0088 * 2 * Math.asin(Math.min(1, Math.sqrt(q)));
+      }
+      function xyz(point) {
+        const lat = point.lat * Math.PI / 180, lon = point.lon * Math.PI / 180;
+        return [Math.cos(lat) * Math.cos(lon), Math.cos(lat) * Math.sin(lon), Math.sin(lat)];
+      }
+      function convexHull(projected) {
+        const sorted = projected.slice().sort((a,b) => a.x - b.x || a.y - b.y);
+        const unique = sorted.filter((p,i) => i === 0 || Math.abs(p.x - sorted[i-1].x) > 1e-9 || Math.abs(p.y - sorted[i-1].y) > 1e-9);
+        if (unique.length <= 2) return unique;
+        const cross = (o,a,b) => (a.x-o.x)*(b.y-o.y) - (a.y-o.y)*(b.x-o.x);
+        const lower = [];
+        for (const p of unique) {
+          while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+          lower.push(p);
         }
-        toggleLayer($("layer-observations").checked, state.observationLayer);
-        toggleLayer($("layer-grid").checked, state.gridLayer);
-        toggleLayer($("layer-reserves").checked, state.reserveLayer);
+        const upper = [];
+        for (let i=unique.length-1;i>=0;i--) {
+          const p = unique[i];
+          while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+          upper.push(p);
+        }
+        lower.pop(); upper.pop();
+        return lower.concat(upper);
+      }
+      function circleRing(centerX, centerY, radiusKm, originLon, originLat) {
+        const cosLat = Math.max(.15, Math.cos(originLat * Math.PI / 180));
+        const ring = [];
+        for (let i=0;i<20;i++) {
+          const angle = 2 * Math.PI * i / 20;
+          const x = centerX + Math.cos(angle) * radiusKm;
+          const y = centerY + Math.sin(angle) * radiusKm;
+          ring.push([originLon + x / (111.32 * cosLat), originLat + y / 111.32]);
+        }
+        ring.push(ring[0]);
+        return ring;
+      }
+      function makeEnvelope(indices, clusterId, radiusKm) {
+        const pts = indices.map(i => {
+          const [lon,lat] = state.observations[i].geometry.coordinates.map(Number);
+          return { lon, lat, index:i };
+        });
+        const originLat = pts.reduce((s,p)=>s+p.lat,0)/pts.length;
+        const originLon = pts.reduce((s,p)=>s+p.lon,0)/pts.length;
+        const cosLat = Math.max(.15, Math.cos(originLat * Math.PI / 180));
+        const projected = pts.map(p => ({
+          x: (p.lon-originLon) * 111.32 * cosLat,
+          y: (p.lat-originLat) * 111.32,
+          lon: p.lon, lat: p.lat
+        }));
+        let hull = convexHull(projected);
+        if (hull.length < 3) {
+          const xs = projected.map(p=>p.x), ys = projected.map(p=>p.y);
+          const cx = xs.reduce((s,v)=>s+v,0)/xs.length, cy=ys.reduce((s,v)=>s+v,0)/ys.length;
+          const span = Math.max(0, ...projected.map(p=>Math.hypot(p.x-cx,p.y-cy)));
+          const ring = circleRing(cx,cy,Math.max(2.5,span+2.5),originLon,originLat);
+          return {type:"Feature",id:"cluster-"+clusterId,geometry:{type:"Polygon",coordinates:[ring]},properties:{
+            feature_type:"cluster",cluster_id:String(clusterId),record_count:indices.length,
+            unique_taxa_count:countUniqueTaxa(indices),radius_km:radiusKm,envelope_type:"small padded envelope"
+          }};
+        }
+        // Expand the hull very slightly so its outline reads as an envelope, not as a claimed exact boundary.
+        const cx = hull.reduce((s,p)=>s+p.x,0)/hull.length;
+        const cy = hull.reduce((s,p)=>s+p.y,0)/hull.length;
+        hull = hull.map(p => {
+          const dx=p.x-cx,dy=p.y-cy,dist=Math.hypot(dx,dy);
+          const scale=dist>0?(dist+2.5)/dist:1;
+          return {x:cx+dx*scale,y:cy+dy*scale};
+        });
+        const ring=hull.map(p=>[
+          originLon+p.x/(111.32*cosLat),
+          originLat+p.y/111.32
+        ]);
+        ring.push(ring[0]);
+        return {type:"Feature",id:"cluster-"+clusterId,geometry:{type:"Polygon",coordinates:[ring]},properties:{
+          feature_type:"cluster",cluster_id:String(clusterId),record_count:indices.length,
+          unique_taxa_count:countUniqueTaxa(indices),radius_km:radiusKm,envelope_type:"convex hull around a local point cluster"
+        }};
+      }
+      function countUniqueTaxa(indices) {
+        const taxa=new Set();
+        indices.forEach(i=>{
+          const p=properties(state.observations[i]);
+          const key=p.taxon_key || p.speciesKey || p.taxonKey || p.scientific_name || p.species || p.scientificName;
+          if(key)taxa.add(String(key));
+        });
+        return taxa.size;
+      }
+      function buildHeuristicDistribution(radiusKm) {
+        const pts=state.observations.map((feature,index)=>{
+          const coords=feature.geometry.coordinates.map(Number);
+          return {index,lon:coords[0],lat:coords[1]};
+        }).filter(p=>Number.isFinite(p.lon)&&Number.isFinite(p.lat)&&Math.abs(p.lat)<=90&&Math.abs(p.lon)<=180);
+        if(!pts.length)return {geojson:{type:"FeatureCollection",features:[]},groups:[]};
+        const chord=2*Math.sin(radiusKm/(2*6371.0088));
+        const bucketSize=Math.max(chord,1e-6);
+        const bucketKey=(x,y,z)=>x+","+y+","+z;
+        const bucketCoord=v=>Math.floor((v+1)/bucketSize);
+        const vectors=pts.map(xyz);
+        const buckets=new Map();
+        vectors.forEach((v,pos)=>{
+          const key=bucketKey(bucketCoord(v[0]),bucketCoord(v[1]),bucketCoord(v[2]));
+          if(!buckets.has(key))buckets.set(key,[]);
+          buckets.get(key).push(pos);
+        });
+        const neighbors=pts.map((p,i)=>{
+          const v=vectors[i],bx=bucketCoord(v[0]),by=bucketCoord(v[1]),bz=bucketCoord(v[2]),near=[];
+          for(let x=bx-1;x<=bx+1;x++)for(let y=by-1;y<=by+1;y++)for(let z=bz-1;z<=bz+1;z++){
+            const members=buckets.get(bucketKey(x,y,z))||[];
+            for(const j of members)if(haversineKm(p,pts[j])<=radiusKm)near.push(j);
+          }
+          return near;
+        });
+        // Greedy fixed-radius grouping avoids DBSCAN's long chaining effect, which can connect distant islands.
+        const remaining=new Set(pts.map((_,i)=>i));
+        const groups=[];
+        while(true){
+          let best=-1,bestMembers=[],bestCount=MIN_CLUSTER_POINTS-1;
+          for(const i of remaining){
+            const members=neighbors[i].filter(j=>remaining.has(j));
+            if(members.length>bestCount){best=i;bestMembers=members;bestCount=members.length;}
+          }
+          if(best<0||bestCount<MIN_CLUSTER_POINTS)break;
+          const indices=bestMembers.map(j=>pts[j].index).sort((a,b)=>a-b);
+          indices.forEach(index=>remaining.delete(pts.findIndex(p=>p.index===index)));
+          groups.push({id:String(groups.length+1),indices});
+        }
+        const features=[];
+        groups.forEach(group=>features.push(makeEnvelope(group.indices,group.id,radiusKm)));
+        for(const localIndex of remaining){
+          const p=pts[localIndex];
+          const props=properties(state.observations[p.index]);
+          features.push({
+            type:"Feature",id:"isolated-"+p.index,
+            geometry:{type:"Point",coordinates:[p.lon,p.lat]},
+            properties:{
+              feature_type:"isolated",point_index:p.index,
+              scientific_name:displayName(props),record_count:1,unique_taxa_count:1,
+              source_id:props.gbif_id || props.key || recordId(state.observations[p.index],p.index)
+            }
+          });
+        }
+        return {
+          geojson:{type:"FeatureCollection",features},
+          groups:groups.map(group=>({
+            id:group.id,indices:group.indices,feature:features.find(f=>properties(f).cluster_id===group.id)
+          })),
+          isolatedCount:remaining.size
+        };
+      }
+
+      function drawOccurrenceMarkers(indices = null) {
+        state.observationLayer.clearLayers();
+        state.markersById.clear();
+        const selectedIndices = indices === null ? state.observations.map((_,i)=>i) : indices;
+        selectedIndices.forEach(index => {
+          const feature=state.observations[index];
+          if(!feature || !feature.geometry || !Array.isArray(feature.geometry.coordinates))return;
+          const p=properties(feature),[lon,lat]=feature.geometry.coordinates.map(Number);
+          if(!Number.isFinite(lon)||!Number.isFinite(lat)||Math.abs(lat)>90||Math.abs(lon)>180)return;
+          const id=recordId(feature,index);
+          const marker=L.circleMarker([lat,lon],{
+            radius:5,color:"#174e8b",weight:1.2,fillColor:"#43a0e4",fillOpacity:.85
+          });
+          marker.bindPopup("<strong>"+escapeHtml(displayName(p))+"</strong><br>"+
+            escapeHtml(p.locality||p.stateProvince||p.country||"Location recorded")+
+            "<br><small>GBIF occurrence "+escapeHtml(p.gbif_id||p.key||id)+"</small>");
+          marker.on("click",()=>selectRecord(id,false));
+          marker.addTo(state.observationLayer);
+          state.markersById.set(id,{marker,feature,index});
+        });
+      }
+
+      function drawAllLayersAndFit() {
+        toggleLayer($("layer-clusters").checked,state.clusterLayer);
+        toggleLayer($("layer-observations").checked,state.observationLayer);
+        toggleLayer($("layer-grid").checked,state.gridLayer);
+        toggleLayer($("layer-reserves").checked,state.reserveLayer);
+        const visible=[state.clusterLayer,state.observationLayer,state.gridLayer,state.reserveLayer]
+          .filter(layer=>state.map.hasLayer(layer));
+        const members=visible.flatMap(layer=>layer.getLayers());
+        if(!members.length){state.map.setView([-2.5,118],4);return;}
+        try{
+          const bounds=L.featureGroup(members).getBounds();
+          if(bounds.isValid())state.map.fitBounds(bounds.pad(.08),{maxZoom:8});
+          else state.map.setView([-2.5,118],4);
+        }catch{state.map.setView([-2.5,118],4);}
+      }
+
+      function updateMap(dataset) {
+        state.gridLayer.clearLayers();
+        state.clusterLayer.clearLayers();
+        state.reserveLayer.clearLayers();
+        state.observationLayer.clearLayers();
+        state.markersById.clear();
+        state.clusterGroups=[];
+        state.activeScope=null;
+        state.activeIndices=null;
+
+        const grid=dataset.distribution_geojson;
+        if(grid&&Array.isArray(grid.features))state.gridLayer.addData(grid);
+        const reserves=dataset.biosphere_geojson;
+        if(reserves&&Array.isArray(reserves.features))state.reserveLayer.addData(reserves);
+        const radiusKm=Number($("cluster-distance").value)||75;
+        const clustered=buildHeuristicDistribution(radiusKm);
+        state.clusterGroups=clustered.groups;
+        state.clusterLayer.addData(clustered.geojson);
+        drawOccurrenceMarkers(null);
+        $("stat-clusters").textContent=fmt(state.clusterGroups.length);
+        $("reset-region-btn").hidden=true;
+        $("region-note").textContent=
+          "At "+radiusKm+" km radius, "+state.clusterGroups.length+" heuristic regions were created from nearby points. "+
+          (clustered.isolatedCount||0)+" sparse/isolated records remain as standalone markers. Click a region to zoom in and reveal its original points.";
+        drawAllLayersAndFit();
+      }
+
+      function activateScope(type,id,indices,label,bounds) {
+        state.activeScope={type,id:String(id),label};
+        state.activeIndices=indices.slice();
+        state.selectedId=null;
+        drawOccurrenceMarkers(state.activeIndices);
+        $("layer-observations").checked=true;
+        toggleLayer(true,state.observationLayer);
+        state.clusterLayer.setStyle(feature=>{
+          const p=properties(feature);
+          const selected=type==="cluster"&&String(p.cluster_id||"")===String(id);
+          return {color:selected?"#154c32":"#24784f",weight:selected?3:1.5,opacity:.9,
+            fillColor:selected?"#8fcba0":"#57ae79",fillOpacity:selected?.12:.27};
+        });
+        $("reset-region-btn").hidden=false;
+        $("region-note").textContent=label+". The blue points are original sampled occurrence records; the green envelope is only a heuristic summary, not a habitat or range boundary.";
+        renderRecords();
+        if(bounds&&typeof bounds.isValid==="function"&&bounds.isValid()){
+          state.map.fitBounds(bounds.pad(.2),{maxZoom:10});
+        }
+        if(indices.length){
+          setStatus(label+": showing "+fmt(indices.length)+" original occurrence record(s) in this selected view.","ok");
+        }else{
+          setStatus(label+": no sampled occurrence record was found for this view. This does not establish absence in nature.","warn");
+        }
+      }
+
+      function activateCluster(clusterId) {
+        const group=state.clusterGroups.find(item=>String(item.id)===String(clusterId));
+        if(!group)return;
+        let bounds=null;
+        state.clusterLayer.eachLayer(layer=>{
+          if(String(properties(layer.feature).cluster_id||"")===String(clusterId))bounds=layer.getBounds();
+        });
+        activateScope("cluster",clusterId,group.indices,
+          "Distribution region "+clusterId+" ("+group.indices.length+" sample records)",bounds);
+      }
+
+      function activateReserveNeighborhood(feature) {
+        const coordinates=feature&&feature.geometry&&feature.geometry.coordinates;
+        if(!Array.isArray(coordinates)||coordinates.length<2)return;
+        const center={lon:Number(coordinates[0]),lat:Number(coordinates[1])};
+        const indices=[];
+        state.observations.forEach((record,index)=>{
+          const xy=record.geometry.coordinates.map(Number);
+          if(haversineKm(center,{lon:xy[0],lat:xy[1]})<=RESERVE_NEARBY_RADIUS_KM)indices.push(index);
+        });
+        const p=properties(feature);
+        const name=p.name||p.title_en||"UNESCO MAB source point";
+        const markerBounds=L.latLngBounds([[center.lat,center.lon]]);
+        const combinedBounds=indices.length
+          ? markerBounds.extend(L.latLngBounds(indices.map(i=>{
+              const xy=state.observations[i].geometry.coordinates.map(Number);return [xy[1],xy[0]];
+            })))
+          : markerBounds;
+        activateScope("reserve",p.biosphere_id||p.uuid||name,indices,
+          "Sampled occurrence records within "+RESERVE_NEARBY_RADIUS_KM+" km of "+name,combinedBounds);
+        $("region-note").textContent=
+          "Nearby observations are selected by distance to the UNESCO MAB source point ("+RESERVE_NEARBY_RADIUS_KM+" km). "+
+          "The source provides a point here, not an official reserve boundary; nearby records must not be described as being inside the reserve.";
+      }
+
+      function resetToOverview(recluster) {
+        state.activeScope=null;
+        state.activeIndices=null;
+        state.selectedId=null;
+        $("reset-region-btn").hidden=true;
+        $("layer-clusters").checked=true;
+        $("layer-observations").checked=false;
+        $("layer-grid").checked=false;
+        $("layer-reserves").checked=true;
+        $("record-search").value="";
+        $("list-search").value="";
+        if(recluster&&state.dataset){
+          updateMap(state.dataset);
+        }else{
+          drawOccurrenceMarkers(null);
+          state.clusterLayer.setStyle(feature=>{
+            const p=properties(feature);
+            return {color:"#24784f",weight:1.5,opacity:.9,fillColor:"#57ae79",fillOpacity:.27};
+          });
+          drawAllLayersAndFit();
+          renderRecords();
+        }
+        setStatus("Overview: click a heuristic region to zoom in and inspect its sampled points.","ok");
+        $("record-detail").innerHTML='<p class="detail-placeholder">Select a point on the map or an item in the record list to see its details here.</p>';
+      }
+
+      function loadCountryCountryName(code) {
+        const country=state.countries.find(c=>c.code===code);
+        return country?country.name:code;
+      }
+
+      function updateCountrySource(dataset) {
+        const url=safeHttpUrl(dataset&&dataset.source&&dataset.source.api);
+        const link=$("country-source");
+        link.href=url||"https://www.gbif.org/";
+        link.textContent="Source ↗";
+      }
+
+      async function loadIndex() {
+        setStatus("Loading published country index…");
+        try {
+          const response=await fetch(DATA_INDEX_URL,{cache:"no-cache"});
+          if(!response.ok)throw new Error("Country index returned HTTP "+response.status);
+          state.index=await response.json();
+          state.countries=(state.index.countries||[]).filter(item=>item&&item.available&&item.file);
+          const select=$("country-select");
+          select.innerHTML="";
+          if(!state.countries.length){
+            select.innerHTML='<option value="">No published country datasets</option>';
+            setStatus("No published country files are listed in the index yet.","warn");
+            return;
+          }
+          state.countries.forEach(country=>{
+            const opt=document.createElement("option");
+            opt.value=country.code;opt.textContent=country.name+" ("+country.code+")";
+            select.appendChild(opt);
+          });
+          const preferred=state.countries.find(c=>c.code==="ID")||state.countries[0];
+          select.value=preferred.code;select.disabled=false;
+          $("record-search").disabled=false;$("list-search").disabled=false;
+          select.addEventListener("change",()=>loadCountry(select.value));
+          $("record-search").addEventListener("input",renderRecords);
+          $("list-search").addEventListener("input",()=>{
+            $("record-search").value=$("list-search").value;renderRecords();
+          });
+          $("reload-btn").addEventListener("click",()=>loadCountry(select.value,true));
+          $("cluster-distance").addEventListener("change",()=>{if(state.dataset)resetToOverview(true);});
+          $("reset-region-btn").addEventListener("click",()=>resetToOverview(false));
+          await loadCountry(preferred.code);
+        }catch(error){
+          console.error(error);
+          setStatus("Could not load the published country index. Try reloading in a moment.","error");
+          $("record-list").innerHTML='<p class="empty-list">Dataset index could not be loaded. Check your connection and reload the page.</p>';
+        }
+      }
+
+      async function loadCountry(code,force=false) {
+        const country=state.countries.find(c=>c.code===code);
+        if(!country)return;
+        if(state.abort)state.abort.abort();
+        state.abort=new AbortController();
+        const signal=state.abort.signal;
+        state.activeCode=code;state.selectedId=null;state.activeScope=null;state.activeIndices=null;
+        $("reset-region-btn").hidden=true;
+        $("layer-clusters").checked=true;$("layer-observations").checked=false;
+        $("layer-grid").checked=false;$("layer-reserves").checked=true;
+        $("record-search").value="";$("list-search").value="";
+        setStatus("Loading "+country.name+" published sample…");
+        $("reload-btn").disabled=true;
+        $("record-list").innerHTML='<p class="empty-list">Loading country sample…</p>';
+        $("record-detail").innerHTML='<p class="detail-placeholder">Loading records…</p>';
+        try{
+          const url="./biodiversity/"+encodeURIComponent(country.file)+(force?"?refresh="+Date.now():"");
+          const response=await fetch(url,{cache:force?"reload":"default",signal});
+          if(!response.ok)throw new Error("Dataset returned HTTP "+response.status);
+          const dataset=await response.json();
+          if(signal.aborted||state.activeCode!==code)return;
+          state.dataset=dataset;
+          const collection=dataset.observations_geojson||{};
+          state.observations=Array.isArray(collection.features)?collection.features.filter(f=>
+            f&&f.geometry&&f.geometry.type==="Point"&&Array.isArray(f.geometry.coordinates)&&
+            f.geometry.coordinates.length>=2&&f.geometry.coordinates.every(v=>Number.isFinite(Number(v)))
+          ):[];
+
+          updateStats(dataset);updateCountrySource(dataset);updateMap(dataset);renderRecords();
+          const summary=dataset.summary||{};
+          const complete=summary.complete_for_requested_sample!==false;
+          setStatus(country.name+" sample loaded: "+fmt(state.observations.length)+
+            " original point records. "+(complete?"Requested sample returned.":"Partial sample; some pages were unavailable."),
+            complete?"ok":"warn");
+        }catch(error){
+          if(error.name==="AbortError")return;
+          console.error(error);
+          setStatus("Could not load the selected country dataset. Please try Reload dataset.","error");
+          $("record-list").innerHTML='<p class="empty-list">The published country file could not be loaded. It may be temporarily unavailable or too large for this connection.</p>';
+          $("record-detail").innerHTML='<p class="detail-placeholder">No record is selected.</p>';
+        }finally{$("reload-btn").disabled=false;}
+      }
+
+      function updateStats(dataset) {
+        const s=dataset.summary||{};
+        $("stat-records").textContent=fmt(s.mapped_occurrence_points??state.observations.length);
+        $("stat-records-note").textContent="From "+fmt(s.unique_occurrence_records??state.observations.length)+" unique records";
+        $("stat-taxa").textContent=fmt(s.unique_taxa_in_sample??"—");
+        $("stat-clusters").textContent=fmt(state.clusterGroups.length);
+        $("stat-total").textContent=fmt(s.total_matching_records_reported_by_gbif??"—");
+        const date=dataset.generated_at_utc?new Date(dataset.generated_at_utc):null;
+        $("generated-at").textContent=date&&!Number.isNaN(date.valueOf())
+          ?"Generated "+date.toLocaleString()+" · "+(dataset.country?.name||""):"";
       }
 
       function getSearchText(feature) {
-        const p = properties(feature);
+        const p=properties(feature);
         return [
-          displayName(p), p.scientificName, p.species, p.genus, p.family, p.order, p.kingdom,
-          p.locality, p.stateProvince, p.county, p.municipality, p.recordedBy, p.institutionCode,
-          p.collectionCode, p.basisOfRecord, p.eventDate, p.country, p.countryCode, p.catalogNumber,
-          p.occurrenceRemarks, p.description, p.habitat, p.taxonRemarks, p.fieldNotes
+          displayName(p),p.scientificName,p.species,p.genus,p.family,p.order,p.kingdom,
+          p.locality,p.stateProvince,p.county,p.municipality,p.recordedBy,p.institutionCode,
+          p.collectionCode,p.basisOfRecord,p.eventDate,p.country,p.countryCode,p.catalogNumber,
+          p.occurrenceRemarks,p.description,p.habitat,p.taxonRemarks,p.fieldNotes
         ].filter(Boolean).join(" ").toLocaleLowerCase();
       }
 
       function renderRecords() {
-        const query = ($("record-search").value || "").trim().toLocaleLowerCase();
-        state.filtered = state.observations.filter(feature => !query || getSearchText(feature).includes(query));
-        $("visible-count").textContent = fmt(state.filtered.length) + " of " + fmt(state.observations.length) + " records";
-        $("filter-count").textContent = query ? "Filtered" : "No filter";
-        const list = $("record-list");
-        if (!state.filtered.length) {
-          list.innerHTML = '<p class="empty-list">No records match this search. Try a scientific name, locality, recorder, or another keyword.</p>';
+        const query=($("record-search").value||"").trim().toLocaleLowerCase();
+        const scopeIndices=state.activeIndices===null?state.observations.map((_,i)=>i):state.activeIndices;
+        const base=scopeIndices.map(i=>state.observations[i]).filter(Boolean);
+        state.filtered=base.filter(feature=>!query||getSearchText(feature).includes(query));
+        $("visible-count").textContent=fmt(state.filtered.length)+" of "+fmt(base.length)+" records";
+        $("filter-count").textContent=state.activeScope
+          ?(state.activeScope.type==="reserve"?"Near MAB point":state.activeScope.type==="cluster"?"Selected region":"Isolated point")
+          :(query?"Filtered":"No filter");
+        const list=$("record-list");
+        if(!state.filtered.length){
+          const emptyText=state.activeScope&&state.activeScope.type==="reserve"
+            ?"No sampled occurrence records were found within "+RESERVE_NEARBY_RADIUS_KM+" km of this MAB source point. This does not mean biodiversity is absent; it only describes the current sample."
+            :"No records match this search. Try another scientific name, locality, or keyword.";
+          list.innerHTML='<p class="empty-list">'+escapeHtml(emptyText)+'</p>';
           return;
         }
-        const fragment = document.createDocumentFragment();
-        state.filtered.forEach(feature => {
-          const i = state.observations.indexOf(feature);
-          const id = recordId(feature, i);
-          const p = properties(feature);
-          const card = document.createElement("button");
-          card.type = "button";
-          card.className = "record" + (id === state.selectedId ? " active" : "");
-          card.dataset.recordId = id;
-          const place = [p.locality, p.stateProvince, p.country || p.countryCode].filter(Boolean).join(", ");
-          card.innerHTML = '<div class="record-name">' + escapeHtml(displayName(p)) + '</div>' +
-            '<div class="record-meta">' + escapeHtml(place || "Location not described") +
-            '<br>GBIF ID: ' + escapeHtml(p.gbif_id || p.key || id) + '</div>' +
-            '<span class="mini-tag">' + escapeHtml(p.basisOfRecord || "Occurrence record") + '</span>';
-          card.addEventListener("click", () => selectRecord(id, true));
+        const fragment=document.createDocumentFragment();
+        state.filtered.forEach(feature=>{
+          const i=state.observations.indexOf(feature),id=recordId(feature,i),p=properties(feature);
+          const card=document.createElement("button");
+          card.type="button";card.className="record"+(id===state.selectedId?" active":"");card.dataset.recordId=id;
+          const place=[p.locality,p.stateProvince,p.country||p.countryCode].filter(Boolean).join(", ");
+          card.innerHTML='<div class="record-name">'+escapeHtml(displayName(p))+'</div>'+
+            '<div class="record-meta">'+escapeHtml(place||"Location not described")+
+            '<br>GBIF ID: '+escapeHtml(p.gbif_id||p.key||id)+'</div>'+
+            '<span class="mini-tag">'+escapeHtml(p.basisOfRecord||"Occurrence record")+'</span>';
+          card.addEventListener("click",()=>selectRecord(id,true));
           fragment.appendChild(card);
         });
         list.replaceChildren(fragment);
       }
 
-      function selectRecord(id, panTo) {
-        const selected = state.markersById.get(String(id));
-        if (!selected) return;
-        state.selectedId = String(id);
-        document.querySelectorAll(".record.active").forEach(el => el.classList.remove("active"));
-        const current = document.querySelector('[data-record-id="' + CSS.escape(String(id)) + '"]');
-        if (current) {
-          current.classList.add("active");
-          current.scrollIntoView({block:"nearest",behavior:"smooth"});
+      function selectRecord(id,panTo) {
+        const selected=state.markersById.get(String(id));
+        if(!selected)return;
+        state.selectedId=String(id);
+        if(!state.map.hasLayer(state.observationLayer)){
+          $("layer-observations").checked=true;
+          toggleLayer(true,state.observationLayer);
         }
-        const p = properties(selected.feature);
-        const coords = selected.feature.geometry.coordinates.map(Number);
-        if (panTo) state.map.flyTo([coords[1], coords[0]], Math.max(state.map.getZoom(), 8), {duration:.45});
+        document.querySelectorAll(".record.active").forEach(el=>el.classList.remove("active"));
+        const current=document.querySelector('[data-record-id="'+CSS.escape(String(id))+'"]');
+        if(current){current.classList.add("active");current.scrollIntoView({block:"nearest",behavior:"smooth"});}
+        const p=properties(selected.feature),coords=selected.feature.geometry.coordinates.map(Number);
+        if(panTo)state.map.flyTo([coords[1],coords[0]],Math.max(state.map.getZoom(),8),{duration:.45});
         selected.marker.openPopup();
-
-        const image = mediaUrl(p);
-        const sourceUrl = safeHttpUrl(p.source_url) || (p.gbif_id || p.key
-          ? "https://www.gbif.org/occurrence/" + encodeURIComponent(String(p.gbif_id || p.key))
-          : "");
-        const place = [p.locality, p.municipality, p.county, p.stateProvince, p.country || p.countryCode].filter(Boolean).join(", ");
-        const facts = [
-          ["GBIF record ID", p.gbif_id || p.key],
-          ["Observed date", p.eventDate || p.eventDateTime],
-          ["Recorded by", p.recordedBy],
-          ["Basis of record", p.basisOfRecord],
-          ["Kingdom", p.kingdom],
-          ["Family", p.family],
-          ["Coordinates", coords[1].toFixed(5) + ", " + coords[0].toFixed(5)],
-          ["Licence", p.license || p.licenseTitle]
+        const image=mediaUrl(p);
+        const sourceUrl=safeHttpUrl(p.source_url)||(p.gbif_id||p.key
+          ?"https://www.gbif.org/occurrence/"+encodeURIComponent(String(p.gbif_id||p.key)):"");
+        const place=[p.locality,p.municipality,p.county,p.stateProvince,p.country||p.countryCode].filter(Boolean).join(", ");
+        const facts=[
+          ["GBIF record ID",p.gbif_id||p.key],["Observed date",p.eventDate||p.eventDateTime],
+          ["Recorded by",p.recordedBy],["Basis of record",p.basisOfRecord],["Kingdom",p.kingdom],
+          ["Family",p.family],["Coordinates",coords[1].toFixed(5)+", "+coords[0].toFixed(5)],
+          ["Licence",p.license||p.licenseTitle]
         ];
-        $("record-detail").innerHTML =
-          (image ? '<img class="detail-img" src="' + escapeHtml(image) + '" alt="Source image associated with ' + escapeHtml(displayName(p)) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">' : "") +
-          '<h3 class="detail-species">' + escapeHtml(displayName(p)) + '</h3>' +
-          '<div class="detail-scientific">Occurrence record · ' + escapeHtml(place || "Location not described") + '</div>' +
-          '<div class="properties">' + facts.filter(item => item[1] !== undefined && item[1] !== null && item[1] !== "").map(item =>
-            '<div class="prop"><div class="prop-label">' + escapeHtml(item[0]) + '</div><div class="prop-value">' + escapeHtml(fmt(item[1])) + '</div></div>'
-          ).join("") + '</div>' +
-          (p.description ? '<p class="description">' + escapeHtml(p.description) + '</p>' : "") +
-          (p.occurrenceRemarks ? '<p class="description"><strong>Occurrence remarks:</strong> ' + escapeHtml(p.occurrenceRemarks) + '</p>' : "") +
-          '<div class="detail-actions">' + linkButton(sourceUrl, "Open source record") +
-          linkButton(p.datasetKey ? "https://www.gbif.org/dataset/" + encodeURIComponent(String(p.datasetKey)) : "", "Source dataset") +
-          (image ? linkButton(image, "Open image source") : "") + '</div>';
+        $("record-detail").innerHTML=
+          (image?'<img class="detail-img" src="'+escapeHtml(image)+'" alt="Source image associated with '+escapeHtml(displayName(p))+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">':"")+
+          '<h3 class="detail-species">'+escapeHtml(displayName(p))+'</h3>'+
+          '<div class="detail-scientific">Occurrence record · '+escapeHtml(place||"Location not described")+'</div>'+
+          '<div class="properties">'+facts.filter(item=>item[1]!==undefined&&item[1]!==null&&item[1]!=="").map(item=>
+            '<div class="prop"><div class="prop-label">'+escapeHtml(item[0])+'</div><div class="prop-value">'+escapeHtml(fmt(item[1]))+'</div></div>'
+          ).join("")+'</div>'+
+          (p.description?'<p class="description">'+escapeHtml(p.description)+'</p>':"")+
+          (p.occurrenceRemarks?'<p class="description"><strong>Occurrence remarks:</strong> '+escapeHtml(p.occurrenceRemarks)+'</p>':"")+
+          '<div class="detail-actions">'+linkButton(sourceUrl,"Open source record")+
+          linkButton(p.datasetKey?"https://www.gbif.org/dataset/"+encodeURIComponent(String(p.datasetKey)):"","Source dataset")+
+          (image?linkButton(image,"Open image source"):"")+'</div>';
         renderRecords();
       }
 
       initMap();
       loadIndex();
-    })();
-  </script>
+    })();  </script>
 </body>
 </html>
