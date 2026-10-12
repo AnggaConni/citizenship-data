@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10271f">
+  <meta name="description" content="Explore published biodiversity occurrence samples, distribution-grid summaries and UNESCO biosphere-reserve points in an interactive atlas.">
+  <title>Biodiversity Atlas | Open Data Explorers</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    :root{--night:#10271f;--forest:#174a36;--green:#24784f;--mint:#a8e4be;--lime:#d4f17b;--paper:#f4f7f1;--ink:#173126;--muted:#6b7e70;--line:#dfe8dc;--white:#fff;--red:#9c4a37;--shadow:0 12px 34px rgba(21,53,35,.07)}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:20px}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif}
+    a{color:inherit}
+    button,input,select{font:inherit}
+    button,a,input,select{outline-offset:3px}
+    :focus-visible{outline:3px solid #60a881}
+    .wrap{width:min(1360px,calc(100% - 36px));margin:0 auto}
+    .top{color:#f2f8f3;background:radial-gradient(ellipse at 86% 8%,rgba(92,166,100,.22),transparent 33rem),var(--night)}
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:19px 0;border-bottom:1px solid rgba(255,255,255,.12)}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .brand-mark{height:40px;width:40px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(140deg,var(--mint),var(--lime));color:var(--night);font-size:20px}
+    .brand-name{display:block;font:800 12px Manrope,sans-serif;letter-spacing:.13em;text-transform:uppercase}
+    .brand-sub{display:block;margin-top:3px;font-size:10px;color:#b4d0bf}
+    .nav-links{display:flex;gap:16px;align-items:center;font-size:12px;color:#d1e3d6}
+    .nav-links a{text-decoration:none}.nav-links a:hover{text-decoration:underline}
+    .hero{padding:36px 0 31px;max-width:1000px}
+    .eyebrow{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--lime)}
+    h1{font:800 clamp(34px,5vw,58px)/1.04 Manrope,sans-serif;letter-spacing:-.045em;margin:14px 0}
+    .hero p{max-width:790px;font-size:14px;line-height:1.8;color:#c7ddce;margin:0}
+    .hero-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+    .chip{border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 10px;color:#d9eddf;font-size:10px}
+    .chip strong{color:#fff}
+    .notice-wrap{margin-top:22px;margin-bottom:18px}
+    .notice{display:grid;grid-template-columns:auto 1fr;gap:14px;background:#fff7e6;border:1px solid #edd5a8;color:#634a1d;padding:17px 19px;border-radius:15px;box-shadow:var(--shadow)}
+    .notice-icon{font-size:21px;padding-top:2px;color:#986718}
+    .notice h2{font:800 13px Manrope,sans-serif;margin:0 0 5px}
+    .notice p{font-size:12px;line-height:1.7;margin:0}
+    .notice a{font-weight:700}
+    main{padding:0 0 40px}
+    .toolbar{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:26px 0 14px}
+    .section-kicker{font-size:9px;letter-spacing:.15em;text-transform:uppercase;font-weight:800;color:var(--green)}
+    h2{font:800 22px Manrope,sans-serif;margin:5px 0 0;letter-spacing:-.025em}
+    .toolbar-note{font-size:11px;color:var(--muted);max-width:450px;line-height:1.65}
+    .dataset-controls{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1.2fr) auto;gap:12px;align-items:end;background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;box-shadow:var(--shadow)}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+    label{font-size:10px;font-weight:800;color:#536b59}
+    input,select{width:100%;min-width:0;padding:11px 12px;border:1px solid #d9e3d7;border-radius:10px;background:#fcfdfb;color:var(--ink);font-size:12px}
+    .button{border:0;background:var(--green);color:#fff;border-radius:10px;padding:11px 15px;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+    .button:hover{background:#1d633f}
+    .button.secondary{background:#edf4ec;color:#255239;border:1px solid #dce8db}
+    .button:disabled{opacity:.5;cursor:not-allowed}
+    .status-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 2px;color:var(--muted);font-size:11px}
+    .status-text{display:flex;align-items:center;gap:8px}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:#379465;flex:none}
+    .status-dot.warn{background:#bd8335}.status-dot.error{background:#bd5949}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:13px 0 17px}
+    .stat{padding:15px;border:1px solid var(--line);background:#fff;border-radius:13px;box-shadow:var(--shadow);min-width:0}
+    .stat-label{font-size:10px;color:var(--muted);line-height:1.5}
+    .stat-value{font:800 clamp(19px,2.4vw,27px) Manrope,sans-serif;margin-top:5px;overflow-wrap:anywhere}
+    .stat-note{font-size:9px;color:#829184;margin-top:4px;line-height:1.5}
+    .workspace{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,.83fr);gap:15px;align-items:stretch}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);min-width:0;overflow:hidden}
+    .panel-head{padding:15px 17px;border-bottom:1px solid #edf1eb;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .panel-title{font:800 14px Manrope,sans-serif}
+    .panel-sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6}
+    .layer-toggles{display:flex;flex-wrap:wrap;gap:7px;padding:12px 15px;border-bottom:1px solid #edf1eb}
+    .toggle{display:flex;align-items:center;gap:6px;border:1px solid #dce6db;background:#fbfcfa;border-radius:999px;padding:7px 9px;font-size:10px;color:#46644d;cursor:pointer}
+    .toggle input{width:13px;height:13px;margin:0;accent-color:var(--green)}
+    #map{width:100%;height:550px;background:#e7eee6}
+    .map-legend{display:flex;flex-wrap:wrap;align-items:center;gap:13px;padding:11px 15px;font-size:10px;color:var(--muted);border-top:1px solid #edf1eb}
+    .legend-item{display:flex;gap:6px;align-items:center}
+    .legend-dot{width:9px;height:9px;border-radius:50%;background:#247cbd;border:1px solid #fff;box-shadow:0 0 0 1px #247cbd}
+    .legend-square{width:10px;height:10px;background:#5cae77;border-radius:2px}
+    .legend-reserve{width:9px;height:9px;background:#a45ab4;border-radius:50%;box-shadow:0 0 0 2px #eadcf0}
+    .side{display:flex;flex-direction:column;min-height:0}
+    .search-tools{padding:12px;border-bottom:1px solid #edf1eb}
+    .search-tools input{margin-bottom:9px}
+    .list-meta{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted)}
+    .record-list{overflow:auto;max-height:410px}
+    .record{width:100%;text-align:left;display:block;border:0;border-bottom:1px solid #edf1eb;background:#fff;padding:12px 14px;cursor:pointer;color:var(--ink)}
+    .record:hover{background:#f5f9f4}
+    .record.active{background:#edf7ed;box-shadow:inset 3px 0 0 var(--green)}
+    .record-name{font-size:12px;font-weight:800;font-style:italic;line-height:1.5;overflow-wrap:anywhere}
+    .record-meta{font-size:10px;color:var(--muted);line-height:1.6;margin-top:4px}
+    .mini-tag{display:inline-block;font-size:8px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:5px;padding:3px 5px;background:#edf3e7;color:#3a6744;margin-top:6px}
+    .empty-list{font-size:11px;line-height:1.7;color:var(--muted);padding:17px}
+    .detail{margin-top:15px}
+    .detail-body{padding:17px}
+    .detail-placeholder{font-size:12px;line-height:1.7;color:var(--muted)}
+    .detail-species{font:800 20px/1.35 Manrope,sans-serif;letter-spacing:-.02em;margin:0 0 5px;overflow-wrap:anywhere}
+    .detail-scientific{font-style:italic;font-size:12px;color:#55725e;margin-bottom:13px}
+    .detail-img{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:0 0 13px;background:#eff3ed}
+    .properties{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+    .prop{min-width:0;background:#f5f8f3;border-radius:9px;padding:9px}
+    .prop-label{font-size:9px;color:var(--muted);margin-bottom:4px}
+    .prop-value{font-size:11px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+    .description{font-size:11px;line-height:1.75;color:#526a59;white-space:pre-line;margin:10px 0}
+    .detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+    .detail-actions a{font-size:10px;padding:9px 11px}
+    .sources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+    .source-card{background:#fff;border:1px solid var(--line);padding:15px;border-radius:13px}
+    .source-card h3{font:800 12px Manrope,sans-serif;margin:0 0 7px}
+    .source-card p{font-size:10px;color:var(--muted);line-height:1.7;margin:0}
+    .source-card a{color:var(--green);font-weight:800}
+    .disclaimer{background:#eaf0e7;border:1px solid #dce7d9;border-radius:13px;padding:15px;font-size:10px;line-height:1.8;color:#566f5b}
+    .disclaimer strong{color:#284f34}
+    footer{border-top:1px solid #dbe6d9;padding:21px 0;color:#758678;font-size:10px;margin-top:14px}
+    .footer-inner{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}
+    footer a{color:#3b6d4b}
+    @media(max-width:980px){.workspace{grid-template-columns:1fr}.record-list{max-height:330px}.dataset-controls{grid-template-columns:1fr 1fr}.dataset-controls .button{grid-column:1/-1}.toolbar{align-items:start;flex-direction:column}}
+    @media(max-width:650px){.wrap{width:calc(100% - 24px)}.nav{align-items:flex-start}.nav-links{font-size:10px;gap:10px;flex-wrap:wrap;justify-content:end}.hero{padding:29px 0 24px}h1{font-size:36px}.hero p{font-size:12px}.notice{padding:13px;grid-template-columns:1fr}.dataset-controls{grid-template-columns:1fr}.dataset-controls .button{grid-column:auto}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{padding:12px}.stat-value{font-size:22px}.panel-head{align-items:flex-start}#map{height:420px}.sources{grid-template-columns:1fr}.status-row{align-items:flex-start;flex-direction:column}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <nav class="nav" aria-label="Main navigation">
+        <a class="brand" href="./index.html">
+          <span class="brand-mark" aria-hidden="true">⌖</span>
+          <span><span class="brand-name">Open Data Explorers</span><span class="brand-sub">Curated knowledge · Live explorer · Biodiversity atlas</span></span>
+        </a>
+        <div class="nav-links">
+          <a href="./index.html">Home</a>
+          <a href="./biodiversity.html">Live explorer</a>
+          <a href="https://github.com/AnggaConni/citizenship-data">Source code ↗</a>
+        </div>
+      </nav>
+      <section class="hero">
+        <div class="eyebrow">◉ Published country sample · interactive map</div>
+        <h1>Biodiversity <span style="color:var(--lime)">Atlas.</span></h1>
+        <p>Explore country-level biodiversity data already prepared by the Python pipeline—without opening the pipeline code. Inspect georeferenced occurrence samples, browse individual records, and compare them with a sample-density grid. This first release starts with Indonesia.</p>
+        <div class="hero-chips">
+          <span class="chip"><strong>01</strong> Indonesia pilot dataset</span>
+          <span class="chip">GBIF occurrence records</span>
+          <span class="chip">UNESCO MAB reserve points, when available</span>
+          <span class="chip">Open, interactive map</span>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <div class="wrap notice-wrap">
+    <aside class="notice" aria-labelledby="sample-title">
+      <div class="notice-icon" aria-hidden="true">⚠</div>
+      <div>
+        <h2 id="sample-title">Important: this is a sample, not a complete biodiversity inventory</h2>
+        <p>The Indonesia file currently contains a capped sample of georeferenced GBIF occurrence records. A sample point marks a documented record, not an entire species range or proof of current presence. Grid cells summarise only the records collected for this sample. This independent prototype is not an official GBIF, UNESCO or IUCN product. Third-party data retains its own licences and attribution terms. <a href="./README.md">Read the project disclaimer</a>.</p>
+      </div>
+    </aside>
+  </div>
+
+  <main class="wrap">
+    <section aria-labelledby="dataset-title">
+      <div class="toolbar">
+        <div><div class="section-kicker">Published datasets</div><h2 id="dataset-title">Choose a country to explore</h2></div>
+        <p class="toolbar-note">This atlas reads JSON files that are already published in the repository. It does not start a new API scan when you open this page; the live scanner is a separate tool.</p>
+      </div>
+
+      <div class="dataset-controls">
+        <div class="field">
+          <label for="country-select">Country dataset</label>
+          <select id="country-select" disabled><option>Loading available datasets…</option></select>
+        </div>
+        <div class="field">
+          <label for="record-search">Search the current sample</label>
+          <input id="record-search" type="search" placeholder="Scientific name, locality, recorder…" autocomplete="off" disabled>
+        </div>
+        <button class="button" id="reload-btn" type="button"><span aria-hidden="true">↻</span> Reload dataset</button>
+      </div>
+      <div class="status-row">
+        <div class="status-text"><span class="status-dot" id="status-dot"></span><span id="status-text" role="status" aria-live="polite">Loading published country index…</span></div>
+        <span id="generated-at"></span>
+      </div>
+      <div class="stats" aria-label="Dataset summary">
+        <article class="stat"><div class="stat-label">Occurrence records in sample</div><div class="stat-value" id="stat-records">—</div><div class="stat-note" id="stat-records-note">Published observations</div></article>
+        <article class="stat"><div class="stat-label">Unique taxa in sample</div><div class="stat-value" id="stat-taxa">—</div><div class="stat-note">Based on returned records</div></article>
+        <article class="stat"><div class="stat-label">Sample density cells</div><div class="stat-value" id="stat-cells">—</div><div class="stat-note">Rectangular degree grid</div></article>
+        <article class="stat"><div class="stat-label">GBIF matching-record count</div><div class="stat-value" id="stat-total">—</div><div class="stat-note">Provider total at last pipeline run</div></article>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Interactive biodiversity map and occurrence list">
+      <div>
+        <article class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Occurrence map</div><div class="panel-sub">Select a point to inspect its source record. Zoom and pan to explore locations.</div></div>
+            <a id="country-source" class="button secondary" href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Source ↗</a>
+          </div>
+          <div class="layer-toggles" aria-label="Map layers">
+            <label class="toggle"><input type="checkbox" id="layer-observations" checked> Occurrence points</label>
+            <label class="toggle"><input type="checkbox" id="layer-grid" checked> Sample density grid</label>
+            <label class="toggle"><input type="checkbox" id="layer-reserves" checked> UNESCO MAB points</label>
+          </div>
+          <div id="map" role="application" aria-label="Interactive map displaying published biodiversity sample records"></div>
+          <div class="map-legend">
+            <span class="legend-item"><i class="legend-dot"></i> Occurrence record</span>
+            <span class="legend-item"><i class="legend-square"></i> Grid cell with sampled records</span>
+            <span class="legend-item"><i class="legend-reserve"></i> UNESCO biosphere-reserve point</span>
+          </div>
+        </article>
+
+        <article class="panel detail">
+          <div class="panel-head"><div><div class="panel-title">Selected record</div><div class="panel-sub">Original source fields are retained when provided by the source.</div></div></div>
+          <div class="detail-body" id="record-detail"><p class="detail-placeholder">Select a point on the map or an item in the record list to see its details here.</p></div>
+        </article>
+      </div>
+
+      <aside class="panel side" aria-labelledby="records-title">
+        <div class="panel-head">
+          <div><div class="panel-title" id="records-title">Occurrence records</div><div class="panel-sub">Filtered records from the selected country sample.</div></div>
+        </div>
+        <div class="search-tools">
+          <input id="list-search" type="search" placeholder="Filter scientific names or places…" autocomplete="off" aria-label="Filter occurrence list" disabled>
+          <div class="list-meta"><span id="visible-count">0 records</span><span id="filter-count">No filter</span></div>
+        </div>
+        <div class="record-list" id="record-list"><p class="empty-list">Loading records…</p></div>
+      </aside>
+    </section>
+
+    <section class="sources" aria-label="Data source information">
+      <article class="source-card"><h3>GBIF occurrence records</h3><p>Sampled occurrence data with coordinates and source fields. Individual records may have distinct licences. <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Check the original source ↗</a></p></article>
+      <article class="source-card"><h3>UNESCO Man and the Biosphere</h3><p>Reserve metadata and point coordinates are shown only when present in the published dataset. A point is not an official reserve boundary. <a href="https://data.unesco.org/explore/dataset/mab001/information/" target="_blank" rel="noopener noreferrer">Dataset information ↗</a></p></article>
+      <article class="source-card"><h3>IUCN Red List</h3><p>IUCN assessments are not currently included in this atlas. Any future enrichment will remain disabled until permission for public caching and display is confirmed. An API key alone is not redistribution permission.</p></article>
+    </section>
+
+    <aside class="disclaimer"><strong>Use and interpretation disclaimer.</strong> This is a free-to-access, independent exploratory tool. The data may be incomplete, outdated, misidentified or spatially imprecise; missing observations do not prove a species is absent. Neither the grid nor an occurrence point should be interpreted as a confirmed habitat, full distribution range, conservation status, or protected-area boundary. Check the original records, attribution and licence before reusing data. The software licence applies to the code and does not override third-party data terms. <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">Software licence</a> · <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">Full project disclaimer</a>.</aside>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <span>Open Data Explorers · Independent public-interest prototype</span>
+      <span><a href="./index.html">Home</a> · <a href="./biodiversity.html">Live explorer</a> · <a href="https://github.com/AnggaConni/citizenship-data/tree/main/biodiversity">Published datasets</a></span>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    (() => {
+      "use strict";
+      const DATA_INDEX_URL = "./biodiversity/index.json";
+      const $ = (id) => document.getElementById(id);
+      const state = {
+        index: null, dataset: null, countries: [], activeCode: null,
+        observations: [], filtered: [], markersById: new Map(), selectedId: null,
+        observationLayer: null, gridLayer: null, reserveLayer: null, map: null, abort: null
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, char => ({
+          "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+        })[char]);
+      }
+      function safeHttpUrl(value) {
+        try {
+          const u = new URL(String(value || ""));
+          return ["https:", "http:"].includes(u.protocol) ? u.href : "";
+        } catch { return ""; }
+      }
+      function fmt(value) {
+        if (value === null || value === undefined || value === "") return "Not provided";
+        if (typeof value === "number") return new Intl.NumberFormat().format(value);
+        return String(value);
+      }
+      function setStatus(message, kind = "ok") {
+        $("status-text").textContent = message;
+        $("status-dot").className = "status-dot" + (kind === "warn" ? " warn" : kind === "error" ? " error" : "");
+      }
+      function properties(feature) {
+        return feature && feature.properties && typeof feature.properties === "object" ? feature.properties : {};
+      }
+      function displayName(props) {
+        return props.scientific_name || props.species || props.acceptedScientificName ||
+          props.scientificName || props.verbatimScientificName || "Unidentified taxon";
+      }
+      function recordId(feature, index) {
+        return String(feature.id ?? properties(feature).gbif_id ?? properties(feature).key ?? index);
+      }
+      function mediaUrl(props) {
+        if (props.image_url) return safeHttpUrl(props.image_url);
+        const media = Array.isArray(props.media) ? props.media : [];
+        const item = media.find(m => m && safeHttpUrl(m.identifier) &&
+          (/image|stillimage/i.test(String(m.type || "")) || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(String(m.identifier || ""))));
+        return item ? safeHttpUrl(item.identifier) : "";
+      }
+      function linkButton(url, text) {
+        const safe = safeHttpUrl(url);
+        return safe ? '<a class="button secondary" href="' + escapeHtml(safe) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(text) + ' ↗</a>' : "";
+      }
+
+      function initMap() {
+        state.map = L.map("map", { preferCanvas: true, worldCopyJump: true }).setView([-2.5, 118], 4);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(state.map);
+        state.observationLayer = L.layerGroup().addTo(state.map);
+        state.gridLayer = L.geoJSON(null, {
+          style: feature => {
+            const p = feature.properties || {};
+            const c = Number(p.observation_count || 0);
+            const color = c >= 50 ? "#246b43" : c >= 10 ? "#42945c" : c >= 3 ? "#84bd73" : "#beddaa";
+            return { color, weight: 1, opacity: .6, fillColor: color, fillOpacity: .24 };
+          },
+          onEachFeature: (feature, layer) => {
+            const p = feature.properties || {};
+            layer.bindPopup(
+              "<strong>Sample density cell</strong><br>Records in sample: " + escapeHtml(fmt(p.observation_count)) +
+              "<br>Unique taxa: " + escapeHtml(fmt(p.unique_taxa_count)) +
+              "<br><em>This grid is based only on the returned sample.</em>"
+            );
+          }
+        }).addTo(state.map);
+        state.reserveLayer = L.geoJSON(null, {
+          pointToLayer: (_feature, latlng) => L.circleMarker(latlng, {
+            radius: 7, color: "#743887", weight: 2, fillColor: "#bb7bcc", fillOpacity: .9
+          }),
+          onEachFeature: (feature, layer) => {
+            const p = properties(feature);
+            layer.bindPopup("<strong>" + escapeHtml(p.name || p.title_en || "Biosphere reserve") + "</strong><br>" +
+              escapeHtml(p.country || p.country_title_en || "Country not provided") +
+              "<br><em>Source-provided point; not the reserve boundary.</em>" +
+              (safeHttpUrl(p.source_url || p.url) ? '<br><a href="' + escapeHtml(safeHttpUrl(p.source_url || p.url)) + '" target="_blank" rel="noopener noreferrer">Source ↗</a>' : ""));
+          }
+        }).addTo(state.map);
+        $("layer-observations").addEventListener("change", e => toggleLayer(e.target.checked, state.observationLayer));
+        $("layer-grid").addEventListener("change", e => toggleLayer(e.target.checked, state.gridLayer));
+        $("layer-reserves").addEventListener("change", e => toggleLayer(e.target.checked, state.reserveLayer));
+      }
+      function toggleLayer(show, layer) {
+        if (show) layer.addTo(state.map);
+        else state.map.removeLayer(layer);
+      }
+      function updateCountrySource(dataset) {
+        const url = safeHttpUrl(dataset && dataset.source && dataset.source.api);
+        const link = $("country-source");
+        link.href = url || "https://www.gbif.org/";
+        link.textContent = "Source ↗";
+      }
+
+      async function loadIndex() {
+        setStatus("Loading published country index…");
+        try {
+          const response = await fetch(DATA_INDEX_URL, { cache: "no-cache" });
+          if (!response.ok) throw new Error("Country index returned HTTP " + response.status);
+          state.index = await response.json();
+          state.countries = (state.index.countries || []).filter(item => item && item.available && item.file);
+          const select = $("country-select");
+          select.innerHTML = "";
+          if (!state.countries.length) {
+            select.innerHTML = '<option value="">No published country datasets</option>';
+            setStatus("No published country files are listed in the index yet.", "warn");
+            return;
+          }
+          state.countries.forEach(country => {
+            const opt = document.createElement("option");
+            opt.value = country.code;
+            opt.textContent = country.name + " (" + country.code + ")";
+            select.appendChild(opt);
+          });
+          const preferred = state.countries.find(c => c.code === "ID") || state.countries[0];
+          select.value = preferred.code;
+          select.disabled = false;
+          $("record-search").disabled = false;
+          $("list-search").disabled = false;
+          select.addEventListener("change", () => loadCountry(select.value));
+          $("record-search").addEventListener("input", renderRecords);
+          $("list-search").addEventListener("input", () => {
+            $("record-search").value = $("list-search").value;
+            renderRecords();
+          });
+          $("reload-btn").addEventListener("click", () => loadCountry(select.value, true));
+          await loadCountry(preferred.code);
+        } catch (error) {
+          console.error(error);
+          setStatus("Could not load the published country index. Try reloading in a moment.", "error");
+          $("record-list").innerHTML = '<p class="empty-list">Dataset index could not be loaded. Check your connection and reload the page.</p>';
+        }
+      }
+
+      async function loadCountry(code, force = false) {
+        const country = state.countries.find(c => c.code === code);
+        if (!country) return;
+        if (state.abort) state.abort.abort();
+        state.abort = new AbortController();
+        const signal = state.abort.signal;
+        state.activeCode = code;
+        state.selectedId = null;
+        setStatus("Loading " + country.name + " published sample…");
+        $("reload-btn").disabled = true;
+        $("record-list").innerHTML = '<p class="empty-list">Loading country sample…</p>';
+        $("record-detail").innerHTML = '<p class="detail-placeholder">Loading records…</p>';
+        try {
+          const url = "./biodiversity/" + encodeURIComponent(country.file) + (force ? "?refresh=" + Date.now() : "");
+          const response = await fetch(url, { cache: force ? "reload" : "default", signal });
+          if (!response.ok) throw new Error("Dataset returned HTTP " + response.status);
+          const dataset = await response.json();
+          if (signal.aborted || state.activeCode !== code) return;
+          state.dataset = dataset;
+          const collection = dataset.observations_geojson || {};
+          state.observations = Array.isArray(collection.features) ? collection.features.filter(f =>
+            f && f.geometry && f.geometry.type === "Point" && Array.isArray(f.geometry.coordinates) &&
+            f.geometry.coordinates.length >= 2 && f.geometry.coordinates.every(v => Number.isFinite(Number(v)))
+          ) : [];
+          $("record-search").value = "";
+          $("list-search").value = "";
+          updateStats(dataset);
+          updateCountrySource(dataset);
+          updateMap(dataset);
+          renderRecords();
+          const summary = dataset.summary || {};
+          const complete = summary.complete_for_requested_sample !== false;
+          setStatus(
+            country.name + " sample loaded: " + fmt(state.observations.length) +
+            " mapped records. " + (complete ? "Requested sample returned." : "Partial sample; some pages were unavailable."),
+            complete ? "ok" : "warn"
+          );
+        } catch (error) {
+          if (error.name === "AbortError") return;
+          console.error(error);
+          setStatus("Could not load the selected country dataset. Please try Reload dataset.", "error");
+          $("record-list").innerHTML = '<p class="empty-list">The published country file could not be loaded. It may be temporarily unavailable or too large for this connection.</p>';
+          $("record-detail").innerHTML = '<p class="detail-placeholder">No record is selected.</p>';
+        } finally {
+          $("reload-btn").disabled = false;
+        }
+      }
+
+      function updateStats(dataset) {
+        const s = dataset.summary || {};
+        $("stat-records").textContent = fmt(s.mapped_occurrence_points ?? state.observations.length);
+        $("stat-records-note").textContent = "From " + fmt(s.unique_occurrence_records ?? state.observations.length) + " unique records";
+        $("stat-taxa").textContent = fmt(s.unique_taxa_in_sample ?? "—");
+        $("stat-cells").textContent = fmt(s.distribution_grid_cells ?? 0);
+        $("stat-total").textContent = fmt(s.total_matching_records_reported_by_gbif ?? "—");
+        const date = dataset.generated_at_utc ? new Date(dataset.generated_at_utc) : null;
+        $("generated-at").textContent = date && !Number.isNaN(date.valueOf())
+          ? "Generated " + date.toLocaleString() + " · " + (dataset.country?.name || "")
+          : "";
+      }
+
+      function updateMap(dataset) {
+        state.observationLayer.clearLayers();
+        state.gridLayer.clearLayers();
+        state.reserveLayer.clearLayers();
+        state.markersById.clear();
+
+        const grid = dataset.distribution_geojson;
+        if (grid && Array.isArray(grid.features)) state.gridLayer.addData(grid);
+        const reserves = dataset.biosphere_geojson;
+        if (reserves && Array.isArray(reserves.features)) state.reserveLayer.addData(reserves);
+
+        state.observations.forEach((feature, index) => {
+          const props = properties(feature);
+          const [lon, lat] = feature.geometry.coordinates.map(Number);
+          if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return;
+          const id = recordId(feature, index);
+          const marker = L.circleMarker([lat, lon], {
+            radius: 5, color: "#174e8b", weight: 1.2, fillColor: "#43a0e4", fillOpacity: .8
+          });
+          marker.bindPopup("<strong>" + escapeHtml(displayName(props)) + "</strong><br>" +
+            escapeHtml(props.locality || props.stateProvince || props.country || "Location recorded") +
+            "<br><small>GBIF occurrence " + escapeHtml(props.gbif_id || props.key || id) + "</small>");
+          marker.on("click", () => selectRecord(id, false));
+          marker.addTo(state.observationLayer);
+          state.markersById.set(id, {marker, feature, index});
+        });
+
+        const layers = [state.observationLayer, state.gridLayer, state.reserveLayer];
+        const available = layers.flatMap(layer => layer.getLayers());
+        if (available.length) {
+          try {
+            const bounds = L.featureGroup(available).getBounds();
+            if (bounds.isValid()) state.map.fitBounds(bounds.pad(.08), { maxZoom: 8 });
+          } catch { state.map.setView([-2.5, 118], 4); }
+        } else {
+          state.map.setView([-2.5, 118], 4);
+        }
+        toggleLayer($("layer-observations").checked, state.observationLayer);
+        toggleLayer($("layer-grid").checked, state.gridLayer);
+        toggleLayer($("layer-reserves").checked, state.reserveLayer);
+      }
+
+      function getSearchText(feature) {
+        const p = properties(feature);
+        return [
+          displayName(p), p.scientificName, p.species, p.genus, p.family, p.order, p.kingdom,
+          p.locality, p.stateProvince, p.county, p.municipality, p.recordedBy, p.institutionCode,
+          p.collectionCode, p.basisOfRecord, p.eventDate, p.country, p.countryCode, p.catalogNumber,
+          p.occurrenceRemarks, p.description, p.habitat, p.taxonRemarks, p.fieldNotes
+        ].filter(Boolean).join(" ").toLocaleLowerCase();
+      }
+
+      function renderRecords() {
+        const query = ($("record-search").value || "").trim().toLocaleLowerCase();
+        state.filtered = state.observations.filter(feature => !query || getSearchText(feature).includes(query));
+        $("visible-count").textContent = fmt(state.filtered.length) + " of " + fmt(state.observations.length) + " records";
+        $("filter-count").textContent = query ? "Filtered" : "No filter";
+        const list = $("record-list");
+        if (!state.filtered.length) {
+          list.innerHTML = '<p class="empty-list">No records match this search. Try a scientific name, locality, recorder, or another keyword.</p>';
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        state.filtered.forEach(feature => {
+          const i = state.observations.indexOf(feature);
+          const id = recordId(feature, i);
+          const p = properties(feature);
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "record" + (id === state.selectedId ? " active" : "");
+          card.dataset.recordId = id;
+          const place = [p.locality, p.stateProvince, p.country || p.countryCode].filter(Boolean).join(", ");
+          card.innerHTML = '<div class="record-name">' + escapeHtml(displayName(p)) + '</div>' +
+            '<div class="record-meta">' + escapeHtml(place || "Location not described") +
+            '<br>GBIF ID: ' + escapeHtml(p.gbif_id || p.key || id) + '</div>' +
+            '<span class="mini-tag">' + escapeHtml(p.basisOfRecord || "Occurrence record") + '</span>';
+          card.addEventListener("click", () => selectRecord(id, true));
+          fragment.appendChild(card);
+        });
+        list.replaceChildren(fragment);
+      }
+
+      function selectRecord(id, panTo) {
+        const selected = state.markersById.get(String(id));
+        if (!selected) return;
+        state.selectedId = String(id);
+        document.querySelectorAll(".record.active").forEach(el => el.classList.remove("active"));
+        const current = document.querySelector('[data-record-id="' + CSS.escape(String(id)) + '"]');
+        if (current) {
+          current.classList.add("active");
+          current.scrollIntoView({block:"nearest",behavior:"smooth"});
+        }
+        const p = properties(selected.feature);
+        const coords = selected.feature.geometry.coordinates.map(Number);
+        if (panTo) state.map.flyTo([coords[1], coords[0]], Math.max(state.map.getZoom(), 8), {duration:.45});
+        selected.marker.openPopup();
+
+        const image = mediaUrl(p);
+        const sourceUrl = safeHttpUrl(p.source_url) || (p.gbif_id || p.key
+          ? "https://www.gbif.org/occurrence/" + encodeURIComponent(String(p.gbif_id || p.key))
+          : "");
+        const place = [p.locality, p.municipality, p.county, p.stateProvince, p.country || p.countryCode].filter(Boolean).join(", ");
+        const facts = [
+          ["GBIF record ID", p.gbif_id || p.key],
+          ["Observed date", p.eventDate || p.eventDateTime],
+          ["Recorded by", p.recordedBy],
+          ["Basis of record", p.basisOfRecord],
+          ["Kingdom", p.kingdom],
+          ["Family", p.family],
+          ["Coordinates", coords[1].toFixed(5) + ", " + coords[0].toFixed(5)],
+          ["Licence", p.license || p.licenseTitle]
+        ];
+        $("record-detail").innerHTML =
+          (image ? '<img class="detail-img" src="' + escapeHtml(image) + '" alt="Source image associated with ' + escapeHtml(displayName(p)) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">' : "") +
+          '<h3 class="detail-species">' + escapeHtml(displayName(p)) + '</h3>' +
+          '<div class="detail-scientific">Occurrence record · ' + escapeHtml(place || "Location not described") + '</div>' +
+          '<div class="properties">' + facts.filter(item => item[1] !== undefined && item[1] !== null && item[1] !== "").map(item =>
+            '<div class="prop"><div class="prop-label">' + escapeHtml(item[0]) + '</div><div class="prop-value">' + escapeHtml(fmt(item[1])) + '</div></div>'
+          ).join("") + '</div>' +
+          (p.description ? '<p class="description">' + escapeHtml(p.description) + '</p>' : "") +
+          (p.occurrenceRemarks ? '<p class="description"><strong>Occurrence remarks:</strong> ' + escapeHtml(p.occurrenceRemarks) + '</p>' : "") +
+          '<div class="detail-actions">' + linkButton(sourceUrl, "Open source record") +
+          linkButton(p.datasetKey ? "https://www.gbif.org/dataset/" + encodeURIComponent(String(p.datasetKey)) : "", "Source dataset") +
+          (image ? linkButton(image, "Open image source") : "") + '</div>';
+        renderRecords();
+      }
+
+      initMap();
+      loadIndex();
+    })();
+  </script>
+</body>
+</html>
