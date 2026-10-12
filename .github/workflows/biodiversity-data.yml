@@ -55,7 +55,7 @@ jobs:
           MAX_RECORDS: ${{ inputs.max_records_per_country || '300' }}
           GRID_SIZE: ${{ inputs.grid_size_degrees || '0.5' }}
           INCLUDE_IUCN_DATA: ${{ inputs.include_iucn_data || 'false' }}
-          IUCN_API_KEY: ${{ secrets.IUCN_API_KEY }}
+          IUCN_API_KEY: ${{ inputs.include_iucn_data && secrets.IUCN_API_KEY || '' }}
           IUCN_PUBLICATION_APPROVED: ${{ vars.IUCN_PUBLICATION_APPROVED }}
         run: |
           ARGS=(--country "$COUNTRY_CODE" --max-records "$MAX_RECORDS" --grid-size "$GRID_SIZE")
