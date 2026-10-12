@@ -1293,6 +1293,19 @@
         return [];
       }
 
+      let inatRequestQueue = Promise.resolve();
+      let lastINatRequestAt = 0;
+      function fetchINaturalistJson(url) {
+        const task = inatRequestQueue.then(async () => {
+          const waitMs = Math.max(0, 1000 - (Date.now() - lastINatRequestAt));
+          if (waitMs) await new Promise(resolve => setTimeout(resolve, waitMs));
+          lastINatRequestAt = Date.now();
+          return await fetchJsonOptional(url);
+        });
+        inatRequestQueue = task.then(() => undefined, () => undefined);
+        return task;
+      }
+
       async function fetchJsonOptional(url) {
         try{
           return await fetchJsonSession(url);
@@ -1378,10 +1391,24 @@
         const results=apiArray(payload,["results"]);
         const target=normalizeScientificName(scientificName);
         if(!target)return null;
-        return results.find(item=>
-          normalizeScientificName(item.name)===target ||
-          normalizeScientificName(item.matched_term)===target
-        )||null;
+        const exact=results.find(item=>normalizeScientificName(item.name)===target||
+          normalizeScientificName(item.matched_term)===target);
+        if(exact&&exact.wikipedia_summary)return exact;
+
+        // An occurrence may be identified to subspecies while iNaturalist has a
+        // useful description only for the accepted parent species. Match the
+        // first binomial exactly, and prefer that species-level result over a sibling.
+        const targetTokens=target.split(" ");
+        if(targetTokens.length>=2){
+          const binomial=targetTokens.slice(0,2).join(" ");
+          const parent=results.find(item=>{
+            const tokens=normalizeScientificName(item.name).split(" ");
+            return tokens.length===2&&tokens.join(" ")===binomial&&
+              String(item.rank||"").toLowerCase()==="species";
+          });
+          if(parent)return parent;
+        }
+        return exact||results.find(item=>normalizeScientificName(item.matched_term)===target)||null;
       }
 
       async function fetchTaxonInsights(taxonKey,scientificName) {
@@ -1402,15 +1429,37 @@
             fetchJsonOptional(gbifBase+"/speciesProfiles"),
             fetchJsonOptional(gbifBase+"/iucnRedListCategory")
           ]:[Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null)];
-          const iNatUrl=scientificName
-            ?"https://api.inaturalist.org/v1/taxa?"+new URLSearchParams({q:scientificName,per_page:"5"})
-            :"";
-          const results=await Promise.all([
-            Promise.all(gbifRequests),
-            iNatUrl?fetchJsonOptional(iNatUrl):Promise.resolve(null)
-          ]);
-          const [taxon,vernacularPayload,descriptionsPayload,profilesPayload,statusPayload]=results[0];
-          const inat=selectMatchingINatTaxon(results[1],scientificName);
+          const [taxon,vernacularPayload,descriptionsPayload,profilesPayload,statusPayload]=await Promise.all(gbifRequests);
+
+          const parentScientificName=taxon&&String(taxon.rank||"").toUpperCase()==="SUBSPECIES"&&
+            taxon.species&&normalizeScientificName(taxon.species)!==normalizeScientificName(scientificName)
+            ?String(taxon.species):"";
+          const nameQueries=[scientificName,parentScientificName].filter((name,index,all)=>
+            name&&all.findIndex(other=>normalizeScientificName(other)===normalizeScientificName(name))===index
+          );
+          let inat=null;
+          for(const queryName of nameQueries){
+            const url="https://api.inaturalist.org/v1/taxa?"+new URLSearchParams({q:queryName,per_page:"8"});
+            const payload=await fetchINaturalistJson(url);
+            const match=selectMatchingINatTaxon(payload,queryName);
+            if(match&&(!inat||(!inat.wikipedia_summary&&match.wikipedia_summary)||
+              (!inat.preferred_common_name&&match.preferred_common_name))){
+              inat=match;
+            }
+            if(inat?.wikipedia_summary&&inat?.preferred_common_name)break;
+          }
+
+          // The search endpoint can omit some detail fields; request the selected
+          // taxon's record if we still need a descriptive summary or conservation metadata.
+          if(inat?.id&&(!inat.wikipedia_summary||!inat.conservation_status)){
+            const detailPayload=await fetchINaturalistJson(
+              "https://api.inaturalist.org/v1/taxa/"+encodeURIComponent(String(inat.id))
+            );
+            const detail=apiArray(detailPayload,["results"])[0]||
+              (detailPayload&&typeof detailPayload==="object"&&detailPayload.id?detailPayload:null);
+            if(detail)inat={...inat,...detail};
+          }
+
           return {
             usageKey,taxon:taxon||taxonMatch,
             vernacularNames:apiArray(vernacularPayload,["results","vernacularNames"]),
@@ -1479,22 +1528,31 @@
         ].filter(([,value])=>value!==undefined&&value!==null&&value!=="");
         const descRows=(info?.descriptions||[]).filter(row=>
           row&&typeof row.description==="string"&&row.description.trim()
-        ).sort((a,b)=>{
-          const score=row=>String(row.language||"").toLowerCase().startsWith("en")?10:0;
+        ).map(row=>({...row,cleanDescription:plainText(row.description,1600)})).sort((a,b)=>{
+          const score=row=>{
+            let value=Math.min(String(row.cleanDescription||"").length,1500);
+            if(String(row.language||"").toLowerCase().startsWith("en"))value+=80;
+            if(/clements checklist/i.test(String(row.source||""))&&value<300)value-=500;
+            if(String(row.cleanDescription||"").length<120&&/\bto\b.*\b(and|asia|africa|europe|america|indonesia|china|india)\b/i.test(row.cleanDescription))value-=180;
+            return value;
+          };
           return score(b)-score(a);
         });
-        const gbifDescription=descRows.length?plainText(descRows[0].description,1600):"";
+        const gbifDescription=descRows.length?descRows[0].cleanDescription:"";
         const wikiDescription=plainText(inat?.wikipedia_summary||"",1600);
         const description=wikiDescription||gbifDescription;
         const descriptionSource=wikiDescription?"Wikipedia summary via iNaturalist":gbifDescription
           ?(descRows[0].source||"GBIF species description"):"";
+        const looksLikeDistributionNote=!wikiDescription&&gbifDescription.length<160&&
+          (/\bto\b.*\b(and|asia|africa|europe|america|indonesia|china|india|myanmar)\b/i.test(gbifDescription)||
+           /clements checklist/i.test(String(descRows[0]?.source||"")));
         const sourceUrl=inat?.id?"https://www.inaturalist.org/taxa/"+encodeURIComponent(String(inat.id)):"";
         const iucnUrl=info?.statusPayload?.iucnTaxonID
           ?"https://www.iucnredlist.org/species/"+encodeURIComponent(String(info.statusPayload.iucnTaxonID))
           :"https://www.iucnredlist.org/search?"+new URLSearchParams({query:scientific,searchType:"species"});
-        let conservation=info?.gbifStatus||null;
-        let conservationSource="GBIF species taxonomy reference";
-        let conservationScope="Category provided by GBIF's taxonomic reference";
+        let conservation=info?.gbifStatus||normalizeStatus(occurrence?.iucnRedListCategory)||normalizeStatus(taxon?.iucnRedListCategory)||null;
+        let conservationSource=info?.gbifStatus?"GBIF species taxonomy reference":"GBIF occurrence/taxon record";
+        let conservationScope="Category provided by GBIF's reference data";
         if(!conservation&&inat?.conservation_status){
           const status=inat.conservation_status;
           const normalized=normalizeStatus(status.iucn||status.status_name||status.status||status.name);
@@ -1514,8 +1572,8 @@
         const iNatStatus=inat?.conservation_status;
         const threatNote=facts.some(f=>/threat/i.test(f.label))?"":'No specific threat explanation was returned by the available profile fields. To understand why a species is threatened, open the source assessment and read its justification and listed threat factors.';
         const descriptionMarkup=description
-          ?'<p class="species-description">'+escapeHtml(description)+'</p><p class="species-insights-intro">Description source: '+escapeHtml(descriptionSource||"external source")+'. This descriptive text is not itself a conservation assessment.</p>'
-          :'<p class="species-insights-intro">No readable species description was returned by these APIs. The classification and source links below can still help identify the taxon.</p>';
+          ?'<p class="species-description">'+escapeHtml(description)+'</p><p class="species-insights-intro">'+(looksLikeDistributionNote?"This appears to be a brief range/distribution note, not a full natural-history description. ":"Description source: ")+escapeHtml(descriptionSource||"external source")+'. This text is not itself a conservation assessment.</p>'
+          :'<p class="species-insights-intro">No full natural-history description was returned by these APIs. Some checklists provide only a short geographic range note; the linked taxon profiles may have more information.</p>';
         return '<h4>About this species</h4>'+
           '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. Values can be missing or differ between checklists.</p>'+
           (common?'<p class="species-common-name">'+escapeHtml(common)+'</p>':'')+
