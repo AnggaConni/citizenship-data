@@ -1,4 +1,7 @@
+import json
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from scripts import build_biodiversity as pipeline
 
@@ -67,6 +70,15 @@ class BiodiversityPipelineTests(unittest.TestCase):
             "Pongo pygmaeus",
         )
         self.assertIsNone(pipeline.normalize_iucn_target({"genus_name": "", "species_name": "pygmaeus"}))
+        with TemporaryDirectory() as temporary_dir:
+            target_path = Path(temporary_dir) / "targets.json"
+            target_path.write_text(json.dumps({"species": [
+                {"genus_name": "Pongo", "species_name": "pygmaeus"},
+                {"genus_name": "pongo", "species_name": "PYGMAEUS"},
+                {"genus_name": "Varanus", "species_name": "komodoensis"},
+            ]}), encoding="utf-8")
+            targets = pipeline.load_iucn_targets(target_path)
+            self.assertEqual(len(targets), 2)
 
     def test_iucn_response_prefers_latest_global_assessment(self):
         target = {
