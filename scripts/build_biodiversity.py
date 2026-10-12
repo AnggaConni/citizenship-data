@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import sys
 import time
@@ -25,6 +26,16 @@ API_BASE = "https://api.gbif.org/v1"
 UNESCO_API_BASE = "https://data.unesco.org/api/explore/v2.1"
 UNESCO_DATASET_ID = "mab001"
 UNESCO_DATASET_URL = "https://data.unesco.org/explore/dataset/mab001/information/"
+IUCN_API_BASE = "https://api.iucnredlist.org/api/v4"
+IUCN_DATASET_URL = "https://www.iucnredlist.org/"
+IUCN_API_DOCS_URL = "https://api.iucnredlist.org/help"
+IUCN_PUBLICATION_APPROVED_ENV = "IUCN_PUBLICATION_APPROVED"
+MAX_IUCN_TARGETS_PER_RUN = 25
+IUCN_CATEGORY_LABELS = {
+    "EX": "Extinct", "EW": "Extinct in the Wild", "CR": "Critically Endangered",
+    "EN": "Endangered", "VU": "Vulnerable", "NT": "Near Threatened",
+    "LC": "Least Concern", "DD": "Data Deficient", "NE": "Not Evaluated",
+}
 REPOSITORY_URL = "https://github.com/AnggaConni/citizenship-data"
 PAGE_SIZE = 300
 MAX_RECORDS_PER_COUNTRY = 9900  # Keep search offsets below 10,000.
@@ -65,6 +76,288 @@ def request_json(
                 break
         time.sleep(min(8.0, 1.2 * (2 ** attempt)))
     raise RuntimeError(f"GBIF request failed for {url}: {last_error}") from last_error
+
+
+
+def request_iucn_json(
+    endpoint: str,
+    params: dict | None,
+    api_key: str,
+    retries: int = 2,
+) -> dict | list:
+    """Make one authenticated IUCN API v4 request without exposing the API key."""
+    if not api_key or not api_key.strip():
+        raise RuntimeError("IUCN API key is missing.")
+    url = f"{IUCN_API_BASE.rstrip('/')}/{endpoint.lstrip('/')}"
+    if params:
+        url += "?" + urlencode(params)
+    last_error: Exception | None = None
+
+    for attempt in range(retries + 1):
+        request = Request(url, headers={
+            "Accept": "application/json",
+            # IUCN documents the key as the raw Authorization header value (no Bearer prefix).
+            "Authorization": api_key.strip(),
+            "User-Agent": f"{USER_AGENT} (+{REPOSITORY_URL})",
+        })
+        try:
+            with urlopen(request, timeout=30) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+                if not isinstance(payload, (dict, list)):
+                    raise RuntimeError("IUCN API returned an unexpected JSON type.")
+                return payload
+        except HTTPError as exc:
+            if exc.code in (401, 403):
+                raise RuntimeError(
+                    f"IUCN API authorization failed (HTTP {exc.code}); check the IUCN_API_KEY "
+                    "secret and confirm that the account is authorized for this intended use."
+                ) from None
+            if exc.code == 404:
+                raise LookupError("No matching IUCN taxon or resource was found.") from None
+            last_error = exc
+            if exc.code not in (408, 425, 429, 500, 502, 503, 504) or attempt >= retries:
+                break
+        except (URLError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            last_error = exc
+            if attempt >= retries:
+                break
+        time.sleep(min(8.0, 1.0 * (2 ** attempt)))
+
+    if isinstance(last_error, HTTPError):
+        raise RuntimeError(
+            f"IUCN API request failed for {endpoint} (HTTP {last_error.code})."
+        ) from None
+    raise RuntimeError(
+        f"IUCN API request failed for {endpoint} ({type(last_error).__name__ if last_error else 'unknown error'})."
+    ) from None
+
+
+def normalize_iucn_target(item: object) -> dict | None:
+    """Validate one explicitly curated species target without guessing from occurrence data."""
+    if not isinstance(item, dict):
+        return None
+    genus = str(item.get("genus_name") or item.get("genus") or "").strip()
+    species = str(item.get("species_name") or item.get("species") or "").strip()
+    infra = str(item.get("infra_name") or "").strip()
+    subpopulation = str(item.get("subpopulation_name") or "").strip()
+    if not genus or not species or len(genus) > 100 or len(species) > 100:
+        return None
+    if any("\n" in value or "\r" in value for value in (genus, species, infra, subpopulation)):
+        return None
+    scientific_name = str(item.get("scientific_name") or " ".join(
+        part for part in (genus, species, infra) if part
+    )).strip()
+    result = {
+        "genus_name": genus,
+        "species_name": species,
+        "scientific_name": scientific_name,
+    }
+    if infra:
+        result["infra_name"] = infra
+    if subpopulation:
+        result["subpopulation_name"] = subpopulation
+    return result
+
+
+def load_iucn_targets(path: Path) -> list[dict]:
+    """Load a small user-curated allowlist; never harvest every GBIF taxon automatically."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise ValueError(
+            f"IUCN target file not found: {path}. Add selected species to biodiversity/iucn_targets.json."
+        ) from None
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"IUCN target file contains invalid JSON at line {exc.lineno}.") from None
+    rows = raw.get("species") if isinstance(raw, dict) else None
+    if not isinstance(rows, list):
+        raise ValueError("IUCN target file must contain a top-level 'species' array.")
+    targets: list[dict] = []
+    seen: set[tuple[str, str, str]] = set()
+    for row in rows:
+        target = normalize_iucn_target(row)
+        if not target:
+            continue
+        key = (
+            target["genus_name"].casefold(),
+            target["species_name"].casefold(),
+            target.get("infra_name", "").casefold(),
+        )
+        if key not in seen:
+            seen.add(key)
+            targets.append(target)
+    if len(targets) > MAX_IUCN_TARGETS_PER_RUN:
+        raise ValueError(
+            f"IUCN target list contains {len(targets)} valid species; the per-run limit is "
+            f"{MAX_IUCN_TARGETS_PER_RUN}. Use a smaller curated set."
+        )
+    return targets
+
+
+def _assessment_scope_codes(assessment: dict) -> set[str]:
+    scopes = assessment.get("scopes")
+    if not isinstance(scopes, list):
+        return set()
+    codes = set()
+    for scope in scopes:
+        if not isinstance(scope, dict):
+            continue
+        code = scope.get("code")
+        if code is not None:
+            codes.add(str(code))
+        description = scope.get("description")
+        if isinstance(description, dict) and str(description.get("en") or "").casefold() == "global":
+            codes.add("1")
+    return codes
+
+
+def normalize_iucn_response(target: dict, payload: dict) -> dict:
+    """Reduce an API response to selected assessment fields for research display."""
+    taxon = payload.get("taxon") if isinstance(payload.get("taxon"), dict) else {}
+    assessments = payload.get("assessments")
+    assessments = [row for row in assessments if isinstance(row, dict)] if isinstance(assessments, list) else []
+    if not taxon and not assessments:
+        return {
+            "requested_name": target["scientific_name"],
+            "scientific_name": target["scientific_name"],
+            "status": "not_found",
+            "source": "IUCN Red List of Threatened Species",
+            "source_url": IUCN_DATASET_URL,
+        }
+    if not assessments:
+        return {
+            "requested_name": target["scientific_name"],
+            "scientific_name": taxon.get("scientific_name") or target["scientific_name"],
+            "sis_id": taxon.get("sis_id"),
+            "status": "no_assessment_found",
+            "source": "IUCN Red List of Threatened Species",
+            "source_url": IUCN_DATASET_URL,
+        }
+
+    global_assessments = [row for row in assessments if "1" in _assessment_scope_codes(row)]
+    latest_global = [row for row in global_assessments if row.get("latest") is True]
+    latest_any = [row for row in assessments if row.get("latest") is True]
+    candidates = latest_global or latest_any or global_assessments or assessments
+    chosen = sorted(
+        candidates,
+        key=lambda row: (
+            str(row.get("assessment_date") or ""),
+            str(row.get("year_published") or ""),
+            int(row.get("assessment_id") or 0) if str(row.get("assessment_id") or "").isdigit() else 0,
+        ),
+        reverse=True,
+    )[0]
+    category = str(chosen.get("red_list_category_code") or "").strip()
+    scopes = chosen.get("scopes") if isinstance(chosen.get("scopes"), list) else []
+    scope_name = None
+    scope_code = None
+    for scope in scopes:
+        if not isinstance(scope, dict):
+            continue
+        if str(scope.get("code") or "") in _assessment_scope_codes(chosen):
+            scope_code = str(scope.get("code")) if scope.get("code") is not None else None
+            desc = scope.get("description")
+            scope_name = desc.get("en") if isinstance(desc, dict) else None
+            break
+
+    record = {
+        "requested_name": target["scientific_name"],
+        "scientific_name": taxon.get("scientific_name")
+            or chosen.get("taxon_scientific_name")
+            or target["scientific_name"],
+        "sis_id": taxon.get("sis_id") or chosen.get("sis_taxon_id"),
+        "status": "assessed",
+        "red_list_category_code": category or None,
+        "red_list_category": IUCN_CATEGORY_LABELS.get(category.upper(), category or None),
+        "assessment_date": chosen.get("assessment_date"),
+        "year_published": chosen.get("year_published"),
+        "assessment_criteria": chosen.get("criteria"),
+        "assessment_url": chosen.get("url"),
+        "assessment_id": chosen.get("assessment_id"),
+        "latest": chosen.get("latest"),
+        "possibly_extinct": chosen.get("possibly_extinct"),
+        "possibly_extinct_in_the_wild": chosen.get("possibly_extinct_in_the_wild"),
+        "scope_code": scope_code,
+        "scope": scope_name or ("Global" if scope_code == "1" else None),
+        "source": "IUCN Red List of Threatened Species",
+        "source_url": chosen.get("url") or IUCN_DATASET_URL,
+    }
+    return record
+
+
+def fetch_iucn_dataset(targets: list[dict], api_key: str) -> dict:
+    """Fetch a strictly bounded set of explicitly requested species assessments."""
+    # Validate authorization before doing any species lookups.
+    api_version = request_iucn_json("information/api_version", None, api_key)
+    red_list_version = request_iucn_json("information/red_list_version", None, api_key)
+    result_records: list[dict] = []
+    errors = 0
+    for index, target in enumerate(targets):
+        params = {
+            "genus_name": target["genus_name"],
+            "species_name": target["species_name"],
+        }
+        if target.get("infra_name"):
+            params["infra_name"] = target["infra_name"]
+        if target.get("subpopulation_name"):
+            params["subpopulation_name"] = target["subpopulation_name"]
+        try:
+            response = request_iucn_json("taxa/scientific_name", params, api_key)
+            normalized = normalize_iucn_response(target, response if isinstance(response, dict) else {})
+        except LookupError:
+            normalized = {
+                "requested_name": target["scientific_name"],
+                "scientific_name": target["scientific_name"],
+                "status": "not_found",
+                "source": "IUCN Red List of Threatened Species",
+                "source_url": IUCN_DATASET_URL,
+            }
+        except RuntimeError as exc:
+            # Authentication errors were validated above; preserve other failures as per-target status.
+            errors += 1
+            normalized = {
+                "requested_name": target["scientific_name"],
+                "scientific_name": target["scientific_name"],
+                "status": "request_error",
+                "error": str(exc)[:240],
+                "source": "IUCN Red List of Threatened Species",
+                "source_url": IUCN_DATASET_URL,
+            }
+        normalized["requested_genus_name"] = target["genus_name"]
+        normalized["requested_species_name"] = target["species_name"]
+        result_records.append(normalized)
+        print(
+            f"  IUCN [{index + 1}/{len(targets)}] {target['scientific_name']}: "
+            f"{normalized['status']}",
+            flush=True,
+        )
+        if index + 1 < len(targets):
+            time.sleep(0.35)
+
+    return {
+        "dataset_type": "Selected IUCN Red List species assessment metadata",
+        "schema_version": 1,
+        "generated_at_utc": utc_now(),
+        "source": {
+            "name": "IUCN Red List of Threatened Species",
+            "api": IUCN_API_BASE,
+            "api_version": api_version.get("api_version") if isinstance(api_version, dict) else None,
+            "red_list_version": red_list_version.get("red_list_version") if isinstance(red_list_version, dict) else None,
+            "url": IUCN_DATASET_URL,
+            "documentation": IUCN_API_DOCS_URL,
+            "attribution": "IUCN Red List of Threatened Species",
+            "note": "Only explicitly selected targets are queried. Verify IUCN terms before publishing or caching these fields.",
+        },
+        "summary": {
+            "requested_species": len(targets),
+            "assessed_species": sum(row.get("status") == "assessed" for row in result_records),
+            "not_found_species": sum(row.get("status") == "not_found" for row in result_records),
+            "species_without_assessment": sum(row.get("status") == "no_assessment_found" for row in result_records),
+            "request_errors": errors,
+            "status": "partial" if errors else "updated",
+        },
+        "assessments": result_records,
+    }
 
 
 def normalize_country(item: object) -> dict | None:
@@ -516,7 +809,8 @@ def write_json(path: Path, value: dict) -> None:
     )
 
 
-def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path) -> int:
+def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
+        include_iucn: bool = False, iucn_targets_path: Path | None = None) -> int:
     if not 1 <= maximum <= MAX_RECORDS_PER_COUNTRY:
         raise ValueError(f"max_records must be between 1 and {MAX_RECORDS_PER_COUNTRY}.")
     if not (0 < grid_size <= 10):
@@ -555,6 +849,46 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path) -
 
     index_path = output_dir / "index.json"
     old_index = read_json(index_path) or {}
+    iucn_summary = old_index.get("iucn") if isinstance(old_index.get("iucn"), dict) else {
+        "file": "iucn-assessments.json",
+        "source": IUCN_DATASET_URL,
+        "status": "not-run",
+        "note": "Optional and disabled by default. Public caching/publication requires confirmation of applicable IUCN terms.",
+    }
+    if include_iucn:
+        if os.environ.get(IUCN_PUBLICATION_APPROVED_ENV, "").strip().casefold() not in {"1", "true", "yes"}:
+            raise ValueError(
+                "IUCN enrichment was requested, but public caching is locked. After IUCN confirms "
+                "that this use is permitted, set the repository variable IUCN_PUBLICATION_APPROVED=true."
+            )
+        api_key = os.environ.get("IUCN_API_KEY", "").strip()
+        if not api_key:
+            raise ValueError("IUCN enrichment was requested, but the IUCN_API_KEY secret is missing.")
+        targets_path = iucn_targets_path or (output_dir / "iucn_targets.json")
+        iucn_targets = load_iucn_targets(targets_path)
+        if not iucn_targets:
+            raise ValueError(
+                f"No valid species targets were found in {targets_path}; add selected species before enabling IUCN."
+            )
+        iucn_dataset = fetch_iucn_dataset(iucn_targets, api_key)
+        iucn_path = output_dir / "iucn-assessments.json"
+        write_json(iucn_path, iucn_dataset)
+        iucn_summary = {
+            "file": "iucn-assessments.json",
+            "source": IUCN_DATASET_URL,
+            "status": iucn_dataset["summary"]["status"],
+            "red_list_version": iucn_dataset["source"].get("red_list_version"),
+            "requested_species": iucn_dataset["summary"]["requested_species"],
+            "assessed_species": iucn_dataset["summary"]["assessed_species"],
+            "request_errors": iucn_dataset["summary"]["request_errors"],
+            "generated_at_utc": iucn_dataset["generated_at_utc"],
+        }
+        print(
+            f"IUCN Red List: {iucn_summary['assessed_species']}/"
+            f"{iucn_summary['requested_species']} selected species assessed "
+            f"(version {iucn_summary.get('red_list_version')}).",
+            flush=True,
+        )
     entries_by_code = {
         entry.get("code"): entry for entry in old_index.get("countries", [])
         if isinstance(entry, dict) and entry.get("code")
@@ -649,6 +983,7 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path) -
             "records": len(biosphere_records),
             "error": biosphere_error,
         },
+        "iucn": iucn_summary,
         "countries": ordered_entries,
         "note": "Samples are capped and may be incomplete. Distribution grid cells summarize returned occurrence records; they do not represent confirmed habitat or range boundaries.",
     })
@@ -663,9 +998,12 @@ def main() -> int:
                         help=f"Maximum records sampled per country, 1–{MAX_RECORDS_PER_COUNTRY}; default {DEFAULT_RECORDS_PER_COUNTRY}.")
     parser.add_argument("--grid-size", type=float, default=0.5, help="Grid-cell size in degrees; default 0.5.")
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR, help="Output directory (default: repo/biodiversity).")
+    parser.add_argument("--include-iucn", action="store_true", help="Query only manually selected species from biodiversity/iucn_targets.json and write selected assessment metadata. Requires IUCN_PUBLICATION_APPROVED=true after publication/caching permission is confirmed.")
+    parser.add_argument("--iucn-targets", type=Path, help="Optional path to a manually curated IUCN target JSON file.")
     args = parser.parse_args()
     try:
-        return run(args.country, args.max_records, args.grid_size, args.output_dir)
+        return run(args.country, args.max_records, args.grid_size, args.output_dir,
+                   include_iucn=args.include_iucn, iucn_targets_path=args.iucn_targets)
     except Exception as exc:
         print(f"FATAL: {exc}", file=sys.stderr)
         return 1
