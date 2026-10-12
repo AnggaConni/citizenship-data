@@ -391,7 +391,11 @@
         renderSessionCacheStatus();
         try {
           const payload = await request;
-          state.sessionJsonCache.set(cacheKey, payload);
+          // A force-refresh may have replaced this request while it was running.
+          // Only the most recent request is allowed to update the cache entry.
+          if (state.sessionJsonCache.get(cacheKey) === request) {
+            state.sessionJsonCache.set(cacheKey, payload);
+          }
           renderSessionCacheStatus();
           return payload;
         } catch (error) {
