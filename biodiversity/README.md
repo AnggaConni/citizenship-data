@@ -11,6 +11,17 @@ This pipeline builds country-level JSON files from two separate public sources:
 - biosphere.json: the global UNESCO MAB dataset, with reserve records and GeoJSON point features.
 - index.json: country file metadata, sample counts, and biosphere source status.
 
+- IUCN Red List API v4 for assessment metadata from an explicit, manually curated species allowlist. This connector is optional and remains disabled unless deliberately enabled in a workflow dispatch.
+
+## Optional IUCN enrichment — permission gate
+
+The repository secret IUCN_API_KEY is used only by the GitHub Actions runner and is never written into generated files. Add selected species to iucn_targets.json using their genus and species names. The pipeline does not automatically query every GBIF taxon: a single run is capped at 25 explicitly listed species.
+
+**Do not enable IUCN enrichment just because an API key is available.** IUCN's API is non-commercial, discourages scraping or bulk extraction, and has terms governing redistribution and derivative works. This workflow writes selected assessment fields to a public JSON file, so first obtain confirmation from IUCN that this public caching/display use is permitted. Once you have confirmation, add the repository variable IUCN_PUBLICATION_APPROVED with value true and run the workflow with include_iucn_data = true. Keep this input false until then. If the publication approval variable is absent, the script refuses to write IUCN results.
+
+When enabled, the optional output is iucn-assessments.json; it contains only selected assessment fields (category, date, publication year, criteria, URL, scope and extinction flags), not the complete API response. It also records the returned Red List version. The API key must be stored as the Actions secret IUCN_API_KEY, never as a repository variable or in a source file.
+
+
 ## Run it
 
 Open **Actions → Build biodiversity country datasets → Run workflow**.
