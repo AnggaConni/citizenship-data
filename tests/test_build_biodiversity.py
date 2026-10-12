@@ -28,7 +28,7 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertEqual(feature["geometry"]["type"], "Point")
         self.assertEqual(feature["geometry"]["coordinates"], [106.8, -6.2])
         self.assertEqual(feature["properties"]["taxon_key"], 987)
-        self.assertEqual(feature["properties"]["recordedBy"], "Observer")
+        self.assertNotIn("recordedBy", feature["properties"])
         self.assertNotIn("description", feature["properties"])
         self.assertNotIn("habitat", feature["properties"])
         self.assertNotIn("media", feature["properties"])
