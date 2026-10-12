@@ -125,6 +125,32 @@ class BiodiversityPipelineTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "no_assessment_found")
 
+    def test_unesco_v21_flattened_results_are_supported(self):
+        record = {
+            "mab_id": "TEST-MAB-1",
+            "title_en": "Example Biosphere Reserve",
+            "iso2": "ID",
+            "country_title_en": "Indonesia",
+            "coordinates": {"lat": -6.2, "lon": 106.8},
+            "introduction_en": "An example reserve.",
+        }
+        fields = pipeline.extract_unesco_fields(record)
+        self.assertEqual(fields["mab_id"], "TEST-MAB-1")
+        feature = pipeline.biosphere_feature(fields)
+        self.assertEqual(feature["geometry"]["coordinates"], [106.8, -6.2])
+        self.assertEqual(feature["properties"]["country_code"], "ID")
+
+    def test_unesco_nested_record_response_is_supported(self):
+        wrapped = {"record": {"fields": {
+            "mab_id": "TEST-MAB-2",
+            "title_en": "Nested Example",
+            "iso2": "ID",
+            "geo_point_2d": {"lat": -7.1, "lon": 110.4},
+        }}}
+        fields = pipeline.extract_unesco_fields(wrapped)
+        feature = pipeline.biosphere_feature(fields)
+        self.assertEqual(feature["geometry"]["coordinates"], [110.4, -7.1])
+
     def test_invalid_coordinates_are_rejected(self):
         self.assertIsNone(pipeline.valid_coordinates({"decimalLatitude": 91, "decimalLongitude": 0}))
         self.assertIsNone(pipeline.valid_coordinates({"decimalLatitude": "north", "decimalLongitude": 0}))
