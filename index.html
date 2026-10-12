@@ -167,7 +167,7 @@
       <header class="nav">
         <a class="brand" href="./index.html" aria-label="Open Data Explorers home">
           <span class="brand-symbol"><i class="fa-solid fa-compass" aria-hidden="true"></i></span>
-          <span><span class="brand-name">Open Data Explorers</span><span class="brand-sub">Two explorers · One automated data pipeline</span></span>
+          <span><span class="brand-name">Open Data Explorers</span><span class="brand-sub">Curated data · Live explorer · Biodiversity atlas</span></span>
         </a>
         <div class="nav-right">
           <span class="nav-label"><span class="pulse"></span> Built for transparent exploration</span>
@@ -178,7 +178,7 @@
       <section class="hero">
         <div class="eyebrow"><i class="fa-solid fa-compass" aria-hidden="true"></i> Discover what the data can — and cannot — tell us</div>
         <h1>Explore data.<br><span class="accent">Understand its origins.</span></h1>
-        <p>Open Data Explorers brings together two active explorers and a Python-powered biodiversity data pipeline. Explore human-curated citizenship knowledge, browse live public occurrence records, or inspect the automated country-by-country datasets being prepared for a future biodiversity distribution map.</p>
+        <p>Open Data Explorers brings together three distinct experiences: manually curated citizenship knowledge, a live biodiversity explorer that fetches public records as you scan, and a Biodiversity Atlas that lets you browse published country-level sample datasets directly on an interactive map.</p>
         <div class="hero-bottom">
           <span class="hero-chip"><i class="fa-solid fa-user-check"></i> Human-curated knowledge</span>
           <span class="hero-chip"><i class="fa-solid fa-tower-broadcast"></i> Live public data APIs</span>
@@ -240,18 +240,18 @@
             <div class="card-action"><span>Open Biodiversity Explorer</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
           </a>
 
-          <a class="project-card biodiversity-pipeline" href="https://github.com/AnggaConni/citizenship-data/tree/main/biodiversity" aria-label="View Python biodiversity data pipeline">
-            <div class="card-top"><span class="card-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><span class="tag"><span class="tiny-dot"></span> Python · GitHub Actions</span></div>
-            <h3>Biodiversity Distribution Pipeline</h3>
-            <p class="card-intro">A country-by-country biodiversity pipeline combining GBIF occurrence samples with UNESCO’s public Man and the Biosphere dataset. Python preserves individual observation points and builds GeoJSON density cells for a future map.</p>
-            <div class="identity"><div class="identity-label">How its data is generated</div><strong>Automated Python + scheduled or manual runs</strong><p>GitHub Actions can refresh country-level JSON files on a schedule or on demand. The density grid summarizes sampled observations; it is not a confirmed habitat boundary or a complete census of species.</p></div>
+          <a class="project-card biodiversity-pipeline" href="./biodiversity-atlas.html" aria-label="Open Biodiversity Atlas">
+            <div class="card-top"><span class="card-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><span class="tag"><span class="tiny-dot"></span> Published data · Interactive map</span></div>
+            <h3>Biodiversity Atlas</h3>
+            <p class="card-intro">Explore country-level data already produced by the Python pipeline—starting with an Indonesia pilot sample. Browse georeferenced GBIF occurrence records, inspect individual source records, and switch a sample-density grid on an interactive map.</p>
+            <div class="identity"><div class="identity-label">What you can explore</div><strong>Published sample data + map-based inspection</strong><p>This page reads generated country JSON directly; it does not launch a new scan when opened. The Indonesia dataset is a capped sample, not a complete inventory or official species-distribution map. More country datasets may appear as they are generated and published.</p></div>
             <ul class="feature-list">
-              <li><i class="fa-solid fa-check"></i> One JSON file per country</li>
-              <li><i class="fa-solid fa-check"></i> Individual occurrence points</li>
-              <li><i class="fa-solid fa-check"></i> Aggregated GeoJSON density grid</li>
-              <li><i class="fa-solid fa-check"></i> UNESCO Biosphere reserve data</li>
+              <li><i class="fa-solid fa-check"></i> Country dataset selector</li>
+              <li><i class="fa-solid fa-check"></i> Interactive occurrence map</li>
+              <li><i class="fa-solid fa-check"></i> Record search and detail panel</li>
+              <li><i class="fa-solid fa-check"></i> Sample-density and source layers</li>
             </ul>
-            <div class="card-action"><span>Frontend coming soon · View pipeline</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
+            <div class="card-action"><span>Explore Indonesia sample</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
           </a>
         </div>
       </section>
@@ -369,14 +369,14 @@
 
     <div class="bottom-cta">
       <div><h3>Ready to explore the data itself?</h3><p>Open the manually curated citizenship dataset, or investigate biodiversity records with a progressive, interactive species map. Each application keeps the origin and limits of its data visible.</p></div>
-      <a class="cta-link" href="./biodiversity.html">Open Biodiversity Explorer <i class="fa-solid fa-arrow-right"></i></a>
+      <a class="cta-link" href="./biodiversity-atlas.html">Open Biodiversity Atlas <i class="fa-solid fa-arrow-right"></i></a>
     </div>
   </main>
 
   <footer>
     <div class="wrap footer-inner">
       <div><strong>Open Data Explorers</strong><div class="disclaimer">Free to access; independently developed and not an official UNESCO, GBIF or IUCN product. The repository uses a custom non-commercial software licence; third-party data retains its own terms and attribution rules. IUCN enrichment is disabled by default pending permission for public caching/display. Data can be incomplete and is provided without warranty. Read the <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">README disclaimer</a> and <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">software licence</a> before reuse.</div></div>
-      <div><a href="./curated-data.html">Citizenship Explorer</a> · <a href="./biodiversity.html">Biodiversity Explorer</a> · <a href="https://github.com/AnggaConni/citizenship-data/tree/main/biodiversity">Biodiversity data pipeline</a> · <a href="https://github.com/AnggaConni/citizenship-data">GitHub repository</a></div>
+      <div><a href="./curated-data.html">Curated Data</a> · <a href="./biodiversity.html">Biodiversity Explorer</a> · <a href="./biodiversity-atlas.html">Biodiversity Atlas</a> · <a href="https://github.com/AnggaConni/citizenship-data/tree/main/biodiversity">Pipeline code</a> · <a href="https://github.com/AnggaConni/citizenship-data">GitHub repository</a></div>
     </div>
   </footer>
 </body>
