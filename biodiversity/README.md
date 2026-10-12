@@ -20,7 +20,7 @@ The pipeline publishes a lightweight spatial index for the Biodiversity Atlas. I
 - harvest-state.json — persisted country rotation and query cursors.
 - indonesia.json and other country files — cumulative, deduplicated point GeoJSON, a derived density grid, summaries, and matching UNESCO MAB point features. Older verbose point metadata is compacted to the current map-only schema the next time that country is processed.
 - biosphere.json — global UNESCO MAB GeoJSON source points. This shared reference file may be refreshed, but it is not duplicated as a detailed reserve catalogue inside every country file.
-- iucn-assessments.json — optional targeted output, disabled until applicable public caching/display permission has been confirmed from IUCN.
+- iucn-assessments.json — reserved future path only. **🔴 NOT APPROVED YET:** direct IUCN API calls/scraping are stopped; direct assessment data are hidden and not published.
 
 ## Lightweight map index and on-demand details
 
@@ -32,13 +32,13 @@ Image assets are not downloaded or embedded in the static JSON. A 45 MiB size gu
 
 The cumulative country dataset grows over time, but it is **not a complete biodiversity inventory**. The occurrence-search endpoint restricts deep offsets, so the harvester uses date partitions to broaden coverage; exact coverage and batch size depend on GBIF's returned records and API limits. Density grid cells count the stored sample only and do not indicate confirmed habitat or species-range boundaries. UNESCO MAB coordinates are points, not official reserve polygons.
 
-Descriptions are not guaranteed for every species or occurrence. The Atlas asks public source APIs for taxonomic hierarchy, vernacular names, descriptions, profiles, and image URLs on demand. GBIF's public IUCN-category reference is queried on demand and may be displayed with its source clearly identified; it is not a direct query to the authenticated IUCN API and its mirror may lag the latest assessment. Direct IUCN API access remains disabled pending permission. Once explicit permission is confirmed, the workflow can publish selected assessments to iucn-assessments.json and mark them as approved and available in index.json; the frontend will detect those flags and display matching assessments without code changes. iNaturalist conservation-status fields are ignored. If a source only provides a short distribution note—or no description—the interface should identify that limitation rather than invent a natural-history description. Users can open the public IUCN website manually; the Atlas does not fetch or cache assessment categories.
+Descriptions are not guaranteed for every species or occurrence. The Atlas asks public source APIs for taxonomic hierarchy, vernacular names, descriptions, profiles, and image URLs on demand. A conservation category independently returned by GBIF may be displayed only with GBIF attribution and a caveat that its mirror may lag the latest IUCN assessment. This is not a direct IUCN API request. **IUCN Red List direct access status: 🔴 NOT APPROVED YET. Direct API requests and scraping are stopped; direct assessment data are hidden and not published.** iNaturalist conservation-status fields are ignored. If a source only provides a short distribution note—or no description—the interface should identify that limitation rather than invent a natural-history description. Users may visit the public IUCN website manually.
 
-## Optional IUCN enrichment — permission gate
+## IUCN Red List status — not approved yet
 
-The repository secret IUCN_API_KEY is used only by the GitHub Actions runner and is never written into generated files. The pipeline does not automatically query every taxon; optional IUCN enrichment uses a small, manually curated target list.
+**🔴 NOT APPROVED YET — direct IUCN API requests, scraping, enrichment, caching, and publication are stopped.** Assessment data are hidden and are not published in this project while permission is pending. The GitHub Actions workflow exposes no IUCN enable switch, and the pipeline fails closed if an old caller attempts direct IUCN collection.
 
-**Do not enable IUCN enrichment just because an API key is available.** Before enabling public caching or display, obtain confirmation from IUCN that the intended use is permitted. Once authorized, set repository variable IUCN_PUBLICATION_APPROVED=true and run with include_iucn_data=true. Store the key only in GitHub Actions secrets, not in source code or generated JSON.
+Do not configure credentials or an approval flag to bypass this restriction. Revisit integration only after explicit permission for the intended use has been obtained and the implementation has been reviewed. GBIF-sourced conservation-category metadata, if returned separately by GBIF, must be attributed to GBIF and must not be represented as a direct IUCN lookup.
 
 ## Run it manually
 
@@ -49,6 +49,6 @@ Open **Actions → Build biodiversity country datasets → Run workflow**.
 - country_code = ALL — explicitly process every country in one run; use sparingly.
 - max_records_per_country = 300 — maximum new unique records to append in this run.
 - grid_size_degrees = 0.5 — grid-cell size for the density overlay.
-- include_iucn_data = false — keep disabled unless IUCN has confirmed the intended public caching/display use.
+- IUCN direct lookup — unavailable by design; requests and scraping are stopped pending permission.
 
 The published interface is the Biodiversity Atlas (../biodiversity-atlas.html). The live browser-based scanner in ../biodiversity.html is separate and issues its own API requests.
