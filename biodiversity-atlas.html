@@ -1965,7 +1965,7 @@
 
       closeButton.addEventListener("click", closeImagePreview);
       overlay.addEventListener("click", event => {
-        if (event.target === overlay || event.target === preview) closeImagePreview();
+        if (event.target === overlay) closeImagePreview();
       });
       document.addEventListener("keydown", event => {
         if (overlay.hidden) return;
