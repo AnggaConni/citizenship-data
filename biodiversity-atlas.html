@@ -114,6 +114,30 @@
     .description{font-size:11px;line-height:1.75;color:#526a59;white-space:pre-line;margin:10px 0}
     .detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
     .detail-actions a{font-size:10px;padding:9px 11px}
+    .species-insights{margin:15px 0;padding:14px;border:1px solid #dbe8d8;border-radius:13px;background:linear-gradient(160deg,#f5faf3,#fff)}
+    .species-insights h4{font:800 14px Manrope,sans-serif;margin:0 0 5px}
+    .species-insights-intro{font-size:10px;line-height:1.7;color:var(--muted);margin:0 0 11px}
+    .species-common-name{font:800 17px/1.4 Manrope,sans-serif;color:#244d32;margin:0 0 3px}
+    .species-scientific-name{font-size:11px;font-style:italic;color:#55745e;margin-bottom:10px}
+    .species-section{border-top:1px solid #e3ece0;padding-top:11px;margin-top:11px}
+    .species-section-title{font:800 10px Manrope,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#58705c;margin:0 0 8px}
+    .species-taxonomy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+    .species-taxonomy-item{min-width:0;background:#fff;border:1px solid #e3ebe0;border-radius:8px;padding:8px}
+    .species-taxonomy-item strong{display:block;color:#758576;font-size:8px;font-weight:600;margin-bottom:3px}
+    .species-taxonomy-item span{display:block;color:#263f2f;font-size:10px;font-weight:800;line-height:1.5;overflow-wrap:anywhere}
+    .species-status-row{display:flex;align-items:flex-start;gap:9px}
+    .species-status-pill{display:inline-block;flex:none;background:#e5f2df;border:1px solid #cfe4c6;color:#295d38;border-radius:9px;padding:8px 10px;font:800 11px Manrope,sans-serif;line-height:1.4}
+    .species-status-pill.risk{background:#fff0e7;border-color:#f0c9b4;color:#99492d}
+    .species-status-pill.unknown{background:#f0f2ed;border-color:#dfe5dc;color:#677568}
+    .species-status-copy{font-size:10px;line-height:1.7;color:#566c5a;min-width:0}
+    .species-status-copy a,.species-source-link{color:#286c44;font-weight:800}
+    .species-description{font-size:11px;line-height:1.8;color:#3c5744;white-space:pre-line;margin:0}
+    .species-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+    .species-fact{background:#fff;border:1px solid #e4ebe1;border-radius:8px;padding:9px;min-width:0}
+    .species-fact strong{display:block;font-size:8px;color:#758576;font-weight:600;margin-bottom:4px}
+    .species-fact span{display:block;font-size:10px;line-height:1.65;color:#304a38;overflow-wrap:anywhere;white-space:pre-line}
+    .species-insight-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .species-insight-links a{font-size:9px;padding:8px 10px}
     .region-gallery{margin:18px 0;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
     .region-gallery-head{padding:17px 19px;border-bottom:1px solid #edf1eb;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
     .region-gallery-title{font:800 17px/1.4 Manrope,sans-serif;margin:0}
@@ -320,7 +344,7 @@
         observationLayer: null, gridLayer: null, reserveLayer: null, clusterLayer: null,
         clusterGroups: [], activeScope: null, activeIndices: null, map: null, abort: null,
         gbifDetailCache: new Map(), mabDetailCache: new Map(), detailRequestToken: 0,
-        regionGalleryToken: 0
+        taxonInsightCache: new Map(), regionGalleryToken: 0
       };
 
       function escapeHtml(value) {
@@ -1175,6 +1199,281 @@
 
 
 
+      function apiArray(payload, preferredKeys=[]) {
+        if(Array.isArray(payload))return payload;
+        if(!payload||typeof payload!=="object")return [];
+        for(const key of preferredKeys){
+          if(Array.isArray(payload[key]))return payload[key];
+        }
+        if(Array.isArray(payload.results))return payload.results;
+        return [];
+      }
+
+      async function fetchJsonOptional(url) {
+        try{
+          const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
+          if(!response.ok)throw new Error("HTTP "+response.status);
+          return await response.json();
+        }catch(error){
+          console.info("Optional species reference unavailable:",url,String(error.message||error));
+          return null;
+        }
+      }
+
+      function plainText(value,limit=1400) {
+        if(value===null||value===undefined)return "";
+        const textValue=String(value)
+          .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ")
+          .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ")
+          .replace(/<[^>]*>/g," ")
+          .replace(/&nbsp;|&#160;/gi," ")
+          .replace(/&amp;/gi,"&")
+          .replace(/&quot;/gi,'"')
+          .replace(/&#39;|&apos;/gi,"'")
+          .replace(/&lt;/gi,"<")
+          .replace(/&gt;/gi,">")
+          .replace(/\s+/g," ")
+          .trim();
+        return textValue.length>limit?textValue.slice(0,limit).trim()+"…":textValue;
+      }
+
+      function normalizeScientificName(value) {
+        return String(value||"").trim().toLowerCase()
+          .replace(/\s+/g," ")
+          .replace(/\s+\([^)]*\)$/,"");
+      }
+
+      const IUCN_LABELS = {
+        EX:["EX","Extinct"],EW:["EW","Extinct in the Wild"],RE:["RE","Regionally Extinct"],
+        CR:["CR","Critically Endangered"],EN:["EN","Endangered"],VU:["VU","Vulnerable"],
+        NT:["NT","Near Threatened"],LC:["LC","Least Concern"],DD:["DD","Data Deficient"],
+        NE:["NE","Not Evaluated"],NA:["NA","Not Applicable"],
+        EXTINCT:["EX","Extinct"],EXTINCT_IN_THE_WILD:["EW","Extinct in the Wild"],
+        REGIONALLY_EXTINCT:["RE","Regionally Extinct"],CRITICALLY_ENDANGERED:["CR","Critically Endangered"],
+        ENDANGERED:["EN","Endangered"],VULNERABLE:["VU","Vulnerable"],
+        NEAR_THREATENED:["NT","Near Threatened"],LEAST_CONCERN:["LC","Least Concern"],
+        DATA_DEFICIENT:["DD","Data Deficient"],NOT_EVALUATED:["NE","Not Evaluated"],
+        NOT_APPLICABLE:["NA","Not Applicable"]
+      };
+
+      function normalizeStatus(raw) {
+        if(raw===null||raw===undefined||raw==="")return null;
+        if(typeof raw==="object"){
+          raw=raw.category||raw.code||raw.status_name||raw.status||raw.iucn||raw.name;
+        }
+        if(raw===null||raw===undefined||raw==="")return null;
+        const value=String(raw).trim();
+        const code=value.toUpperCase().replace(/[\s-]+/g,"_");
+        const tuple=IUCN_LABELS[code];
+        if(tuple)return {code:tuple[0],label:tuple[1],raw:value};
+        const compact=value.toUpperCase();
+        if(IUCN_LABELS[compact])return {code:IUCN_LABELS[compact][0],label:IUCN_LABELS[compact][1],raw:value};
+        return {code:"",label:value.replace(/_/g," "),raw:value};
+      }
+
+      function chooseVernacularName(names, inatTaxon) {
+        const preferred=(Array.isArray(names)?names:[]).filter(item=>
+          item&&typeof item.vernacularName==="string"&&item.vernacularName.trim()
+        );
+        preferred.sort((a,b)=>{
+          const score=item=>{
+            const language=String(item.language||"").toLowerCase();
+            let value=0;
+            if(["ind","id","indonesian","bahasa indonesia"].includes(language))value+=50;
+            else if(["eng","en","english"].includes(language))value+=30;
+            if(item.preferred===true)value+=10;
+            if(String(item.countryCode||"").toUpperCase()==="ID")value+=15;
+            return value;
+          };
+          return score(b)-score(a);
+        });
+        return preferred[0]?.vernacularName||inatTaxon?.preferred_common_name||"";
+      }
+
+      function selectMatchingINatTaxon(payload,scientificName) {
+        const results=apiArray(payload,["results"]);
+        const target=normalizeScientificName(scientificName);
+        if(!target)return null;
+        return results.find(item=>
+          normalizeScientificName(item.name)===target ||
+          normalizeScientificName(item.matched_term)===target
+        )||null;
+      }
+
+      async function fetchTaxonInsights(taxonKey,scientificName) {
+        const cacheKey=String(taxonKey||normalizeScientificName(scientificName));
+        if(state.taxonInsightCache.has(cacheKey))return state.taxonInsightCache.get(cacheKey);
+        const request=(async()=>{
+          let usageKey=taxonKey?String(taxonKey):"";
+          let taxonMatch=null;
+          if(!usageKey&&scientificName){
+            taxonMatch=await fetchJsonOptional("https://api.gbif.org/v1/species/match?"+new URLSearchParams({name:scientificName}));
+            usageKey=String(taxonMatch?.usageKey||taxonMatch?.key||"");
+          }
+          const gbifBase=usageKey?"https://api.gbif.org/v1/species/"+encodeURIComponent(usageKey):"";
+          const gbifRequests=gbifBase?[
+            fetchJsonOptional(gbifBase),
+            fetchJsonOptional(gbifBase+"/vernacularNames"),
+            fetchJsonOptional(gbifBase+"/descriptions"),
+            fetchJsonOptional(gbifBase+"/speciesProfiles"),
+            fetchJsonOptional(gbifBase+"/iucnRedListCategory")
+          ]:[Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null)];
+          const iNatUrl=scientificName
+            ?"https://api.inaturalist.org/v1/taxa?"+new URLSearchParams({q:scientificName,per_page:"5"})
+            :"";
+          const results=await Promise.all([
+            Promise.all(gbifRequests),
+            iNatUrl?fetchJsonOptional(iNatUrl):Promise.resolve(null)
+          ]);
+          const [taxon,vernacularPayload,descriptionsPayload,profilesPayload,statusPayload]=results[0];
+          const inat=selectMatchingINatTaxon(results[1],scientificName);
+          return {
+            usageKey,taxon:taxon||taxonMatch,
+            vernacularNames:apiArray(vernacularPayload,["results","vernacularNames"]),
+            descriptions:apiArray(descriptionsPayload,["results","descriptions"]),
+            profiles:apiArray(profilesPayload,["results","speciesProfiles"]),
+            gbifStatus:normalizeStatus(statusPayload),
+            statusPayload,
+            inat
+          };
+        })();
+        state.taxonInsightCache.set(cacheKey,request);
+        try{
+          const info=await request;
+          state.taxonInsightCache.set(cacheKey,info);
+          return info;
+        }catch(error){
+          if(state.taxonInsightCache.get(cacheKey)===request)state.taxonInsightCache.delete(cacheKey);
+          throw error;
+        }
+      }
+
+      function profileFacts(profiles) {
+        const facts=[];
+        const matchers=[
+          ["Habitat",/^(habitat|habitats|environment|ecology|ecologicalpreferences)$/i],
+          ["Threat information",/^(threat|threats|threatenedstatus|threatfactors)$/i],
+          ["Population trend",/^(populationtrend|trend)$/i],
+          ["Distribution",/^(distribution|range|geographicrange)$/i],
+          ["Conservation information",/^(conservationstatus|conservation|conservationactions)$/i]
+        ];
+        const normalKey=key=>String(key).replace(/[_\s-]/g,"");
+        (Array.isArray(profiles)?profiles:[]).forEach(profile=>{
+          if(!profile||typeof profile!=="object")return;
+          for(const [label,matcher] of matchers){
+            for(const [key,value] of Object.entries(profile)){
+              if(!matcher.test(normalKey(key))||value===null||value===undefined||value==="")continue;
+              const text=Array.isArray(value)?value.map(v=>typeof v==="object"?(v.name||v.description||JSON.stringify(v)):v).join(", "):
+                typeof value==="object"?(value.description||value.name||JSON.stringify(value)):String(value);
+              const clean=plainText(text,650);
+              if(clean&&!facts.some(f=>f.label===label&&f.value===clean))facts.push({label,value:clean});
+            }
+          }
+        });
+        return facts.slice(0,5);
+      }
+
+      function renderSpeciesInsights(feature,occurrence,info,errorMessage) {
+        const base=properties(feature);
+        const key=occurrence?.acceptedTaxonKey||occurrence?.speciesKey||occurrence?.taxonKey||
+          occurrence?.acceptedTaxonKey||base.taxon_key||base.speciesKey||base.taxonKey;
+        const taxon=info?.taxon||{};
+        const inat=info?.inat||null;
+        const scientific=taxon.scientificName||taxon.canonicalName||occurrence?.species||
+          occurrence?.scientificName||base.scientific_name||displayName(base);
+        const common=chooseVernacularName(info?.vernacularNames,inat);
+        const classification=[
+          ["Kingdom",taxon.kingdom||occurrence?.kingdom||base.kingdom],
+          ["Phylum",taxon.phylum||occurrence?.phylum||base.phylum],
+          ["Class",taxon.class||occurrence?.class||base.class],
+          ["Order",taxon.order||occurrence?.order||base.order],
+          ["Family",taxon.family||occurrence?.family||base.family],
+          ["Genus",taxon.genus||occurrence?.genus||base.genus],
+          ["Species",taxon.species||occurrence?.species||base.species||scientific],
+          ["Taxonomic rank",taxon.rank||occurrence?.taxonRank||base.taxonRank],
+          ["Taxonomic status",taxon.taxonomicStatus||occurrence?.taxonomicStatus||base.taxonomicStatus]
+        ].filter(([,value])=>value!==undefined&&value!==null&&value!=="");
+        const descRows=(info?.descriptions||[]).filter(row=>
+          row&&typeof row.description==="string"&&row.description.trim()
+        ).sort((a,b)=>{
+          const score=row=>String(row.language||"").toLowerCase().startsWith("en")?10:0;
+          return score(b)-score(a);
+        });
+        const gbifDescription=descRows.length?plainText(descRows[0].description,1600):"";
+        const wikiDescription=plainText(inat?.wikipedia_summary||"",1600);
+        const description=wikiDescription||gbifDescription;
+        const descriptionSource=wikiDescription?"Wikipedia summary via iNaturalist":gbifDescription
+          ?(descRows[0].source||"GBIF species description"):"";
+        const sourceUrl=inat?.id?"https://www.inaturalist.org/taxa/"+encodeURIComponent(String(inat.id)):"";
+        const iucnUrl=info?.statusPayload?.iucnTaxonID
+          ?"https://www.iucnredlist.org/species/"+encodeURIComponent(String(info.statusPayload.iucnTaxonID))
+          :"https://www.iucnredlist.org/search?"+new URLSearchParams({query:scientific,searchType:"species"});
+        let conservation=info?.gbifStatus||null;
+        let conservationSource="GBIF species taxonomy reference";
+        let conservationScope="Category provided by GBIF's taxonomic reference";
+        if(!conservation&&inat?.conservation_status){
+          const status=inat.conservation_status;
+          const normalized=normalizeStatus(status.iucn||status.status_name||status.status||status.name);
+          if(normalized){
+            conservation=normalized;
+            conservationSource="iNaturalist taxon record";
+            conservationScope=status.place?.display_name||status.place?.name||status.authority||"Scope not specified by the response";
+          }
+        }
+        const atRisk=conservation&&["CR","EN","VU","EW","EX","RE"].includes(conservation.code);
+        const statusMarkup=conservation
+          ?'<div class="species-status-row"><div class="species-status-pill '+(atRisk?"risk":"")+'">'+escapeHtml(conservation.code||"Status")+'<br>'+escapeHtml(conservation.label)+'</div>'+
+            '<div class="species-status-copy"><strong>'+escapeHtml(conservationSource)+'</strong><br>'+escapeHtml(conservationScope)+
+            '<br>GBIF's category reference can lag the latest IUCN assessment. <a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Check the IUCN Red List ↗</a></div></div>'
+          :'<div class="species-status-row"><div class="species-status-pill unknown">No status found</div><div class="species-status-copy">No conservation category was returned by these lookups. This does not mean the species is unthreatened or has not been assessed. <a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Search the IUCN Red List ↗</a></div></div>';
+        const facts=profileFacts(info?.profiles);
+        const iNatStatus=inat?.conservation_status;
+        const threatNote=facts.some(f=>/threat/i.test(f.label))?"":'No specific threat explanation was returned by the available profile fields. To understand why a species is threatened, open the source assessment and read its justification and listed threat factors.';
+        const descriptionMarkup=description
+          ?'<p class="species-description">'+escapeHtml(description)+'</p><p class="species-insights-intro">Description source: '+escapeHtml(descriptionSource||"external source")+'. This descriptive text is not itself a conservation assessment.</p>'
+          :'<p class="species-insights-intro">No readable species description was returned by these APIs. The classification and source links below can still help identify the taxon.</p>';
+        return '<h4>About this species</h4>'+
+          '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. Values can be missing or differ between checklists.</p>'+
+          (common?'<p class="species-common-name">'+escapeHtml(common)+'</p>':'')+
+          '<p class="species-scientific-name">'+escapeHtml(scientific)+(taxon.authorship?" · "+escapeHtml(taxon.authorship):"")+'</p>'+
+          '<div class="species-section"><h5 class="species-section-title">Conservation status</h5>'+statusMarkup+
+          '<p class="species-insights-intro" style="margin-top:8px">An unavailable category is not the same as Least Concern. The GBIF category mirror may lag a newer IUCN assessment.</p></div>'+
+          '<div class="species-section"><h5 class="species-section-title">Taxonomic classification</h5><div class="species-taxonomy-grid">'+
+          (classification.length?classification.map(([label,value])=>'<div class="species-taxonomy-item"><strong>'+escapeHtml(label)+'</strong><span>'+escapeHtml(fmt(value))+'</span></div>').join(""):'<p class="species-insights-intro">Taxonomic hierarchy is unavailable from the lookup.</p>')+
+          '</div></div>'+
+          '<div class="species-section"><h5 class="species-section-title">What kind of species is it?</h5>'+descriptionMarkup+'</div>'+
+          (facts.length?'<div class="species-section"><h5 class="species-section-title">Habitat, distribution &amp; ecology</h5><div class="species-facts">'+facts.map(f=>'<div class="species-fact"><strong>'+escapeHtml(f.label)+'</strong><span>'+escapeHtml(f.value)+'</span></div>').join("")+'</div></div>':'')+
+          '<div class="species-section"><h5 class="species-section-title">Threats and assessment</h5><p class="species-description">'+escapeHtml(threatNote)+'</p></div>'+
+          '<div class="species-insight-links">'+
+          (info?.usageKey?linkButton("https://www.gbif.org/species/"+encodeURIComponent(String(info.usageKey)),"GBIF taxon"):key?linkButton("https://www.gbif.org/species/"+encodeURIComponent(String(key)),"GBIF taxon"):"")+
+          (sourceUrl?linkButton(sourceUrl,"iNaturalist profile"):"")+
+          linkButton(iucnUrl,"IUCN assessment / search")+
+          '</div>'+
+          (errorMessage?'<p class="species-insights-intro" style="margin-top:9px">Some optional taxonomic lookups failed: '+escapeHtml(errorMessage)+'</p>':"");
+      }
+
+      async function loadSpeciesInsights(feature,occurrence,requestToken) {
+        const container=$("species-insights");
+        if(!container)return;
+        const base=properties(feature);
+        const merged={...base,...(occurrence||{})};
+        const taxonKey=merged.acceptedTaxonKey||merged.speciesKey||merged.taxonKey||base.taxon_key||base.speciesKey||base.taxonKey;
+        const scientificName=merged.species||merged.acceptedScientificName||merged.scientificName||
+          base.scientific_name||displayName(base);
+        try{
+          const info=await fetchTaxonInsights(taxonKey,scientificName);
+          if(requestToken!==state.detailRequestToken)return;
+          const errors=[];
+          if(!info.taxon)errors.push("GBIF classification");
+          if(!info.gbifStatus&&!info.inat?.conservation_status)errors.push("conservation status");
+          container.innerHTML=renderSpeciesInsights(feature,occurrence||{},info,errors.join(", "));
+        }catch(error){
+          if(requestToken!==state.detailRequestToken)return;
+          container.innerHTML='<h4>About this species</h4><p class="species-insights-intro">The taxonomic lookup could not be completed. This does not indicate anything about extinction risk. Try again later or open the source pages below.</p>'+
+            linkButton("https://api.gbif.org/","GBIF API")+linkButton("https://www.iucnredlist.org/search?"+new URLSearchParams({query:scientificName,searchType:"species"}),"Search IUCN Red List");
+        }
+      }
+
       function renderOccurrenceDetail(feature,detail,errorMessage) {
         const base=properties(feature);
         const p={...base,...(detail||{})};
@@ -1206,6 +1505,7 @@
           (image?'<img class="detail-img" src="'+escapeHtml(image)+'" alt="Source image associated with '+escapeHtml(p.scientific_name)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">':"")+
           '<h3 class="detail-species">'+escapeHtml(p.scientific_name)+'</h3>'+
           '<div class="detail-scientific">GBIF occurrence record · '+escapeHtml(place||"Location not described")+'</div>'+
+          '<section class="species-insights" id="species-insights" aria-live="polite"><h4>About this species</h4><p class="species-insights-intro">Looking up the common name, taxonomic classification, natural-history notes, and available conservation information…</p></section>'+
           (errorMessage?'<p class="description">The full record could not be retrieved from GBIF right now. This view shows the compact mapping fields available in the Atlas. '+escapeHtml(errorMessage)+'</p>':
             '<p class="description">Full metadata was loaded directly from GBIF when this record was opened.</p>')+
           '<div class="properties">'+facts.filter(item=>item[1]!==undefined&&item[1]!==null&&item[1]!=="").map(item=>
@@ -1240,6 +1540,7 @@
         catch(error){console.warn("GBIF detail lookup failed:",error);errorMessage="Live detail lookup failed ("+String(error.message||"network error").slice(0,180)+").";}
         if(requestToken!==state.detailRequestToken||state.selectedId!==String(id))return;
         renderOccurrenceDetail(selected.feature,detail,errorMessage);
+        loadSpeciesInsights(selected.feature,detail,requestToken);
       }
 
       function unpackMabFields(payload) {
