@@ -97,6 +97,39 @@
     .arrow{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(219,242,225,.22);transition:transform .2s}
     .project-card:hover .arrow{transform:translateX(3px)}
     .main{padding:52px 0 40px}
+    .learning-section{margin:0 0 47px;padding:25px;border-radius:22px;background:#fff;border:1px solid var(--border);box-shadow:0 8px 28px rgba(23,49,38,.04)}
+    .learning-intro{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:18px}
+    .learning-intro h2{font:800 clamp(24px,3vw,32px) Manrope,sans-serif;letter-spacing:-.045em;margin:7px 0 0}
+    .learning-intro p{max-width:590px;margin:8px 0 0;color:var(--body-muted);font-size:12px;line-height:1.75}
+    .learning-tabs{display:flex;gap:7px;overflow-x:auto;padding:0 0 10px;border-bottom:1px solid var(--border)}
+    .learning-tab{flex:0 0 auto;border:1px solid #dce7dc;background:#f8faf6;border-radius:999px;padding:10px 13px;font-size:11px;font-weight:800;color:#55715c;cursor:pointer}
+    .learning-tab[aria-selected="true"]{color:#fff;background:#1d633f;border-color:#1d633f;box-shadow:0 4px 12px #1d633f20}
+    .learn-panel{padding-top:20px}
+    .learn-panel[hidden]{display:none}
+    .learn-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .learn-card{min-width:0;background:#f7faf5;border:1px solid #e2ebdf;border-radius:15px;padding:17px}
+    .learn-icon{width:38px;height:38px;display:grid;place-items:center;background:#e8f3e5;color:#287248;border-radius:12px;margin-bottom:11px;font-size:16px}
+    .learn-card h3{font:800 14px Manrope,sans-serif;margin:0 0 7px;color:#244c32}
+    .learn-card p,.learn-copy{font-size:12px;line-height:1.8;color:#617364;margin:0}
+    .learn-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+    .learn-links a{font-size:10px;font-weight:800;color:#2f7650;text-decoration:none;border-bottom:1px solid #bbd7bf;padding-bottom:2px}
+    .learn-note{margin-top:16px;padding:13px 15px;border-left:3px solid #66a77a;background:#edf6e9;border-radius:0 10px 10px 0;color:#526e58;font-size:11px;line-height:1.75}
+    .bird-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:21px;align-items:start}
+    .bird-visual{overflow:hidden;border-radius:15px;background:#edf3e9;border:1px solid #dfe8dc;min-height:250px;margin:0}
+    .bird-visual img{display:block;width:100%;height:330px;object-fit:cover;background:#edf3e9}
+    .bird-visual figcaption{padding:10px 12px;color:#748376;font-size:10px;line-height:1.6;background:#fff}
+    .bird-kicker{display:inline-flex;gap:6px;align-items:center;border-radius:999px;background:#e6f3e4;color:#2c7047;padding:6px 9px;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .bird-details h3{font:800 23px/1.3 Manrope,sans-serif;letter-spacing:-.035em;color:#21482f;margin:11px 0 3px}
+    .bird-scientific{font-size:12px;font-style:italic;color:#67806c;margin-bottom:12px}
+    .bird-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+    .bird-fact{min-width:0;padding:10px;border-radius:10px;background:#f6f9f3;border:1px solid #e4ece1}
+    .bird-fact span{display:block;color:#849185;font-size:9px;text-transform:uppercase;letter-spacing:.06em}
+    .bird-fact strong{display:block;color:#35523c;font-size:11px;line-height:1.6;overflow-wrap:anywhere;margin-top:4px}
+    .bird-status{font-size:11px;line-height:1.7;color:#56715d;margin:8px 0 12px}
+    .learn-button{border:0;background:#1d633f;color:white;border-radius:10px;padding:10px 13px;font-size:11px;font-weight:800;cursor:pointer}
+    .learn-button:hover{background:#174f32}
+    .learning-source-note{margin-top:17px;padding-top:13px;border-top:1px solid var(--border);font-size:10px;line-height:1.7;color:#748175}
+    .learning-source-note a{color:#2d754a;font-weight:800}
     .light-heading{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:19px}
     .light-heading .section-kicker{color:#35845b}
     .light-heading h2{font:800 clamp(24px,3vw,32px) Manrope,sans-serif;letter-spacing:-.045em;margin:7px 0 0}
@@ -159,8 +192,8 @@
     footer a:hover{text-decoration:underline}
     .disclaimer{max-width:790px;line-height:1.75;margin-top:8px}
     @media(max-width:1050px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:900px){.terms-notice-grid{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.timeline{grid-template-columns:repeat(3,minmax(0,1fr))}.project-card{padding:22px}.light-heading{align-items:start;flex-direction:column}}
-    @media(max-width:680px){.wrap{width:calc(100% - 28px)}.nav{padding:17px 0}.nav-label{display:none}.nav a.source-link{font-size:10px}.hero{padding:44px 0 28px}.cards-wrap{padding-bottom:45px}.cards,.two-col,.faq{grid-template-columns:1fr}.project-card h3{font-size:21px}.feature-list{margin-bottom:18px}.main{padding:36px 0}.steps{grid-template-columns:1fr 1fr;gap:9px}.step{padding:13px}.timeline{grid-template-columns:1fr 1fr}.section-panel,.info-card{padding:16px}.bottom-cta{align-items:flex-start;flex-direction:column;padding:19px}.footer-inner{flex-direction:column}.hero h1{font-size:41px}}
+    @media(max-width:900px){.terms-notice-grid{grid-template-columns:1fr}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.timeline{grid-template-columns:repeat(3,minmax(0,1fr))}.project-card{padding:22px}.light-heading,.learning-intro{align-items:start;flex-direction:column}.learn-grid{grid-template-columns:1fr 1fr}.bird-card{grid-template-columns:1fr 1fr}.bird-visual img{height:270px}}
+    @media(max-width:680px){.wrap{width:calc(100% - 28px)}.nav{padding:17px 0}.nav-label{display:none}.nav a.source-link{font-size:10px}.hero{padding:44px 0 28px}.cards-wrap{padding-bottom:45px}.cards,.two-col,.faq{grid-template-columns:1fr}.project-card h3{font-size:21px}.feature-list{margin-bottom:18px}.main{padding:36px 0}.learning-section{padding:17px}.learn-grid,.bird-card{grid-template-columns:1fr}.bird-visual img{height:240px}.steps{grid-template-columns:1fr 1fr;gap:9px}.step{padding:13px}.timeline{grid-template-columns:1fr 1fr}.section-panel,.info-card{padding:16px}.bottom-cta{align-items:flex-start;flex-direction:column;padding:19px}.footer-inner{flex-direction:column}.hero h1{font-size:41px}}
     @media(max-width:420px){.steps{grid-template-columns:1fr}.timeline{grid-template-columns:1fr}.tag{font-size:8px;padding:6px 7px}.card-top{align-items:flex-start}.project-card{padding:18px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   </style>
@@ -170,7 +203,7 @@
     <div class="wrap">
       <div class="iucn-stop" role="alert" aria-label="IUCN data not approved">
         <div class="iucn-stop-head"><i class="fa-solid fa-ban" aria-hidden="true"></i> IUCN RED LIST — NOT APPROVED YET</div>
-        <p><strong>Direct IUCN API access and scraping are stopped.</strong> Direct assessment data are hidden and not published while permission is pending. This independent project does not claim IUCN approval. Any conservation category separately returned by GBIF is identified as a GBIF-sourced reference, not a direct IUCN lookup.</p>
+        <p><strong>Direct IUCN API access and scraping are stopped.</strong> Direct assessment data are hidden and not published while permission is pending. This independent project does not claim IUCN approval. No direct IUCN assessment data are being requested or displayed. Third-party GBIF records remain subject to their own publisher terms.</p>
       </div>
       <header class="nav">
         <a class="brand" href="./index.html" aria-label="Open Data Explorers home">
@@ -179,6 +212,7 @@
         </a>
         <div class="nav-right">
           <span class="nav-label"><span class="pulse"></span> Built for transparent exploration</span>
+          <a class="source-link" href="#learn"><i class="fa-solid fa-book-open"></i> Learning hub</a>
           <a class="source-link" href="https://github.com/AnggaConni/citizenship-data"><i class="fa-brands fa-github"></i> Source code</a>
         </div>
       </header>
@@ -186,7 +220,7 @@
       <section class="hero">
         <div class="eyebrow"><i class="fa-solid fa-compass" aria-hidden="true"></i> Discover what the data can — and cannot — tell us</div>
         <h1>Explore data.<br><span class="accent">Understand its origins.</span></h1>
-        <p>Open Data Explorers brings together three distinct experiences: manually curated citizenship knowledge, a live biodiversity explorer that fetches public records as you scan, and a Biodiversity Atlas that lets you browse published country-level sample datasets directly on an interactive map.</p>
+        <p>Open Data Explorers brings together three distinct experiences: manually curated citizenship knowledge, a live biodiversity explorer that fetches public records as you scan, and a Biodiversity Atlas that lets you browse published country-level occurrence records directly on an interactive map.</p>
         <div class="hero-bottom">
           <span class="hero-chip"><i class="fa-solid fa-user-check"></i> Human-curated knowledge</span>
           <span class="hero-chip"><i class="fa-solid fa-tower-broadcast"></i> Live public data APIs</span>
@@ -205,11 +239,11 @@
           </section>
           <section class="terms-notice-item" aria-label="Third-party data and IUCN">
             <h3><i class="fa-solid fa-database" aria-hidden="true"></i> Third-party data &amp; IUCN</h3>
-            <p>GBIF records, UNESCO DataHub content, map tiles, photographs and publication metadata have their own licences, attribution rules and API terms. IUCN enrichment is disabled by default. Having an API key is not permission to republish IUCN data; public caching/display remains gated pending IUCN's confirmation.</p>
+            <p>GBIF records, UNESCO DataHub content, map tiles, photographs and publication metadata have their own licences, attribution rules and API terms. IUCN Red List data are not being collected or displayed. Direct IUCN API requests and scraping are stopped pending permission.</p>
           </section>
           <section class="terms-notice-item" aria-label="Independence and interpretation">
             <h3><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Independent &amp; exploratory</h3>
-            <p>This is not an official UNESCO, GBIF or IUCN product, and no endorsement is implied. Samples and density cells may be incomplete; map points do not prove current presence, full species ranges, or protected-area boundaries. Verify critical information against the original source.</p>
+            <p>This is not an official UNESCO, GBIF or IUCN product, and no endorsement is implied. The records currently retrieved by this application do not cover every record indexed by GBIF. A mapped point does not prove current presence, a full species range, or a protected-area boundary. Verify critical information against the original source.</p>
           </section>
         </div>
         <div class="terms-notice-foot">Data and software are provided “as is”, without warranty. Check each source's terms before copying, republishing or using information for conservation decisions, policy, research or publication. <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">Read the full README disclaimer</a>.</div>
@@ -251,15 +285,15 @@
           <a class="project-card biodiversity-atlas" href="./biodiversity-atlas.html" aria-label="Open Biodiversity Atlas">
             <div class="card-top"><span class="card-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span><span class="tag"><span class="tiny-dot"></span> Published data · Interactive map</span></div>
             <h3>Biodiversity Atlas</h3>
-            <p class="card-intro">Explore country-level data already produced by the Python pipeline—starting with an Indonesia pilot sample. View heuristic distribution regions, click to zoom into their original GBIF points, inspect individual source records, and switch to the sample-density grid when needed.</p>
-            <div class="identity"><div class="identity-label">What you can explore</div><strong>Published sample data + map-based inspection</strong><p>This page reads generated country JSON directly; it does not launch a new scan when opened. The Indonesia dataset is a capped sample, not a complete inventory or official species-distribution map. More country datasets may appear as they are generated and published.</p></div>
+            <p class="card-intro">Explore country-level data already produced by the Python pipeline—starting with the initially published Indonesia record set. View heuristic distribution regions, zoom into original GBIF occurrence points, inspect individual source records, and switch to the record-density grid when needed.</p>
+            <div class="identity"><div class="identity-label">What you can explore</div><strong>Published occurrence records + map-based inspection</strong><p>This page reads generated country JSON directly; it does not launch a new scan when opened. The published records are sourced from GBIF and are incrementally collected by this application. They are not a complete GBIF download, a complete inventory, or an official species-distribution map.</p></div>
             <ul class="feature-list">
               <li><i class="fa-solid fa-check"></i> Country dataset selector</li>
               <li><i class="fa-solid fa-check"></i> Interactive occurrence map</li>
               <li><i class="fa-solid fa-check"></i> Record search and detail panel</li>
-              <li><i class="fa-solid fa-check"></i> Sample-density and source layers</li>
+              <li><i class="fa-solid fa-check"></i> Record-density and source layers</li>
             </ul>
-            <div class="card-action"><span>Explore Indonesia sample</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
+            <div class="card-action"><span>Explore Indonesia records</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
           </a>
         </div>
       </section>
@@ -267,6 +301,67 @@
   </section>
 
   <main class="wrap main">
+    <section id="learn" class="learning-section" aria-labelledby="learn-title">
+      <div class="learning-intro">
+        <div><div class="section-kicker">Learn the living world</div><h2 id="learn-title">Biodiversity, biosphere and why they matter.</h2></div>
+        <p>Explore the ideas behind the maps. These short lessons connect living systems to everyday life and show how trustworthy observations can support learning and better decisions.</p>
+      </div>
+      <div class="learning-tabs" role="tablist" aria-label="Learning topics">
+        <button class="learning-tab" id="learn-tab-basics" type="button" role="tab" aria-selected="true" aria-controls="learn-panel-basics" data-learn-tab="basics">Biodiversity 101</button>
+        <button class="learning-tab" id="learn-tab-biosphere" type="button" role="tab" aria-selected="false" aria-controls="learn-panel-biosphere" data-learn-tab="biosphere" tabindex="-1">The biosphere</button>
+        <button class="learning-tab" id="learn-tab-importance" type="button" role="tab" aria-selected="false" aria-controls="learn-panel-importance" data-learn-tab="importance" tabindex="-1">Why it matters</button>
+        <button class="learning-tab" id="learn-tab-bird" type="button" role="tab" aria-selected="false" aria-controls="learn-panel-bird" data-learn-tab="bird" tabindex="-1">Meet a bird</button>
+      </div>
+      <section class="learn-panel" id="learn-panel-basics" role="tabpanel" aria-labelledby="learn-tab-basics">
+        <div class="learn-grid">
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-seedling" aria-hidden="true"></i></div><h3>What is biodiversity?</h3><p>Biodiversity is the variety of life: differences among organisms, the genetic variation within them, and the ecosystems they form. It includes plants, animals, fungi, microorganisms—and the relationships that connect them.</p></article>
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-network-wired" aria-hidden="true"></i></div><h3>More than a species list</h3><p>A species list tells us who has been recorded. Biodiversity also includes where organisms live, how populations interact, how ecosystems function, and how these patterns change over time.</p></article>
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i></div><h3>Why map observations?</h3><p>Location-and-date records help people ask where organisms have been documented, identify information gaps, and plan further surveys. A record is evidence of an observation—not proof of abundance or current presence.</p></article>
+        </div>
+        <div class="learn-links"><a href="https://www.gbif.org/what-is-gbif" target="_blank" rel="noopener noreferrer">Learn how GBIF shares biodiversity data ↗</a><a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank" rel="noopener noreferrer">Read the occurrence API guide ↗</a></div>
+      </section>
+      <section class="learn-panel" id="learn-panel-biosphere" role="tabpanel" aria-labelledby="learn-tab-biosphere" hidden>
+        <div class="learn-grid">
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-earth-americas" aria-hidden="true"></i></div><h3>What is the biosphere?</h3><p>The biosphere is the part of Earth where life exists, across land, water and the lower atmosphere. It is the connected living system that links forests, wetlands, oceans, soil, people and other organisms.</p></article>
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-globe" aria-hidden="true"></i></div><h3>What is a UNESCO Biosphere Reserve?</h3><p>A biosphere reserve is a place recognised under UNESCO’s Man and the Biosphere Programme. It aims to connect biodiversity conservation with sustainable development, research, education and cooperation with local communities.</p></article>
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></div><h3>Three complementary functions</h3><p>Biosphere reserves bring together conservation, livelihoods that can be sustained over time, and support for research, monitoring and learning. Their zonation can include core, buffer and transition areas with different purposes.</p></article>
+        </div>
+        <div class="learn-note">A biosphere reserve is not automatically the same as a national park, and a point on this map does not show its official boundary. Always consult the official site or spatial boundary dataset for authoritative boundaries.</div>
+        <div class="learn-links"><a href="https://www.unesco.org/en/mab/wnbr/about?hub=66946" target="_blank" rel="noopener noreferrer">UNESCO: What are biosphere reserves? ↗</a><a href="https://data.unesco.org/explore/dataset/mab001/information/" target="_blank" rel="noopener noreferrer">UNESCO MAB dataset information ↗</a></div>
+      </section>
+      <section class="learn-panel" id="learn-panel-importance" role="tabpanel" aria-labelledby="learn-tab-importance" hidden>
+        <div class="learn-grid">
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-leaf" aria-hidden="true"></i></div><h3>For nature</h3><p>Living variety supports food webs, pollination, seed dispersal, nutrient cycles, habitat renewal and resilience. When habitats and relationships are damaged, the effects can spread beyond one species.</p></article>
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></div><h3>For people</h3><p>Healthy ecosystems support food, clean water, soil fertility, climate regulation, materials, livelihoods, recreation and cultural identity. Indigenous Peoples and local communities also hold knowledge and practices that contribute to stewardship.</p></article>
+          <article class="learn-card"><div class="learn-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div><h3>For decisions</h3><p>Well-documented observations can help researchers and practitioners decide where to investigate change, restore habitat or improve monitoring. Good decisions combine data with local knowledge, field checks and context.</p></article>
+        </div>
+        <div class="learn-note"><strong>What can we do?</strong> Protect and reconnect habitat, reduce pollution, use resources responsibly, respect community-led conservation, and record observations carefully. Include a date, location and source whenever possible—and avoid exposing sensitive species locations where that could create risk.</div>
+      </section>
+      <section class="learn-panel" id="learn-panel-bird" role="tabpanel" aria-labelledby="learn-tab-bird" hidden>
+        <div class="bird-card">
+          <figure class="bird-visual">
+            <img id="learn-bird-image" alt="" hidden>
+            <div id="learn-bird-placeholder" style="min-height:250px;display:grid;place-items:center;padding:22px;text-align:center;color:#607761"><span><i class="fa-solid fa-binoculars" style="font-size:28px;display:block;margin-bottom:10px" aria-hidden="true"></i>Open this tab to retrieve an illustrated bird occurrence from GBIF.</span></div>
+            <figcaption id="learn-bird-caption">Image, contributor credit and licence will appear here when supplied by the source record.</figcaption>
+          </figure>
+          <div class="bird-details">
+            <span class="bird-kicker"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i> A live GBIF example from Indonesia</span>
+            <h3 id="learn-bird-common">Meet a bird in the records</h3>
+            <div class="bird-scientific" id="learn-bird-scientific">The scientific name will appear after the record loads.</div>
+            <p class="learn-copy" id="learn-bird-intro">Loading a GBIF occurrence record also lets us inspect the observation date, location, publisher and available image attribution.</p>
+            <div class="bird-facts" id="learn-bird-facts"></div>
+            <p class="learn-copy"><strong>Why pay attention?</strong> Birds occupy different roles in ecosystems. Depending on the species, they may disperse seeds, pollinate plants, consume insects, scavenge, or help researchers notice environmental change. The exact role needs species-level evidence.</p>
+            <p class="learn-copy" style="margin-top:10px">One record contributes place-and-time evidence, but it cannot by itself establish population size, a population trend, or whether the bird is still present today.</p>
+            <p class="bird-status" id="learn-bird-status" aria-live="polite">The example loads on demand from GBIF’s public occurrence API.</p>
+            <div class="learn-links" id="learn-bird-links"><a href="https://www.gbif.org/occurrence/search?country=ID&class_key=212&media_type=StillImage" target="_blank" rel="noopener noreferrer">Browse Indonesian bird records on GBIF ↗</a></div>
+            <button type="button" class="learn-button" id="learn-bird-reload" style="margin-top:12px"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Load another bird record</button>
+          </div>
+        </div>
+        <div class="learn-note">Images linked through GBIF are supplied by data publishers and may have different reuse licences. This page shows the source attribution and licence when available; follow the original record and media terms before reusing an image.</div>
+      </section>
+      <div class="learning-source-note">Learning references: <a href="https://www.unesco.org/en/mab/wnbr/about?hub=66946" target="_blank" rel="noopener noreferrer">UNESCO Man and the Biosphere Programme</a> · <a href="https://techdocs.gbif.org/en/openapi/v1/occurrence" target="_blank" rel="noopener noreferrer">GBIF Occurrence API</a> · <a href="https://techdocs.gbif.org/en/data-publishing/multimedia-publishing" target="_blank" rel="noopener noreferrer">GBIF multimedia and rights guidance</a>.</div>
+    </section>
+
     <section aria-labelledby="scan-title">
       <div class="light-heading">
         <div><div class="section-kicker">Inside the biodiversity scanner</div><h2 id="scan-title">It scans progressively — it does not freeze and wait.</h2></div>
@@ -296,7 +391,7 @@
 
     <section aria-labelledby="scope-title" style="margin-top:45px">
       <div class="light-heading">
-        <div><div class="section-kicker">Scope and limits</div><h2 id="scope-title">A useful sample is not the same as a global census.</h2></div>
+        <div><div class="section-kicker">Scope and limits</div><h2 id="scope-title">An interactive view is not a global census.</h2></div>
         <p>It is important to understand exactly what is counted, where each point comes from, and what this version does not claim to measure.</p>
       </div>
       <div class="two-col">
@@ -356,7 +451,7 @@
             <tr><td>Where does the data come from?</td><td>Records manually collected, selected, and curated by the project owner.</td><td>Public biodiversity records requested from GBIF, with publication metadata from OpenAlex and Crossref.</td></tr>
             <tr><td>How is the data stored?</td><td>In the project owner's privately managed storage/server endpoint.</td><td>Data is retrieved from public services and processed in the user's browser during exploration. It is not copied into the other app's private data store by the scan.</td></tr>
             <tr><td>What triggers an update?</td><td>When the curated records or managed source data are manually updated.</td><td>When the app makes API requests; results depend on upstream data availability and service response.</td></tr>
-            <tr><td>What does a map point represent?</td><td>A manually curated record and its stored geographic information.</td><td>One representative georeferenced record per species in the scanned sample.</td></tr>
+            <tr><td>What does a map point represent?</td><td>A manually curated record and its stored geographic information.</td><td>One representative georeferenced record per species from the records retrieved in this scan.</td></tr>
             <tr><td>How should the result be interpreted?</td><td>As curated project data; users should still check the record's notes and references.</td><td>As a discovery sample of documented occurrences, not a complete inventory or official conservation assessment.</td></tr>
           </tbody>
         </table>
@@ -381,9 +476,140 @@
     </div>
   </main>
 
+  <script>
+    (() => {
+      const tabs = Array.from(document.querySelectorAll("[data-learn-tab]"));
+      let birdLoaded = false, birdLoading = false;
+      const api = "https://api.gbif.org/v1";
+      const el = id => document.getElementById(id);
+      const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+      const safeUrl = value => {
+        try { const u = new URL(String(value || "")); return ["https:","http:"].includes(u.protocol) ? u.href : ""; }
+        catch { return ""; }
+      };
+      function activateTab(tab, focus = false) {
+        tabs.forEach(item => {
+          const active = item === tab;
+          item.setAttribute("aria-selected", active ? "true" : "false");
+          item.tabIndex = active ? 0 : -1;
+          el(item.getAttribute("aria-controls")).hidden = !active;
+        });
+        if (focus) tab.focus();
+        if (tab.dataset.learnTab === "bird" && !birdLoaded && !birdLoading) loadBird(false);
+      }
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => activateTab(tab));
+        tab.addEventListener("keydown", event => {
+          let next = null;
+          if (event.key === "ArrowRight") next = tabs[(index + 1) % tabs.length];
+          if (event.key === "ArrowLeft") next = tabs[(index - 1 + tabs.length) % tabs.length];
+          if (event.key === "Home") next = tabs[0];
+          if (event.key === "End") next = tabs[tabs.length - 1];
+          if (next) { event.preventDefault(); activateTab(next, true); }
+        });
+      });
+      async function fetchJson(url) {
+        const res = await fetch(url, {headers:{"Accept":"application/json"}});
+        if (!res.ok) throw new Error("GBIF returned HTTP " + res.status);
+        return res.json();
+      }
+      function setStatus(message) { el("learn-bird-status").textContent = message; }
+      function chooseImage(record) {
+        const media = Array.isArray(record.media) ? record.media : [];
+        return media.find(item => {
+          if (!item || !safeUrl(item.identifier)) return false;
+          const type = String(item.type || "").toLowerCase();
+          const format = String(item.format || "").toLowerCase();
+          return type === "stillimage" || format.startsWith("image/") || /.(jpe?g|png|webp|gif)(?:[?#].*)?$/i.test(item.identifier);
+        }) || null;
+      }
+      function showBirdError() {
+        el("learn-bird-image").hidden = true;
+        el("learn-bird-placeholder").hidden = false;
+        el("learn-bird-placeholder").innerHTML = '<span><i class="fa-solid fa-binoculars" style="font-size:28px;display:block;margin-bottom:10px" aria-hidden="true"></i>The public API did not return a suitable image record in this request. Try again or browse GBIF directly.</span>';
+        el("learn-bird-common").textContent = "Bird record unavailable right now";
+        el("learn-bird-scientific").textContent = "";
+        el("learn-bird-intro").textContent = "The source API did not return a suitable image-linked record this time. The live source search remains available below.";
+        el("learn-bird-facts").innerHTML = "";
+        el("learn-bird-caption").textContent = "No image loaded. Open the source search to explore occurrence records.";
+        el("learn-bird-links").innerHTML = '<a href="https://www.gbif.org/occurrence/search?country=ID&class_key=212&media_type=StillImage" target="_blank" rel="noopener noreferrer">Browse Indonesian bird records on GBIF ↗</a>';
+      }
+      async function loadBird(forceAnother) {
+        if (birdLoading) return;
+        birdLoading = true;
+        if (forceAnother) birdLoaded = false;
+        const button = el("learn-bird-reload");
+        button.disabled = true;
+        button.textContent = "Loading from GBIF…";
+        setStatus("Requesting occurrence records from GBIF’s public API…");
+        el("learn-bird-common").textContent = "Finding an illustrated bird record…";
+        try {
+          const q = new URLSearchParams({country:"ID",classKey:"212",hasCoordinate:"true",media_type:"StillImage",limit:"100",offset:"0"});
+          const data = await fetchJson(api + "/occurrence/search?" + q);
+          const records = Array.isArray(data.results) ? data.results : [];
+          const candidates = records.filter(row => (row.speciesKey || row.taxonKey) && (row.species || row.scientificName) && chooseImage(row));
+          if (!candidates.length) throw new Error("No illustrated Indonesian bird record was returned.");
+          let record = candidates[0];
+          if (forceAnother && candidates.length > 1) {
+            const previous = el("learn-bird-links").dataset.lastKey;
+            record = candidates.find(row => String(row.key) !== previous) || candidates[1];
+          }
+          const media = chooseImage(record);
+          const speciesKey = record.speciesKey || record.taxonKey;
+          const occurrenceId = String(record.key || "");
+          const [vernacularResult, datasetResult] = await Promise.allSettled([
+            record.vernacularName ? Promise.resolve(null) : fetchJson(api + "/species/" + encodeURIComponent(speciesKey) + "/vernacularNames?limit=100"),
+            record.datasetKey ? fetchJson(api + "/dataset/" + encodeURIComponent(record.datasetKey)) : Promise.resolve(null)
+          ]);
+          let common = record.vernacularName || "";
+          if (!common && vernacularResult.status === "fulfilled" && vernacularResult.value) {
+            const names = Array.isArray(vernacularResult.value.results) ? vernacularResult.value.results : [];
+            const preferred = names.find(row => /^(eng|en)$/i.test(String(row.language || ""))) ||
+              names.find(row => /^(ind|id)$/i.test(String(row.language || ""))) || names[0];
+            common = preferred && preferred.vernacularName || "";
+          }
+          const dataset = datasetResult.status === "fulfilled" ? datasetResult.value : null;
+          const scientific = record.species || record.scientificName || "Bird species not identified";
+          const imgUrl = safeUrl(media.identifier);
+          const img = el("learn-bird-image"), placeholder = el("learn-bird-placeholder");
+          img.onload = () => { img.hidden = false; placeholder.hidden = true; };
+          img.onerror = () => { img.hidden = true; placeholder.hidden = false; placeholder.textContent = "Image link unavailable. Open the original GBIF record to inspect its media."; };
+          img.src = imgUrl;
+          img.alt = "Image attached to the GBIF occurrence record for " + scientific;
+          const recordUrl = "https://www.gbif.org/occurrence/" + encodeURIComponent(occurrenceId);
+          el("learn-bird-common").textContent = common || scientific;
+          el("learn-bird-scientific").textContent = common ? scientific : "Scientific name";
+          el("learn-bird-intro").textContent = "This is a published occurrence record indexed by GBIF. This page retrieves one record for learning; the page’s limited view is not a statement about the size or completeness of GBIF’s full collection.";
+          const location = [record.locality,record.stateProvince,record.country].filter(Boolean).join(", ") || "Location details not supplied";
+          const date = record.eventDate || (record.year ? String(record.year) : "Date not supplied");
+          const provider = dataset && (dataset.publishingOrganizationTitle || dataset.title) || "Publisher details not returned";
+          const facts = [["Recorded",date],["Location",location],["Published by",provider],["GBIF occurrence ID",occurrenceId]];
+          el("learn-bird-facts").innerHTML = facts.map(([label,value]) => '<div class="bird-fact"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join("");
+          const creator = media.creator || media.rightsHolder || record.recordedBy || "Credit not supplied in the API response";
+          const license = String(media.license || record.license || "");
+          const licenseUrl = safeUrl(license);
+          el("learn-bird-caption").textContent = "Image credit: " + creator + (license ? " · Licence: " + license : " · Licence details not supplied here") + ". The image is hosted by the publisher, not necessarily by GBIF.";
+          el("learn-bird-links").innerHTML = '<a href="'+esc(recordUrl)+'" target="_blank" rel="noopener noreferrer">Open original GBIF occurrence ↗</a>' +
+            (licenseUrl ? ' <a href="'+esc(licenseUrl)+'" target="_blank" rel="noopener noreferrer">View image licence ↗</a>' : ' <a href="'+esc(recordUrl)+'" target="_blank" rel="noopener noreferrer">Check licence at source ↗</a>');
+          el("learn-bird-links").dataset.lastKey = occurrenceId;
+          birdLoaded = true;
+          setStatus("Loaded from GBIF. Check the publisher’s occurrence record and image terms before reuse.");
+        } catch (error) {
+          console.warn("Unable to load a GBIF bird example:",error);
+          showBirdError();
+          setStatus("No suitable illustrated record was returned this time. Retry or browse the source search.");
+        } finally {
+          birdLoading = false;
+          button.disabled = false;
+          button.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i> Load another bird record';
+        }
+      }
+      el("learn-bird-reload").addEventListener("click", () => loadBird(true));
+    })();
+  </script>
   <footer>
     <div class="wrap footer-inner">
-      <div><strong>Open Data Explorers</strong><div class="disclaimer">Free to access; independently developed and not an official UNESCO, GBIF or IUCN product. The repository uses a custom non-commercial software licence; third-party data retains its own terms and attribution rules. IUCN enrichment is disabled by default pending permission for public caching/display. Data can be incomplete and is provided without warranty. Read the <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">README disclaimer</a> and <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">software licence</a> before reuse.</div></div>
+      <div><strong>Open Data Explorers</strong><div class="disclaimer">Free to access; independently developed and not an official UNESCO, GBIF or IUCN product. The repository uses a custom non-commercial software licence; third-party data retains its own terms and attribution rules. Direct IUCN requests and scraping are stopped while permission is pending. Data can be incomplete and is provided without warranty. Read the <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">README disclaimer</a> and <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">software licence</a> before reuse.</div></div>
       <div><a href="./curated-data.html">Curated Data</a> · <a href="./biodiversity.html">Biodiversity Explorer</a> · <a href="./biodiversity-atlas.html">Biodiversity Atlas</a> · <a href="https://github.com/AnggaConni/citizenship-data/tree/main/biodiversity">Pipeline code</a> · <a href="https://github.com/AnggaConni/citizenship-data">GitHub repository</a></div>
     </div>
   </footer>
