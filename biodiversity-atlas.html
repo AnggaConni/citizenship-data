@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#10271f">
-  <meta name="description" content="Explore published biodiversity occurrence samples, distribution-grid summaries and UNESCO biosphere-reserve points in an interactive atlas.">
+  <meta name="description" content="Explore published biodiversity occurrence records, record-density summaries and UNESCO biosphere-reserve points in an interactive atlas.">
   <title>Biodiversity Atlas | Open Data Explorers</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -205,9 +205,9 @@
         </div>
       </nav>
       <section class="hero">
-        <div class="eyebrow">◉ Published country sample · interactive map</div>
+        <div class="eyebrow">◉ Published occurrence records · interactive map</div>
         <h1>Biodiversity <span style="color:var(--lime)">Atlas.</span></h1>
-        <p>Explore country-level biodiversity data already prepared by the Python pipeline—without opening the pipeline code. Inspect georeferenced occurrence samples, browse individual records, and compare them with a sample-density grid. This first release starts with Indonesia.</p>
+        <p>Explore country-level biodiversity data already prepared by the Python pipeline—without opening the pipeline code. Inspect georeferenced occurrence records, browse individual records, and compare their distribution with a record-density grid. This first release starts with Indonesia.</p>
         <div class="hero-chips">
           <span class="chip"><strong>01</strong> Indonesia pilot dataset</span>
           <span class="chip">GBIF occurrence records</span>
@@ -223,11 +223,11 @@
       <div class="iucn-stop-icon" aria-hidden="true">⛔</div>
       <div><h2>IUCN RED LIST — NOT APPROVED YET</h2><p><strong>Direct IUCN API requests and scraping are stopped.</strong> IUCN assessment data are hidden and not published while permission is pending. A conservation category returned separately by GBIF, if shown, is a GBIF-sourced reference—not a direct IUCN lookup.</p></div>
     </aside>
-    <aside class="notice" aria-labelledby="sample-title">
+    <aside class="notice" aria-labelledby="record-coverage-title">
       <div class="notice-icon" aria-hidden="true">⚠</div>
       <div>
-        <h2 id="sample-title">Important: this is a sample, not a complete biodiversity inventory</h2>
-        <p>The Indonesia file currently contains a capped sample of georeferenced GBIF occurrence records. A sample point marks a documented record, not an entire species range or proof of current presence. Grid cells summarise only the records collected for this sample. This independent prototype is not an official GBIF, UNESCO or IUCN product. Third-party data retains its own licences and attribution terms. <a href="./README.md">Read the project disclaimer</a>.</p>
+        <h2 id="record-coverage-title">Important: current coverage is not a complete biodiversity inventory</h2>
+        <p>The Indonesia file contains GBIF occurrence records retrieved and retained by this application. This is a limited, incrementally updated subset of GBIF’s indexed records—not a complete GBIF download or a complete biodiversity inventory. Each point marks a documented occurrence, not an entire species range or proof of current presence. Grid cells summarise the records currently retained by this application. This independent prototype is not an official GBIF, UNESCO or IUCN product. Third-party data retains its own licences and attribution terms. <a href="./README.md">Read the project disclaimer</a>.</p>
       </div>
     </aside>
   </div>
@@ -245,7 +245,7 @@
           <select id="country-select" disabled><option>Loading available datasets…</option></select>
         </div>
         <div class="field">
-          <label for="record-search">Search the current sample</label>
+          <label for="record-search">Search current records</label>
           <input id="record-search" type="search" placeholder="Scientific name, locality, recorder…" autocomplete="off" disabled>
         </div>
         <div class="field">
@@ -267,8 +267,8 @@
       </div>
       <div id="session-cache-status" class="toolbar-note" aria-live="polite">Temporary memory cache · empty · cleared when this page closes or reloads</div>
       <div class="stats" aria-label="Dataset summary">
-        <article class="stat"><div class="stat-label">Occurrence records in sample</div><div class="stat-value" id="stat-records">—</div><div class="stat-note" id="stat-records-note">Published observations</div></article>
-        <article class="stat"><div class="stat-label">Unique taxa in sample</div><div class="stat-value" id="stat-taxa">—</div><div class="stat-note">Based on returned records</div></article>
+        <article class="stat"><div class="stat-label">Occurrence records in this dataset</div><div class="stat-value" id="stat-records">—</div><div class="stat-note" id="stat-records-note">Published observations</div></article>
+        <article class="stat"><div class="stat-label">Unique taxa in record set</div><div class="stat-value" id="stat-taxa">—</div><div class="stat-note">Based on returned records</div></article>
         <article class="stat"><div class="stat-label">Heuristic distribution clusters</div><div class="stat-value" id="stat-clusters">—</div><div class="stat-note">Grouped by selected distance</div></article>
         <article class="stat"><div class="stat-label">GBIF matching-record count</div><div class="stat-value" id="stat-total">—</div><div class="stat-note">Provider total at last pipeline run</div></article>
       </div>
@@ -284,15 +284,15 @@
           <div class="layer-toggles" aria-label="Map layers">
             <label class="toggle"><input type="checkbox" id="layer-clusters" checked> Heuristic regions</label>
             <label class="toggle"><input type="checkbox" id="layer-observations"> Occurrence points</label>
-            <label class="toggle"><input type="checkbox" id="layer-grid"> Sample density grid</label>
+            <label class="toggle"><input type="checkbox" id="layer-grid"> Record-density grid</label>
             <label class="toggle"><input type="checkbox" id="layer-reserves" checked> UNESCO MAB points</label>
           </div>
-          <div class="region-note" id="region-note">Heuristic regions summarize where records in this sample are clustered. Click one to zoom in and show its source points. Isolated records appear as individual markers. Polygons are exploratory envelopes, not species ranges or habitat boundaries.</div>
-          <div id="map" role="application" aria-label="Interactive map displaying published biodiversity sample records"></div>
+          <div class="region-note" id="region-note">Heuristic regions summarize where currently retained occurrence records are clustered. Click one to zoom in and show its source points. Isolated records appear as individual markers. Polygons are exploratory envelopes, not species ranges or habitat boundaries.</div>
+          <div id="map" role="application" aria-label="Interactive map displaying published biodiversity occurrence records"></div>
           <div class="map-legend">
             <span class="legend-item"><i class="legend-region"></i> Heuristic region envelope</span>
             <span class="legend-item"><i class="legend-dot"></i> Original occurrence record</span>
-            <span class="legend-item"><i class="legend-square"></i> Sample density grid</span>
+            <span class="legend-item"><i class="legend-square"></i> record set density grid</span>
             <span class="legend-item"><i class="legend-reserve"></i> UNESCO MAB source point</span>
           </div>
         </article>
@@ -305,7 +305,7 @@
 
       <aside class="panel side" aria-labelledby="records-title">
         <div class="panel-head">
-          <div><div class="panel-title" id="records-title">Occurrence records</div><div class="panel-sub">Filtered records from the selected country sample.</div></div>
+          <div><div class="panel-title" id="records-title">Occurrence records</div><div class="panel-sub">Filtered records from the selected country dataset.</div></div>
         </div>
         <div class="region-summary" id="region-summary" hidden aria-live="polite"></div>
         <div class="search-tools">
@@ -328,7 +328,7 @@
     </section>
 
     <section class="sources" aria-label="Data source information">
-      <article class="source-card"><h3>GBIF occurrence records</h3><p>Sampled occurrence data with coordinates and source fields. Individual records may have distinct licences. <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Check the original source ↗</a></p></article>
+      <article class="source-card"><h3>GBIF occurrence records</h3><p>Occurrence records indexed by GBIF, with coordinates and source fields. Individual records may have distinct licences. <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Check the original source ↗</a></p></article>
       <article class="source-card"><h3>UNESCO Man and the Biosphere</h3><p>Reserve metadata and point coordinates are shown only when present in the published dataset. A point is not an official reserve boundary. <a href="https://data.unesco.org/explore/dataset/mab001/information/" target="_blank" rel="noopener noreferrer">Dataset information ↗</a></p></article>
       <article class="source-card"><h3>Conservation status references</h3><p>GBIF’s public taxonomic category reference may be displayed when available; it is not a direct IUCN query and may lag the latest assessment. Direct IUCN API requests and scraping are stopped — NOT APPROVED YET. Direct assessment data are hidden and not published. Users may still open the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a> manually.</p></article>
     </section>
@@ -504,9 +504,9 @@
           onEachFeature: (feature, layer) => {
             const p = properties(feature);
             layer.bindPopup(
-              "<strong>Sample density cell</strong><br>Records in sample: " + escapeHtml(fmt(p.observation_count)) +
+              "<strong>record set density cell</strong><br>Records currently retained in this cell: " + escapeHtml(fmt(p.observation_count)) +
               "<br>Unique taxa: " + escapeHtml(fmt(p.unique_taxa_count)) +
-              "<br><em>This grid is based only on the returned sample.</em>"
+              "<br><em>This grid summarises only the records currently retained by this application.</em>"
             );
           }
         });
@@ -538,7 +538,7 @@
             if (p.feature_type === "cluster") {
               layer.bindPopup(
                 "<strong>Heuristic distribution region " + escapeHtml(p.cluster_id) + "</strong><br>" +
-                "Sample records: " + escapeHtml(fmt(p.record_count)) +
+                "Records currently retained: " + escapeHtml(fmt(p.record_count)) +
                 "<br>Unique taxa: " + escapeHtml(fmt(p.unique_taxa_count)) +
                 "<br>Grouping radius: " + escapeHtml(fmt(p.radius_km)) + " km" +
                 "<br><em>Click this region to zoom in and show the original points. This is not an official range boundary.</em>"
@@ -546,13 +546,13 @@
               layer.on("click", () => activateCluster(String(p.cluster_id)));
             } else {
               layer.bindPopup(
-                "<strong>Isolated sample observation</strong><br>" +
+                "<strong>Isolated occurrence record</strong><br>" +
                 escapeHtml(p.scientific_name || "Unidentified taxon") +
                 "<br><em>Not enough nearby records to form a region; click to inspect the point.</em>"
               );
               layer.on("click", () => activateScope(
                 "isolated", String(p.point_index), [Number(p.point_index)],
-                "One isolated sample record", L.latLngBounds(layer.getLatLng())
+                "One isolated occurrence record", L.latLngBounds(layer.getLatLng())
               ));
             }
           }
@@ -566,7 +566,7 @@
             layer.bindPopup(
               "<strong>" + escapeHtml(p.name || p.title_en || "Biosphere reserve") + "</strong><br>" +
               escapeHtml(p.country || p.country_title_en || "Country not provided") +
-              "<br><em>Source-provided point; not the reserve boundary. Click to inspect nearby sampled records.</em>" +
+              "<br><em>Source-provided point; not the reserve boundary. Click to inspect nearby occurrence records.</em>" +
               (safeHttpUrl(p.source_url || p.url) ? '<br><a href="' + escapeHtml(safeHttpUrl(p.source_url || p.url)) + '" target="_blank" rel="noopener noreferrer">Source ↗</a>' : "")
             );
             layer.on("click", () => {
@@ -821,7 +821,7 @@
             fillColor:selected?"#8fcba0":"#57ae79",fillOpacity:selected?.12:.27};
         });
         $("reset-region-btn").hidden=false;
-        $("region-note").textContent=label+". The blue points are original sampled occurrence records; the green envelope is only a heuristic summary, not a habitat or range boundary.";
+        $("region-note").textContent=label+". The blue points are original GBIF occurrence records retrieved by this application; the green envelope is only a heuristic summary, not a habitat or range boundary.";
         renderRecords();
         showRegionSummary(type,id,indices,label);
         showRegionGallery(type,id,indices,label);
@@ -832,7 +832,7 @@
         if(indices.length){
           setStatus(label+": showing "+fmt(indices.length)+" original occurrence record(s) in this selected view.","ok");
         }else{
-          setStatus(label+": no sampled occurrence record was found for this view. This does not establish absence in nature.","warn");
+          setStatus(label+": no occurrence record was found in the records currently displayed for this view. This does not establish absence in nature.","warn");
         }
       }
 
@@ -844,7 +844,7 @@
           if(String(properties(layer.feature).cluster_id||"")===String(clusterId))bounds=layer.getBounds();
         });
         activateScope("cluster",clusterId,group.indices,
-          "Distribution region "+clusterId+" ("+group.indices.length+" sample records)",bounds);
+          "Distribution region "+clusterId+" ("+group.indices.length+" occurrence records)",bounds);
       }
 
       function activateReserveNeighborhood(feature) {
@@ -865,7 +865,7 @@
             })))
           : markerBounds;
         activateScope("reserve",p.biosphere_id||p.uuid||name,indices,
-          "Sampled occurrence records within "+RESERVE_NEARBY_RADIUS_KM+" km of "+name,combinedBounds);
+          "Occurrence records within "+RESERVE_NEARBY_RADIUS_KM+" km of "+name,combinedBounds);
         $("region-note").textContent=
           "Nearby observations are selected by distance to the UNESCO MAB source point ("+RESERVE_NEARBY_RADIUS_KM+" km). "+
           "The source provides a point here, not an official reserve boundary; nearby records must not be described as being inside the reserve.";
@@ -894,7 +894,7 @@
           drawAllLayersAndFit();
           renderRecords();
         }
-        setStatus("Overview: click a heuristic region to zoom in and inspect its sampled points.","ok");
+        setStatus("Overview: click a heuristic region to zoom in and inspect its retrieved GBIF points.","ok");
         $("record-detail").innerHTML='<p class="detail-placeholder">Select a point on the map or an item in the record list to see its details here.</p>';
       }
 
@@ -958,9 +958,9 @@
         $("layer-grid").checked=false;$("layer-reserves").checked=true;
         $("record-search").value="";$("list-search").value="";
         state.listVisibleLimit=100;
-        setStatus("Loading "+country.name+" published sample…");
+        setStatus("Loading "+country.name+" published occurrence records…");
         $("reload-btn").disabled=true;
-        $("record-list").innerHTML='<p class="empty-list">Loading country sample…</p>';
+        $("record-list").innerHTML='<p class="empty-list">Loading country occurrence records…</p>';
         $("record-detail").innerHTML='<p class="detail-placeholder">Loading records…</p>';
         try{
           const url="./biodiversity/"+encodeURIComponent(country.file);
@@ -996,7 +996,7 @@
               failedPages?"warn":"ok");
           }else{
             const complete=summary.complete_for_requested_sample!==false;
-            setStatus(country.name+" sample loaded: "+fmt(state.observations.length)+
+            setStatus(country.name+" record set loaded: "+fmt(state.observations.length)+
               " original point records. "+(complete?"Dataset loaded.":"Some source pages were unavailable."),
               complete?"ok":"warn");
           }
@@ -1043,7 +1043,7 @@
         const list=$("record-list");
         if(!state.filtered.length){
           const emptyText=state.activeScope&&state.activeScope.type==="reserve"
-            ?"No sampled occurrence records were found within "+RESERVE_NEARBY_RADIUS_KM+" km of this MAB source point. This does not mean biodiversity is absent; it only describes the current sample."
+            ?"No occurrence records currently displayed were found within "+RESERVE_NEARBY_RADIUS_KM+" km of this MAB source point. This does not mean biodiversity is absent; it only describes this application’s current coverage."
             :"No records match this search. Try another scientific name, locality, or keyword.";
           list.innerHTML='<p class="empty-list">'+escapeHtml(emptyText)+'</p>';
           return;
@@ -1196,7 +1196,7 @@
         if(gallery)gallery.hidden=true;
         $("records-title").textContent="Occurrence records";
         const sideSub=document.querySelector(".side .panel-head .panel-sub");
-        if(sideSub)sideSub.textContent="Filtered records from the selected country sample.";
+        if(sideSub)sideSub.textContent="Filtered records from the selected country dataset.";
         $("region-gallery-title").textContent="Records in selected region";
         $("region-gallery-subtitle").textContent="Select a heuristic region on the map to load detailed record metadata and source images.";
         $("region-gallery-progress").textContent="No region selected";
@@ -1229,33 +1229,33 @@
         const title=type==="cluster"?"Heuristic distribution region "+id:
           type==="reserve"?"Records near UNESCO MAB point":type==="isolated"?"Isolated occurrence point":"Selected region";
         const note=type==="cluster"
-          ?"This region is computed from the mapped sample, not returned by a source API. Detailed occurrence records are requested from GBIF."
+          ?"This region is computed from the occurrence records currently mapped by this application, not returned by a source API. Detailed occurrence records are requested from GBIF."
           :type==="reserve"
             ?"This is a proximity view around a source-provided MAB point, not a reserve boundary or proof that records occur inside the reserve."
-            :"This is a local summary of the selected sample record.";
+            :"This is a local summary of the selected occurrence record.";
         $("records-title").textContent="Records in selection";
         const sideSub=document.querySelector(".side .panel-head .panel-sub");
-        if(sideSub)sideSub.textContent="Sample records included in this selected view.";
+        if(sideSub)sideSub.textContent="Occurrence records included in this selected view.";
         $("region-summary").hidden=false;
         $("region-summary").innerHTML=
           '<h3 class="region-summary-title">'+escapeHtml(title)+'</h3>'+
           '<p class="region-summary-copy">'+escapeHtml(note)+'</p>'+
           '<div class="region-summary-metrics">'+
-            '<div class="region-metric"><div class="region-metric-label">Sample records</div><div class="region-metric-value">'+fmt(indices.length)+'</div></div>'+
+            '<div class="region-metric"><div class="region-metric-label">Occurrence records</div><div class="region-metric-value">'+fmt(indices.length)+'</div></div>'+
             '<div class="region-metric"><div class="region-metric-label">Unique taxa in index</div><div class="region-metric-value">'+fmt(taxa.size)+'</div></div>'+
             '<div class="region-metric"><div class="region-metric-label">'+(type==="reserve"?"Search radius":"Grouping radius")+'</div><div class="region-metric-value">'+(type==="reserve"?RESERVE_NEARBY_RADIUS_KM:radius)+' km</div></div>'+
             '<div class="region-metric"><div class="region-metric-label">Approx. centre</div><div class="region-metric-value" style="font-size:11px">'+(center?center[0].toFixed(3)+", "+center[1].toFixed(3):"Not available")+'</div></div>'+
           '</div>'+
-          '<p class="region-summary-copy" style="margin:10px 0 0">Approximate sample bounds: '+(coords.length?minLat.toFixed(3)+" to "+maxLat.toFixed(3)+" latitude; "+minLon.toFixed(3)+" to "+maxLon.toFixed(3)+" longitude":"Not available")+'. Bounds describe sampled records only.</p>'+
+          '<p class="region-summary-copy" style="margin:10px 0 0">Approximate bounds of retrieved records: '+(coords.length?minLat.toFixed(3)+" to "+maxLat.toFixed(3)+" latitude; "+minLon.toFixed(3)+" to "+maxLon.toFixed(3)+" longitude":"Not available")+'. Bounds describe only the records currently retained by this application.</p>'+
           '<div class="region-api-status" id="region-api-status">Preparing to request full record metadata from GBIF for '+fmt(indices.length)+' occurrence records…</div>';
       }
 
       function showRegionGallery(type,id,indices,label) {
         const token=++state.regionGalleryToken;
         $("region-gallery").hidden=false;
-        $("region-gallery-title").textContent=type==="reserve"?"Sample records near MAB point":"All sample records in "+label;
+        $("region-gallery-title").textContent=type==="reserve"?"Occurrence records near MAB point":"All occurrence records in "+label;
         $("region-gallery-subtitle").textContent=
-          "The cards below progressively load full occurrence metadata and all image URLs supplied by GBIF for the records in this selection. These are the records already present in the published map sample, not a complete inventory of everything in the geographic area.";
+          "The cards below progressively load full occurrence metadata and all image URLs supplied by GBIF for the records in this selection. These are the records currently present in the published map view, not a complete inventory of everything in the geographic area.";
         $("region-gallery-progress").textContent="Preparing "+indices.length+" records…";
         const grid=$("region-record-grid");
         grid.replaceChildren();
@@ -1273,7 +1273,7 @@
           grid.appendChild(card);
         });
         if(!indices.length){
-          grid.innerHTML='<p class="empty-list">No occurrence points from the published sample fall within this selected view.</p>';
+          grid.innerHTML='<p class="empty-list">No occurrence points from the published occurrence points fall within this selected view.</p>';
           $("region-gallery-progress").textContent="0 records";
           return;
         }
