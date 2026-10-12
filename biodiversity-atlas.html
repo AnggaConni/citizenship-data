@@ -1562,13 +1562,12 @@
           'The Atlas is not fetching or caching IUCN assessment categories. This does not indicate that the species is safe, threatened, or unassessed. '+
           '<a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Open IUCN Red List search ↗</a></div></div>';
         const facts=profileFacts(info?.profiles);
-        const iNatStatus=inat?.conservation_status;
         const threatNote=facts.some(f=>/threat/i.test(f.label))?"":'No specific threat explanation was returned by the available profile fields. To understand why a species is threatened, open the source assessment and read its justification and listed threat factors.';
         const descriptionMarkup=description
           ?'<p class="species-description">'+escapeHtml(description)+'</p><p class="species-insights-intro">'+(looksLikeDistributionNote?"This appears to be a brief range/distribution note, not a full natural-history description. ":"Description source: ")+escapeHtml(descriptionSource||"external source")+'. This text is not itself a conservation assessment.</p>'
           :'<p class="species-insights-intro">No full natural-history description was returned by these APIs. Some checklists provide only a short geographic range note; the linked taxon profiles may have more information.</p>';
         return '<h4>About this species</h4>'+
-          '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. Values can be missing or differ between checklists.</p>'+
+          '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. Automated conservation-status lookups are disabled pending permission, so no IUCN category is automatically fetched or displayed.</p>'+
           (common?'<p class="species-common-name">'+escapeHtml(common)+'</p>':'')+
           '<p class="species-scientific-name">'+escapeHtml(scientific)+(taxon.authorship?" · "+escapeHtml(taxon.authorship):"")+'</p>'+
           '<div class="species-section"><h5 class="species-section-title">Conservation status</h5>'+statusMarkup+
