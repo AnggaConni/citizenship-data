@@ -49,7 +49,7 @@ The generated density grid summarizes the returned sample. It is **not** a confi
 
 Explore the [pipeline folder](./biodiversity/) and its [usage and source notes](./biodiversity/README.md).
 
-The country pipeline publishes a compact record schema to keep static JSON files suitable for GitHub Pages. GBIF and UNESCO image references are stored as URLs; image assets are not embedded in these JSON files. Large narrative fields are truncated, and the pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit.
+The country pipeline publishes lightweight spatial indexes for the initial map. Full GBIF occurrence metadata and UNESCO MAB descriptions are fetched from the source APIs only when a visitor opens a point or reserve; those descriptions are not copied into static mapping JSON. Source images, when available, are loaded by URL on demand rather than downloaded into the repository. The pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit.
 
 ## Data-use and interpretation rules
 
