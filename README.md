@@ -35,6 +35,8 @@ Open the [Biodiversity Explorer](./biodiversity.html).
 
 ### 3. Biodiversity Atlas
 
+When a user selects an occurrence, the detail panel also performs on-demand lookups for common names, taxonomic classification, source descriptions and available profile information through the GBIF Species API and iNaturalist. A conservation category is shown only when a source returns one; GBIF's IUCN category reference can lag the latest IUCN assessment, so the interface links to the primary IUCN Red List for verification. The frontend never exposes the IUCN API secret and does not query the authenticated IUCN API directly.
+
 The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interface for the pipeline outputs. It reads the country index and generated JSON files directly, so visitors can select a country, inspect sample summaries, view occurrence points and density-grid cells, search records, and inspect source-linked details without triggering another API scan. **The first published dataset is an Indonesia pilot sample**; it is capped and must not be interpreted as a complete inventory.
 
 ### 4. Biodiversity Distribution Pipeline
