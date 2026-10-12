@@ -68,7 +68,7 @@ The scheduled workflow runs daily at 02:17 UTC (09:17 Jakarta time) and appends 
 
 1. Open **Actions → Build biodiversity country datasets → Run workflow**.
 2. Use **country_code = NEXT** to take the next country in the rotation, or enter one ISO-2 code such as **ID** to process a specific country.
-3. Keep **max_records_per_country = 300** for up to 300 new unique records in the run. Valid values are 1–300. If an empty, non-numeric, zero, or out-of-range value is supplied, the workflow uses the safe default or cap of 300 and prints a warning. A run may add fewer when there are many duplicates, few remaining records, or a source/API issue.
+3. Keep **max_records_per_country = 300** for the normal batch. For a one-off larger run, set it to **9000** and select **NEXT** or one specific ISO-2 country code. Valid values are 1–9000; empty, non-numeric, or zero inputs fall back to 300, and values above 9000 are capped. A run may add fewer if there are many duplicates, not enough matching records, or an API/page limit is reached. Do not combine a batch above 300 with `country_code = ALL`.
 4. Use **grid_size_degrees = 0.5** for the density grid. Direct IUCN lookup is disabled in code and is not an available workflow option.
 5. Review the action logs and the country’s cumulative counts after the workflow succeeds.
 
