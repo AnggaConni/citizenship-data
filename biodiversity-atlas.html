@@ -178,7 +178,7 @@
     .footer-inner{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}
     footer a{color:#3b6d4b}
     @media(max-width:980px){.workspace{grid-template-columns:1fr}.record-list{max-height:330px}.dataset-controls{grid-template-columns:1fr 1fr}.dataset-controls .button{grid-column:1/-1}.toolbar{align-items:start;flex-direction:column}.region-record-grid{grid-template-columns:1fr}}
-    @media(max-width:650px){.wrap{width:calc(100% - 24px)}.nav{align-items:flex-start}.nav-links{font-size:10px;gap:10px;flex-wrap:wrap;justify-content:end}.hero{padding:29px 0 24px}h1{font-size:36px}.hero p{font-size:12px}.notice{padding:13px;grid-template-columns:1fr}.dataset-controls{grid-template-columns:1fr}.dataset-controls .button{grid-column:auto}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{padding:12px}.stat-value{font-size:22px}.panel-head{align-items:flex-start}#map{height:420px}.sources{grid-template-columns:1fr}.status-row{align-items:flex-start;flex-direction:column}}
+    @media(max-width:650px){.species-taxonomy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{width:calc(100% - 24px)}.nav{align-items:flex-start}.nav-links{font-size:10px;gap:10px;flex-wrap:wrap;justify-content:end}.hero{padding:29px 0 24px}h1{font-size:36px}.hero p{font-size:12px}.notice{padding:13px;grid-template-columns:1fr}.dataset-controls{grid-template-columns:1fr}.dataset-controls .button{grid-column:auto}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{padding:12px}.stat-value{font-size:22px}.panel-head{align-items:flex-start}#map{height:420px}.sources{grid-template-columns:1fr}.status-row{align-items:flex-start;flex-direction:column}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
 </head>
@@ -317,7 +317,7 @@
     <section class="sources" aria-label="Data source information">
       <article class="source-card"><h3>GBIF occurrence records</h3><p>Sampled occurrence data with coordinates and source fields. Individual records may have distinct licences. <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Check the original source ↗</a></p></article>
       <article class="source-card"><h3>UNESCO Man and the Biosphere</h3><p>Reserve metadata and point coordinates are shown only when present in the published dataset. A point is not an official reserve boundary. <a href="https://data.unesco.org/explore/dataset/mab001/information/" target="_blank" rel="noopener noreferrer">Dataset information ↗</a></p></article>
-      <article class="source-card"><h3>IUCN Red List</h3><p>IUCN assessments are not currently included in this atlas. Any future enrichment will remain disabled until permission for public caching and display is confirmed. An API key alone is not redistribution permission.</p></article>
+      <article class="source-card"><h3>Conservation status references</h3><p>When available, a category is fetched live from GBIF’s taxonomic reference; the Atlas does not call the authenticated IUCN API directly. GBIF’s reference can lag the latest assessment, so verify threatened status, justification and threats on the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a>. Direct IUCN API enrichment remains disabled pending permission for public caching/display.</p></article>
     </section>
 
     <aside class="disclaimer"><strong>Use and interpretation disclaimer.</strong> This is a free-to-access, independent exploratory tool. The data may be incomplete, outdated, misidentified or spatially imprecise; missing observations do not prove a species is absent. Neither the grid nor an occurrence point should be interpreted as a confirmed habitat, full distribution range, conservation status, or protected-area boundary. Check the original records, attribution and licence before reusing data. The software licence applies to the code and does not override third-party data terms. <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">Software licence</a> · <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">Full project disclaimer</a>.</aside>
@@ -1268,6 +1268,8 @@
         if(tuple)return {code:tuple[0],label:tuple[1],raw:value};
         const compact=value.toUpperCase();
         if(IUCN_LABELS[compact])return {code:IUCN_LABELS[compact][0],label:IUCN_LABELS[compact][1],raw:value};
+        const numeric={"0":"NE","5":"DD","10":"LC","20":"NT","30":"VU","40":"EN","50":"CR","60":"EW","70":"EX"};
+        if(numeric[value]&&IUCN_LABELS[numeric[value]])return {code:IUCN_LABELS[numeric[value]][0],label:IUCN_LABELS[numeric[value]][1],raw:value};
         return {code:"",label:value.replace(/_/g," "),raw:value};
       }
 
@@ -1424,7 +1426,7 @@
         const statusMarkup=conservation
           ?'<div class="species-status-row"><div class="species-status-pill '+(atRisk?"risk":"")+'">'+escapeHtml(conservation.code||"Status")+'<br>'+escapeHtml(conservation.label)+'</div>'+
             '<div class="species-status-copy"><strong>'+escapeHtml(conservationSource)+'</strong><br>'+escapeHtml(conservationScope)+
-            '<br>GBIF's category reference can lag the latest IUCN assessment. <a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Check the IUCN Red List ↗</a></div></div>'
+            '<br>GBIF’s category reference can lag the latest IUCN assessment. <a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Check the IUCN Red List ↗</a></div></div>'
           :'<div class="species-status-row"><div class="species-status-pill unknown">No status found</div><div class="species-status-copy">No conservation category was returned by these lookups. This does not mean the species is unthreatened or has not been assessed. <a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Search the IUCN Red List ↗</a></div></div>';
         const facts=profileFacts(info?.profiles);
         const iNatStatus=inat?.conservation_status;
