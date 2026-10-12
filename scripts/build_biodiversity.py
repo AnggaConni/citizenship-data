@@ -1296,64 +1296,27 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
             )
 
     iucn_path = output_dir / "iucn-assessments.json"
-    publication_approved = os.environ.get(IUCN_PUBLICATION_APPROVED_ENV, "").strip().casefold() in {"1", "true", "yes"}
-    if include_iucn and not publication_approved:
-        raise ValueError(
-            "IUCN enrichment was requested, but public caching/display permission is not confirmed. "
-            "Do not enable it until IUCN has explicitly permitted this use."
-        )
-
-    old_iucn_summary = old_index.get("iucn") if isinstance(old_index.get("iucn"), dict) else {}
-    if not publication_approved:
-        # Fail closed: a false approval variable also withdraws any previously
-        # published direct-IUCN assessment file on the next normal pipeline run.
-        if iucn_path.exists():
-            iucn_path.unlink()
-        iucn_summary = {
-            "file": "iucn-assessments.json",
-            "source": IUCN_DATASET_URL,
-            "status": "disabled",
-            "public_display_approved": False,
-            "dataset_available": False,
-            "note": "Direct IUCN API lookup and public assessment publication are disabled until explicit permission is confirmed.",
-        }
-    else:
-        dataset_available = iucn_path.is_file() and old_iucn_summary.get("status") in {"updated", "partial"}
-        iucn_summary = {
-            **old_iucn_summary,
-            "file": "iucn-assessments.json",
-            "source": IUCN_DATASET_URL,
-            "status": old_iucn_summary.get("status") if dataset_available else "authorized-not-populated",
-            "public_display_approved": bool(dataset_available),
-            "dataset_available": bool(dataset_available),
-            "note": "Direct IUCN assessments are displayed only from this explicitly permission-gated static file; no direct IUCN API call is made by the frontend.",
-        }
-
+    # Direct IUCN collection is hard-disabled while permission is pending.
+    # Old environment variables, secrets or stored files must never unlock it.
     if include_iucn:
-        api_key = os.environ.get("IUCN_API_KEY", "").strip()
-        if not api_key:
-            raise ValueError("IUCN enrichment was requested, but the IUCN_API_KEY secret is missing.")
-        targets_path = iucn_targets_path or (output_dir / "iucn_targets.json")
-        iucn_targets = load_iucn_targets(targets_path)
-        if not iucn_targets:
-            raise ValueError(
-                f"No valid species targets were found in {targets_path}; add selected species before enabling IUCN."
-            )
-        iucn_dataset = fetch_iucn_dataset(iucn_targets, api_key)
-        write_json(iucn_path, iucn_dataset)
-        iucn_summary = {
-            "file": "iucn-assessments.json",
-            "source": IUCN_DATASET_URL,
-            "status": iucn_dataset["summary"]["status"],
-            "public_display_approved": True,
-            "dataset_available": True,
-            "red_list_version": iucn_dataset["source"].get("red_list_version"),
-            "requested_species": iucn_dataset["summary"]["requested_species"],
-            "assessed_species": iucn_dataset["summary"]["assessed_species"],
-            "request_errors": iucn_dataset["summary"]["request_errors"],
-            "generated_at_utc": iucn_dataset["generated_at_utc"],
-            "note": "Published selected IUCN assessment data after explicit permission was confirmed.",
-        }
+        raise ValueError(
+            "IUCN direct API lookup/scraping is stopped: permission is not approved. "
+            "Assessment data remain hidden and unpublished. Do not bypass this gate."
+        )
+    if iucn_path.exists():
+        iucn_path.unlink()
+    iucn_summary = {
+        "file": "iucn-assessments.json",
+        "source": IUCN_DATASET_URL,
+        "status": "not-approved-yet",
+        "public_display_approved": False,
+        "dataset_available": False,
+        "direct_api_enabled": False,
+        "scraping_enabled": False,
+        "data_hidden": True,
+        "note": "NOT APPROVED YET: direct IUCN API lookup/scraping, enrichment, caching and publication are stopped pending explicit permission.",
+    }
+
 
     failures = 0
     for number, country in enumerate(countries_to_process, start=1):
@@ -1500,7 +1463,7 @@ def main() -> int:
                         help=f"Maximum new unique records to append in this run, 1–{MAX_RECORDS_PER_COUNTRY}; default {DEFAULT_RECORDS_PER_COUNTRY}.")
     parser.add_argument("--grid-size", type=float, default=0.5, help="Grid-cell size in degrees; default 0.5.")
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR, help="Output directory (default: repo/biodiversity).")
-    parser.add_argument("--include-iucn", action="store_true", help="Query only manually selected species from biodiversity/iucn_targets.json and write selected assessment metadata. Requires IUCN_PUBLICATION_APPROVED=true after publication/caching permission is confirmed.")
+    parser.add_argument("--include-iucn", action="store_true", help="Disabled: direct IUCN API requests/scraping are stopped pending permission. This flag always fails closed.")
     parser.add_argument("--iucn-targets", type=Path, help="Optional path to a manually curated IUCN target JSON file.")
     args = parser.parse_args()
     try:
