@@ -84,6 +84,15 @@
     .search-tools{padding:12px;border-bottom:1px solid #edf1eb}
     .search-tools input{margin-bottom:9px}
     .list-meta{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted)}
+    .region-summary{padding:14px;border-bottom:1px solid #edf1eb;background:linear-gradient(160deg,#f6faf4,#fff)}
+    .region-summary[hidden],.region-gallery[hidden]{display:none!important}
+    .region-summary-title{font:800 13px/1.45 Manrope,sans-serif;margin:0 0 6px;overflow-wrap:anywhere}
+    .region-summary-copy{font-size:10px;line-height:1.65;color:var(--muted);margin:0 0 11px}
+    .region-summary-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+    .region-metric{background:#fff;border:1px solid #e3ebe0;border-radius:9px;padding:9px;min-width:0}
+    .region-metric-label{font-size:9px;color:var(--muted);line-height:1.45}
+    .region-metric-value{font:800 16px Manrope,sans-serif;margin-top:3px;overflow-wrap:anywhere}
+    .region-api-status{font-size:10px;line-height:1.6;color:#426b4d;background:#edf6ed;border-radius:8px;padding:9px;margin-top:9px}
     .record-list{overflow:auto;max-height:410px}
     .record{width:100%;text-align:left;display:block;border:0;border-bottom:1px solid #edf1eb;background:#fff;padding:12px 14px;cursor:pointer;color:var(--ink)}
     .record:hover{background:#f5f9f4}
@@ -105,6 +114,35 @@
     .description{font-size:11px;line-height:1.75;color:#526a59;white-space:pre-line;margin:10px 0}
     .detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
     .detail-actions a{font-size:10px;padding:9px 11px}
+    .region-gallery{margin:18px 0;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+    .region-gallery-head{padding:17px 19px;border-bottom:1px solid #edf1eb;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+    .region-gallery-title{font:800 17px/1.4 Manrope,sans-serif;margin:0}
+    .region-gallery-subtitle{font-size:11px;color:var(--muted);line-height:1.7;margin-top:5px;max-width:760px}
+    .region-gallery-progress{font-size:10px;color:#426b4d;background:#edf6ed;border-radius:999px;padding:7px 10px;white-space:nowrap}
+    .region-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px}
+    .region-record-card{border:1px solid #e2eae0;border-radius:13px;overflow:hidden;min-width:0;background:#fff}
+    .region-card-main{padding:13px}
+    .region-card-title{font:800 13px/1.5 Manrope,sans-serif;margin:0 0 4px;overflow-wrap:anywhere}
+    .region-card-scientific{font-style:italic;color:#53715a;font-size:11px}
+    .region-card-place{font-size:10px;color:var(--muted);line-height:1.65;margin-top:5px}
+    .region-card-image-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:11px}
+    .region-card-image-grid img{width:100%;height:155px;object-fit:cover;background:#eef3ec;border-radius:7px}
+    .region-card-image-link{display:block;text-decoration:none;color:var(--green);font-size:9px;line-height:1.5;overflow-wrap:anywhere}
+    .region-card-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:11px}
+    .region-card-fact{min-width:0;background:#f5f8f3;border-radius:8px;padding:8px}
+    .region-card-fact strong{display:block;font-size:8px;color:var(--muted);font-weight:600;margin-bottom:4px}
+    .region-card-fact span{display:block;font-size:10px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+    .region-card-narrative{font-size:10px;line-height:1.7;color:#536a58;margin-top:11px;white-space:pre-line}
+    .region-card-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+    .region-card-actions a{font-size:9px;padding:8px 10px}
+    .all-source-fields{margin-top:12px;border-top:1px solid #edf1eb;padding-top:10px}
+    .all-source-fields summary{cursor:pointer;color:#3b6d4b;font-size:10px;font-weight:800}
+    .source-fields-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:9px}
+    .source-field{background:#f7f9f6;border-radius:7px;padding:7px;min-width:0}
+    .source-field strong{display:block;font-size:8px;letter-spacing:.02em;color:#738375;margin-bottom:3px;overflow-wrap:anywhere}
+    .source-field span{display:block;font-size:9px;line-height:1.55;color:#334d3b;overflow-wrap:anywhere;white-space:pre-wrap;word-break:break-word}
+    .region-card-loading{padding:18px 13px;font-size:11px;line-height:1.7;color:var(--muted)}
+    .region-card-loading.error{color:#8a4a36;background:#fff8f4}
     .sources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
     .source-card{background:#fff;border:1px solid var(--line);padding:15px;border-radius:13px}
     .source-card h3{font:800 12px Manrope,sans-serif;margin:0 0 7px}
@@ -115,7 +153,7 @@
     footer{border-top:1px solid #dbe6d9;padding:21px 0;color:#758678;font-size:10px;margin-top:14px}
     .footer-inner{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}
     footer a{color:#3b6d4b}
-    @media(max-width:980px){.workspace{grid-template-columns:1fr}.record-list{max-height:330px}.dataset-controls{grid-template-columns:1fr 1fr}.dataset-controls .button{grid-column:1/-1}.toolbar{align-items:start;flex-direction:column}}
+    @media(max-width:980px){.workspace{grid-template-columns:1fr}.record-list{max-height:330px}.dataset-controls{grid-template-columns:1fr 1fr}.dataset-controls .button{grid-column:1/-1}.toolbar{align-items:start;flex-direction:column}.region-record-grid{grid-template-columns:1fr}}
     @media(max-width:650px){.wrap{width:calc(100% - 24px)}.nav{align-items:flex-start}.nav-links{font-size:10px;gap:10px;flex-wrap:wrap;justify-content:end}.hero{padding:29px 0 24px}h1{font-size:36px}.hero p{font-size:12px}.notice{padding:13px;grid-template-columns:1fr}.dataset-controls{grid-template-columns:1fr}.dataset-controls .button{grid-column:auto}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{padding:12px}.stat-value{font-size:22px}.panel-head{align-items:flex-start}#map{height:420px}.sources{grid-template-columns:1fr}.status-row{align-items:flex-start;flex-direction:column}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
@@ -232,12 +270,24 @@
         <div class="panel-head">
           <div><div class="panel-title" id="records-title">Occurrence records</div><div class="panel-sub">Filtered records from the selected country sample.</div></div>
         </div>
+        <div class="region-summary" id="region-summary" hidden aria-live="polite"></div>
         <div class="search-tools">
           <input id="list-search" type="search" placeholder="Filter scientific names or places…" autocomplete="off" aria-label="Filter occurrence list" disabled>
           <div class="list-meta"><span id="visible-count">0 records</span><span id="filter-count">No filter</span></div>
         </div>
         <div class="record-list" id="record-list"><p class="empty-list">Loading records…</p></div>
       </aside>
+    </section>
+
+    <section class="region-gallery" id="region-gallery" hidden aria-labelledby="region-gallery-title">
+      <div class="region-gallery-head">
+        <div>
+          <h2 class="region-gallery-title" id="region-gallery-title">Records in selected region</h2>
+          <p class="region-gallery-subtitle" id="region-gallery-subtitle">Select a heuristic region on the map to load detailed record metadata and source images.</p>
+        </div>
+        <div class="region-gallery-progress" id="region-gallery-progress">No region selected</div>
+      </div>
+      <div class="region-record-grid" id="region-record-grid"></div>
     </section>
 
     <section class="sources" aria-label="Data source information">
@@ -269,7 +319,8 @@
         observations: [], filtered: [], markersById: new Map(), selectedId: null,
         observationLayer: null, gridLayer: null, reserveLayer: null, clusterLayer: null,
         clusterGroups: [], activeScope: null, activeIndices: null, map: null, abort: null,
-        gbifDetailCache: new Map(), mabDetailCache: new Map(), detailRequestToken: 0
+        gbifDetailCache: new Map(), mabDetailCache: new Map(), detailRequestToken: 0,
+        regionGalleryToken: 0
       };
 
       function escapeHtml(value) {
@@ -609,6 +660,7 @@
       }
 
       function updateMap(dataset) {
+        clearRegionPanels();
         state.gridLayer.clearLayers();
         state.clusterLayer.clearLayers();
         state.reserveLayer.clearLayers();
@@ -654,6 +706,9 @@
         $("reset-region-btn").hidden=false;
         $("region-note").textContent=label+". The blue points are original sampled occurrence records; the green envelope is only a heuristic summary, not a habitat or range boundary.";
         renderRecords();
+        showRegionSummary(type,id,indices,label);
+        showRegionGallery(type,id,indices,label);
+        $("record-detail").innerHTML='<p class="detail-placeholder"><strong>'+escapeHtml(label)+'</strong><br>Full metadata for all records in this selection is loading in the “Records in selected region” gallery below. Select one record in the list to inspect it here.</p>';
         if(bounds&&typeof bounds.isValid==="function"&&bounds.isValid()){
           state.map.fitBounds(bounds.pad(.2),{maxZoom:10});
         }
@@ -700,6 +755,7 @@
       }
 
       function resetToOverview(recluster) {
+        clearRegionPanels();
         state.activeScope=null;
         state.activeIndices=null;
         state.selectedId=null;
@@ -884,14 +940,240 @@
       async function fetchGbifDetail(key) {
         const cacheKey=String(key);
         if(state.gbifDetailCache.has(cacheKey))return state.gbifDetailCache.get(cacheKey);
-        const url="https://api.gbif.org/v1/occurrence/"+encodeURIComponent(cacheKey);
-        const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
-        if(!response.ok)throw new Error("GBIF detail API returned HTTP "+response.status);
-        const detail=await response.json();
-        if(!detail||typeof detail!=="object")throw new Error("GBIF detail response was not an object");
-        state.gbifDetailCache.set(cacheKey,detail);
-        return detail;
+        const request=(async()=>{
+          const url="https://api.gbif.org/v1/occurrence/"+encodeURIComponent(cacheKey);
+          const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
+          if(!response.ok)throw new Error("GBIF detail API returned HTTP "+response.status);
+          const detail=await response.json();
+          if(!detail||typeof detail!=="object")throw new Error("GBIF detail response was not an object");
+          return detail;
+        })();
+        state.gbifDetailCache.set(cacheKey,request);
+        try {
+          const detail=await request;
+          state.gbifDetailCache.set(cacheKey,detail);
+          return detail;
+        } catch(error) {
+          if(state.gbifDetailCache.get(cacheKey)===request)state.gbifDetailCache.delete(cacheKey);
+          throw error;
+        }
       }
+
+      function shortValue(value,limit=700) {
+        let textValue;
+        if(value===null||value===undefined||value==="")return "";
+        if(typeof value==="object"){
+          try{textValue=JSON.stringify(value,null,2);}catch{textValue=String(value);}
+        } else textValue=String(value);
+        if(textValue.length>limit)return textValue.slice(0,limit)+" … [truncated in display]";
+        return textValue;
+      }
+
+      function sourceImageItems(detail) {
+        const media=Array.isArray(detail&&detail.media)?detail.media:[];
+        const seen=new Set();
+        return media.filter(item=>{
+          if(!item||typeof item!=="object")return false;
+          const url=safeHttpUrl(item.identifier||item.url||item.href);
+          if(!url)return false;
+          const kind=String(item.type||item.format||"").toLowerCase();
+          if(!(/image|stillimage|photo|photograph/.test(kind)||/\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(url)))return false;
+          if(seen.has(url))return false;
+          seen.add(url);
+          return true;
+        }).map(item=>({...item,displayUrl:safeHttpUrl(item.identifier||item.url||item.href)}));
+      }
+
+      function allSourceFieldMarkup(detail) {
+        if(!detail||typeof detail!=="object")return "";
+        const excluded=new Set(["media"]);
+        const entries=Object.entries(detail).filter(([key,value])=>
+          !excluded.has(key)&&value!==null&&value!==undefined&&value!==""
+        );
+        return '<details class="all-source-fields"><summary>All source fields ('+entries.length+')</summary>'+
+          '<div class="source-fields-grid">'+entries.map(([key,value])=>
+            '<div class="source-field"><strong>'+escapeHtml(key)+'</strong><span>'+escapeHtml(shortValue(value,1200))+'</span></div>'
+          ).join("")+'</div></details>';
+      }
+
+      function renderRegionRecordCard(feature,index,detail,errorMessage) {
+        const base=properties(feature);
+        const d=detail&&typeof detail==="object"?detail:{};
+        const p={...base,...d};
+        const scientific=d.species||d.scientificName||d.acceptedScientificName||base.scientific_name||base.species||"Unidentified taxon";
+        const gbifId=d.key??base.gbif_id??base.key??feature.id;
+        const place=[d.locality||base.locality,d.municipality,d.county,d.stateProvince||base.stateProvince,d.country||base.country||base.countryCode].filter(Boolean).join(", ");
+        const images=sourceImageItems(d);
+        const sourceUrl="https://www.gbif.org/occurrence/"+encodeURIComponent(String(gbifId));
+        const facts=[
+          ["GBIF ID",gbifId],["Observed",d.eventDate||d.eventDateTime],
+          ["Basis of record",d.basisOfRecord||base.basisOfRecord],["Recorded by",d.recordedBy],
+          ["Kingdom",d.kingdom],["Family",d.family],["Licence",d.license||d.licenseTitle],
+          ["Dataset",d.datasetName||d.datasetKey]
+        ];
+        const narratives=[
+          ["Description",d.description],["Taxon remarks",d.taxonRemarks],
+          ["Occurrence remarks",d.occurrenceRemarks],["Habitat",d.habitat],
+          ["Event remarks",d.eventRemarks],["Field notes",d.fieldNotes],
+          ["Identification remarks",d.identificationRemarks]
+        ].filter(([label,value])=>typeof value==="string"&&value.trim()).filter((row,i,all)=>all.findIndex(other=>other[1]===row[1])===i);
+        return '<article class="region-record-card" id="region-record-'+index+'" data-region-record-index="'+index+'">'+
+          '<div class="region-card-main">'+
+          '<h3 class="region-card-title">'+escapeHtml(scientific)+'</h3>'+
+          '<div class="region-card-scientific">'+escapeHtml(d.acceptedScientificName||d.scientificName||base.scientific_name||"Scientific name not provided")+'</div>'+
+          '<div class="region-card-place">'+escapeHtml(place||"Location not described")+'</div>'+
+          (errorMessage?'<div class="region-card-loading error">'+escapeHtml(errorMessage)+' The map index and original source link are still available.</div>':
+            '<div class="region-card-place">Full record loaded from GBIF Occurrence API.</div>')+
+          (images.length?'<div class="region-card-image-grid">'+images.map((image,imageIndex)=>
+            '<a class="region-card-image-link" href="'+escapeHtml(image.displayUrl)+'" target="_blank" rel="noopener noreferrer">'+
+            '<img src="'+escapeHtml(image.displayUrl)+'" alt="'+escapeHtml(scientific)+' source image '+(imageIndex+1)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">'+
+            escapeHtml(image.title||image.rights||image.license||("Open source image "+(imageIndex+1)))+'</a>'
+          ).join("")+'</div>':'<div class="region-card-place" style="margin-top:10px">No image was supplied with this GBIF occurrence record.</div>')+
+          '<div class="region-card-facts">'+facts.filter(([,value])=>value!==undefined&&value!==null&&value!=="").map(([label,value])=>
+            '<div class="region-card-fact"><strong>'+escapeHtml(label)+'</strong><span>'+escapeHtml(fmt(value))+'</span></div>'
+          ).join("")+'</div>'+
+          narratives.map(([label,value])=>'<p class="region-card-narrative"><strong>'+escapeHtml(label)+':</strong> '+escapeHtml(value)+'</p>').join("")+
+          '<div class="region-card-actions">'+linkButton(sourceUrl,"Open GBIF record")+
+          linkButton(d.datasetKey?"https://www.gbif.org/dataset/"+encodeURIComponent(String(d.datasetKey)):"","Source dataset")+
+          (images.length?linkButton(images[0].displayUrl,"Open first image"):"")+'</div>'+
+          allSourceFieldMarkup(d)+
+          '</div></article>';
+      }
+
+      function updateRegionProgress(completed,total,errors) {
+        const value=completed+" / "+total+" detailed records loaded"+(errors?" · "+errors+" unavailable":"");
+        $("region-gallery-progress").textContent=value;
+        const status=$("region-api-status");
+        if(status)status.textContent="GBIF API detail loading: "+value+". Image assets are requested directly by your browser when the cards render.";
+      }
+
+      function clearRegionPanels() {
+        state.regionGalleryToken++;
+        const summary=$("region-summary");
+        const gallery=$("region-gallery");
+        if(summary)summary.hidden=true;
+        if(gallery)gallery.hidden=true;
+        $("records-title").textContent="Occurrence records";
+        const sideSub=document.querySelector(".side .panel-head .panel-sub");
+        if(sideSub)sideSub.textContent="Filtered records from the selected country sample.";
+        $("region-gallery-title").textContent="Records in selected region";
+        $("region-gallery-subtitle").textContent="Select a heuristic region on the map to load detailed record metadata and source images.";
+        $("region-gallery-progress").textContent="No region selected";
+        $("region-record-grid").replaceChildren();
+      }
+
+      function showRegionSummary(type,id,indices,label) {
+        const featureList=indices.map(index=>state.observations[index]).filter(Boolean);
+        const coords=featureList.map(feature=>{
+          const [lon,lat]=feature.geometry.coordinates.map(Number);
+          return {lon,lat};
+        }).filter(point=>Number.isFinite(point.lon)&&Number.isFinite(point.lat));
+        const taxa=new Set(featureList.map(feature=>{
+          const p=properties(feature);
+          return p.taxon_key||p.speciesKey||p.taxonKey||p.scientific_name||p.species;
+        }).filter(Boolean).map(String));
+        const minLat=coords.length?Math.min(...coords.map(p=>p.lat)):null;
+        const maxLat=coords.length?Math.max(...coords.map(p=>p.lat)):null;
+        const minLon=coords.length?Math.min(...coords.map(p=>p.lon)):null;
+        const maxLon=coords.length?Math.max(...coords.map(p=>p.lon)):null;
+        const center=coords.length?[
+          coords.reduce((sum,p)=>sum+p.lat,0)/coords.length,
+          coords.reduce((sum,p)=>sum+p.lon,0)/coords.length
+        ]:null;
+        let radius=Number($("cluster-distance").value)||75;
+        if(type==="cluster"){
+          const group=state.clusterGroups.find(item=>String(item.id)===String(id));
+          if(group&&group.feature)radius=Number(properties(group.feature).radius_km)||radius;
+        }
+        const title=type==="cluster"?"Heuristic distribution region "+id:
+          type==="reserve"?"Records near UNESCO MAB point":type==="isolated"?"Isolated occurrence point":"Selected region";
+        const note=type==="cluster"
+          ?"This region is computed from the mapped sample, not returned by a source API. Detailed occurrence records are requested from GBIF."
+          :type==="reserve"
+            ?"This is a proximity view around a source-provided MAB point, not a reserve boundary or proof that records occur inside the reserve."
+            :"This is a local summary of the selected sample record.";
+        $("records-title").textContent="Records in selection";
+        const sideSub=document.querySelector(".side .panel-head .panel-sub");
+        if(sideSub)sideSub.textContent="Sample records included in this selected view.";
+        $("region-summary").hidden=false;
+        $("region-summary").innerHTML=
+          '<h3 class="region-summary-title">'+escapeHtml(title)+'</h3>'+
+          '<p class="region-summary-copy">'+escapeHtml(note)+'</p>'+
+          '<div class="region-summary-metrics">'+
+            '<div class="region-metric"><div class="region-metric-label">Sample records</div><div class="region-metric-value">'+fmt(indices.length)+'</div></div>'+
+            '<div class="region-metric"><div class="region-metric-label">Unique taxa in index</div><div class="region-metric-value">'+fmt(taxa.size)+'</div></div>'+
+            '<div class="region-metric"><div class="region-metric-label">'+(type==="reserve"?"Search radius":"Grouping radius")+'</div><div class="region-metric-value">'+(type==="reserve"?RESERVE_NEARBY_RADIUS_KM:radius)+' km</div></div>'+
+            '<div class="region-metric"><div class="region-metric-label">Approx. centre</div><div class="region-metric-value" style="font-size:11px">'+(center?center[0].toFixed(3)+", "+center[1].toFixed(3):"Not available")+'</div></div>'+
+          '</div>'+
+          '<p class="region-summary-copy" style="margin:10px 0 0">Approximate sample bounds: '+(coords.length?minLat.toFixed(3)+" to "+maxLat.toFixed(3)+" latitude; "+minLon.toFixed(3)+" to "+maxLon.toFixed(3)+" longitude":"Not available")+'. Bounds describe sampled records only.</p>'+
+          '<div class="region-api-status" id="region-api-status">Preparing to request full record metadata from GBIF for '+fmt(indices.length)+' occurrence records…</div>';
+      }
+
+      function showRegionGallery(type,id,indices,label) {
+        const token=++state.regionGalleryToken;
+        $("region-gallery").hidden=false;
+        $("region-gallery-title").textContent=type==="reserve"?"Sample records near MAB point":"All sample records in "+label;
+        $("region-gallery-subtitle").textContent=
+          "The cards below progressively load full occurrence metadata and all image URLs supplied by GBIF for the records in this selection. These are the records already present in the published map sample, not a complete inventory of everything in the geographic area.";
+        $("region-gallery-progress").textContent="Preparing "+indices.length+" records…";
+        const grid=$("region-record-grid");
+        grid.replaceChildren();
+        indices.forEach((index,position)=>{
+          const feature=state.observations[index];
+          const p=properties(feature);
+          const card=document.createElement("article");
+          card.className="region-record-card";
+          card.id="region-record-"+position;
+          card.dataset.regionRecordIndex=String(position);
+          card.innerHTML='<div class="region-card-main"><h3 class="region-card-title">'+escapeHtml(displayName(p))+'</h3>'+
+            '<div class="region-card-place">'+escapeHtml([p.locality,p.stateProvince,p.country].filter(Boolean).join(", ")||"Location not described")+
+            ' · GBIF ID '+escapeHtml(p.gbif_id||p.key||feature.id)+'</div>'+
+            '<div class="region-card-loading">Loading full metadata and image references from GBIF…</div></div>';
+          grid.appendChild(card);
+        });
+        if(!indices.length){
+          grid.innerHTML='<p class="empty-list">No occurrence points from the published sample fall within this selected view.</p>';
+          $("region-gallery-progress").textContent="0 records";
+          return;
+        }
+        loadRegionGalleryDetails(indices,token);
+      }
+
+      async function loadRegionGalleryDetails(indices,token) {
+        let nextIndex=0,completed=0,errors=0;
+        const concurrency=Math.min(3,indices.length);
+        async function worker() {
+          while(true) {
+            if(token!==state.regionGalleryToken)return;
+            const position=nextIndex++;
+            if(position>=indices.length)return;
+            const dataIndex=indices[position];
+            const feature=state.observations[dataIndex];
+            const p=properties(feature);
+            const key=p.gbif_id||p.key||feature.id;
+            try {
+              const detail=await fetchGbifDetail(key);
+              if(token===state.regionGalleryToken){
+                const card=$("region-record-"+position);
+                if(card)card.outerHTML=renderRegionRecordCard(feature,position,detail,"");
+              }
+            } catch(error) {
+              errors++;
+              if(token===state.regionGalleryToken){
+                const card=$("region-record-"+position);
+                if(card)card.outerHTML=renderRegionRecordCard(feature,position,null,
+                  "The GBIF detail API could not load this record ("+String(error.message||"network error").slice(0,140)+").");
+              }
+            }
+            completed++;
+            if(token===state.regionGalleryToken)updateRegionProgress(completed,indices.length,errors);
+          }
+        }
+        updateRegionProgress(0,indices.length,0);
+        await Promise.all(Array.from({length:concurrency},()=>worker()));
+      }
+
+
 
       function renderOccurrenceDetail(feature,detail,errorMessage) {
         const base=properties(feature);
