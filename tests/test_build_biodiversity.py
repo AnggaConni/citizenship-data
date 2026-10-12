@@ -8,6 +8,15 @@ from scripts import build_biodiversity as pipeline
 
 
 class BiodiversityPipelineTests(unittest.TestCase):
+    def test_daily_default_and_manual_bulk_limit(self):
+        self.assertEqual(pipeline.DEFAULT_RECORDS_PER_COUNTRY, 300)
+        self.assertEqual(pipeline.MAX_RECORDS_PER_COUNTRY, 9000)
+        self.assertEqual(pipeline.PAGE_SIZE, 300)
+        self.assertGreaterEqual(
+            pipeline.MAX_BATCH_PAGE_REQUESTS,
+            (pipeline.MAX_RECORDS_PER_COUNTRY + pipeline.PAGE_SIZE - 1) // pipeline.PAGE_SIZE,
+        )
+
     def test_country_slug_removes_accents_and_punctuation(self):
         self.assertEqual(pipeline.slugify_country("Côte d’Ivoire", "CI"), "cote-divoire")
         self.assertEqual(pipeline.slugify_country("United States of America", "US"), "united-states-of-america")
