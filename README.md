@@ -64,11 +64,11 @@ The country pipeline publishes lightweight spatial indexes for the initial map. 
 
 ## Run the biodiversity pipeline
 
-The scheduled workflow runs daily at 02:17 UTC (09:17 Jakarta time) and appends up to **300 new unique GBIF records for one country per run**. Countries are processed one at a time in a persisted round-robin rotation, beginning with Indonesia. Previously stored points are retained and GBIF IDs are deduplicated.
+The scheduled workflow runs daily at 02:17 UTC (09:17 Jakarta time) and appends up to **300 new unique GBIF records for one country per run**. Countries are processed one at a time in a persisted round-robin rotation, beginning with Indonesia. Previously stored points are retained and GBIF IDs are deduplicated. Duplicate IDs are skipped while the saved search cursor advances through result pages and date partitions; if the run reaches its page or partition limit before collecting the requested number of new unique records, the next run resumes from the stored cursor. This is incremental coverage, not a guarantee that every GBIF record has been exhaustively enumerated.
 
 1. Open **Actions → Build biodiversity country datasets → Run workflow**.
 2. Use **country_code = NEXT** to take the next country in the rotation, or enter one ISO-2 code such as **ID** to process a specific country.
-3. Keep **max_records_per_country = 300** for up to 300 new unique records in the run. A run may add fewer when there are many duplicates, few remaining records, or a source/API issue.
+3. Keep **max_records_per_country = 300** for up to 300 new unique records in the run. Valid values are 1–300. If an empty, non-numeric, zero, or out-of-range value is supplied, the workflow uses the safe default or cap of 300 and prints a warning. A run may add fewer when there are many duplicates, few remaining records, or a source/API issue.
 4. Use **grid_size_degrees = 0.5** for the density grid. Direct IUCN lookup is disabled in code and is not an available workflow option.
 5. Review the action logs and the country’s cumulative counts after the workflow succeeds.
 
