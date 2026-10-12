@@ -410,125 +410,6 @@
         $("layer-reserves").addEventListener("change", e => toggleLayer(e.target.checked, state.reserveLayer));
       }
 
-      function updateCountrySource(dataset) {
-        const url = safeHttpUrl(dataset && dataset.source && dataset.source.api);
-        const link = $("country-source");
-        link.href = url || "https://www.gbif.org/";
-        link.textContent = "Source ↗";
-      }
-
-      async function loadIndex() {
-        setStatus("Loading published country index…");
-        try {
-          const response = await fetch(DATA_INDEX_URL, { cache: "no-cache" });
-          if (!response.ok) throw new Error("Country index returned HTTP " + response.status);
-          state.index = await response.json();
-          state.countries = (state.index.countries || []).filter(item => item && item.available && item.file);
-          const select = $("country-select");
-          select.innerHTML = "";
-          if (!state.countries.length) {
-            select.innerHTML = '<option value="">No published country datasets</option>';
-            setStatus("No published country files are listed in the index yet.", "warn");
-            return;
-          }
-          state.countries.forEach(country => {
-            const opt = document.createElement("option");
-            opt.value = country.code;
-            opt.textContent = country.name + " (" + country.code + ")";
-            select.appendChild(opt);
-          });
-          const preferred = state.countries.find(c => c.code === "ID") || state.countries[0];
-          select.value = preferred.code;
-          select.disabled = false;
-          $("record-search").disabled = false;
-          $("list-search").disabled = false;
-          select.addEventListener("change", () => loadCountry(select.value));
-          $("record-search").addEventListener("input", renderRecords);
-          $("list-search").addEventListener("input", () => {
-            $("record-search").value = $("list-search").value;
-            renderRecords();
-          });
-          $("reload-btn").addEventListener("click", () => loadCountry(select.value, true));
-          $("cluster-distance").addEventListener("change", () => {
-            if (state.dataset) resetToOverview(true);
-          });
-          $("reset-region-btn").addEventListener("click", () => resetToOverview(true));
-          await loadCountry(preferred.code);
-        } catch (error) {
-          console.error(error);
-          setStatus("Could not load the published country index. Try reloading in a moment.", "error");
-          $("record-list").innerHTML = '<p class="empty-list">Dataset index could not be loaded. Check your connection and reload the page.</p>';
-        }
-      }
-
-      async function loadCountry(code, force = false) {
-        const country = state.countries.find(c => c.code === code);
-        if (!country) return;
-        if (state.abort) state.abort.abort();
-        state.abort = new AbortController();
-        const signal = state.abort.signal;
-        state.activeCode = code;
-        state.selectedId = null;
-        state.activeScope = null;
-        state.activeIndices = null;
-        $("reset-region-btn").hidden = true;
-        $("layer-clusters").checked = true;
-        $("layer-observations").checked = false;
-        $("layer-grid").checked = false;
-        $("layer-reserves").checked = true;
-        $("record-search").value = "";
-        $("list-search").value = "";
-        setStatus("Loading " + country.name + " published sample…");
-        $("reload-btn").disabled = true;
-        $("record-list").innerHTML = '<p class="empty-list">Loading country sample…</p>';
-        $("record-detail").innerHTML = '<p class="detail-placeholder">Loading records…</p>';
-        try {
-          const url = "./biodiversity/" + encodeURIComponent(country.file) + (force ? "?refresh=" + Date.now() : "");
-          const response = await fetch(url, { cache: force ? "reload" : "default", signal });
-          if (!response.ok) throw new Error("Dataset returned HTTP " + response.status);
-          const dataset = await response.json();
-          if (signal.aborted || state.activeCode !== code) return;
-          state.dataset = dataset;
-          const collection = dataset.observations_geojson || {};
-          state.observations = Array.isArray(collection.features) ? collection.features.filter(f =>
-            f && f.geometry && f.geometry.type === "Point" && Array.isArray(f.geometry.coordinates) &&
-            f.geometry.coordinates.length >= 2 && f.geometry.coordinates.every(v => Number.isFinite(Number(v)))
-          ) : [];
-          updateStats(dataset);
-          updateCountrySource(dataset);
-          updateMap(dataset);
-          renderRecords();
-          const summary = dataset.summary || {};
-          const complete = summary.complete_for_requested_sample !== false;
-          setStatus(
-            country.name + " sample loaded: " + fmt(state.observations.length) +
-            " original point records. " + (complete ? "Requested sample returned." : "Partial sample; some pages were unavailable."),
-            complete ? "ok" : "warn"
-          );
-        } catch (error) {
-          if (error.name === "AbortError") return;
-          console.error(error);
-          setStatus("Could not load the selected country dataset. Please try Reload dataset.", "error");
-          $("record-list").innerHTML = '<p class="empty-list">The published country file could not be loaded. It may be temporarily unavailable or too large for this connection.</p>';
-          $("record-detail").innerHTML = '<p class="detail-placeholder">No record is selected.</p>';
-        } finally {
-          $("reload-btn").disabled = false;
-        }
-      }
-
-      function updateStats(dataset) {
-        const s = dataset.summary || {};
-        $("stat-records").textContent = fmt(s.mapped_occurrence_points ?? state.observations.length);
-        $("stat-records-note").textContent = "From " + fmt(s.unique_occurrence_records ?? state.observations.length) + " unique records";
-        $("stat-taxa").textContent = fmt(s.unique_taxa_in_sample ?? "—");
-        $("stat-clusters").textContent = fmt(state.clusterGroups.length);
-        $("stat-total").textContent = fmt(s.total_matching_records_reported_by_gbif ?? "—");
-        const date = dataset.generated_at_utc ? new Date(dataset.generated_at_utc) : null;
-        $("generated-at").textContent = date && !Number.isNaN(date.valueOf())
-          ? "Generated " + date.toLocaleString() + " · " + (dataset.country?.name || "")
-          : "";
-      }
-
       function haversineKm(a, b) {
         const rad = Math.PI / 180;
         const lat1 = a.lat * rad, lat2 = b.lat * rad;
@@ -1034,6 +915,7 @@
 
       initMap();
       loadIndex();
-    })();  </script>
+    })();
+  </script>
 </body>
 </html>
