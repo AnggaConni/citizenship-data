@@ -9,7 +9,7 @@ on:
         default: NEXT
         type: string
       max_records_per_country:
-        description: Maximum new unique records to append in this run (1–300; default 300)
+        description: Maximum new unique records for one country in this run (1–9000; default 300)
         required: true
         default: "300"
         type: string
@@ -51,7 +51,7 @@ jobs:
           GRID_SIZE: ${{ inputs.grid_size_degrees || '0.5' }}
         run: |
           # Keep the workflow resilient to empty or out-of-range dispatch inputs.
-          # The Python pipeline accepts 1–300 new unique records per country per run.
+          # The Python pipeline accepts 1–9000 new unique records per country per run; the scheduled default remains 300.
           MAX_RECORDS="${MAX_RECORDS:-300}"
           if ! [[ "$MAX_RECORDS" =~ ^[0-9]+$ ]]; then
             echo "::warning::MAX_RECORDS='$MAX_RECORDS' is not an integer; using the safe default of 300."
@@ -59,9 +59,14 @@ jobs:
           elif (( MAX_RECORDS < 1 )); then
             echo "::warning::MAX_RECORDS=$MAX_RECORDS is below 1; using the safe default of 300."
             MAX_RECORDS=300
-          elif (( MAX_RECORDS > 300 )); then
-            echo "::warning::MAX_RECORDS=$MAX_RECORDS exceeds the per-run cap of 300; capping this run at 300."
-            MAX_RECORDS=300
+          elif (( MAX_RECORDS > 9000 )); then
+            echo "::warning::MAX_RECORDS=$MAX_RECORDS exceeds the per-run cap of 9000; capping this run at 9000."
+            MAX_RECORDS=9000
+          fi
+
+          if [[ "${COUNTRY_CODE^^}" == "ALL" ]] && (( MAX_RECORDS > 300 )); then
+            echo "::error::Large batches above 300 are intended for one country per run. Choose NEXT or a single ISO-2 country code instead of ALL."
+            exit 1
           fi
 
           echo "Incremental GBIF harvest: country=$COUNTRY_CODE, maximum new unique records=$MAX_RECORDS, grid size=$GRID_SIZE"
