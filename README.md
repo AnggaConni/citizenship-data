@@ -1,6 +1,6 @@
 # Open Data Explorers
 
-**Open Data Explorers** is an independent, no-fee project for exploring curated citizenship knowledge and biodiversity information. It brings together three user-facing experiences—Curated Data, the live Biodiversity Explorer, and the Biodiversity Atlas—backed by a Python pipeline that publishes country-level sample datasets.
+**Open Data Explorers** is an independent, no-fee project for exploring curated citizenship knowledge and biodiversity information. It brings together three user-facing experiences—Curated Data, the live Biodiversity Explorer, and the Biodiversity Atlas—backed by a Python pipeline that publishes country-level occurrence records.
 
 - **Live site:** https://anggaconni.github.io/citizenship-data/
 - **Biodiversity Atlas:** https://anggaconni.github.io/citizenship-data/biodiversity-atlas.html
@@ -29,25 +29,25 @@ Open the [Citizenship Data Explorer](./curated-data.html).
 
 A browser-based explorer for georeferenced species occurrence records. Users select a country—or explicitly choose Worldwide—and the browser requests pages of public GBIF data asynchronously. Results are processed as they arrive so the map, search, and species details can remain usable during the scan.
 
-The explorer deduplicates occurrences by species for its main map and provides source links where available. It is designed for discovery, not as an exhaustive download of GBIF or an authoritative species-range map.
+The explorer deduplicates occurrences by species for its main map and provides source links where available. The records shown are sourced from GBIF's indexed occurrence records; application limits affect what this interface retrieves or displays, not the provenance of each record. It is designed for discovery, not as an exhaustive download of GBIF or an authoritative species-range map.
 
 Open the [Biodiversity Explorer](./biodiversity.html).
 
 ### 3. Biodiversity Atlas
 
-When a user selects an occurrence, the detail panel also performs on-demand lookups for common names, taxonomic classification, source descriptions and available profile information through the GBIF Species API and iNaturalist. A conservation category is shown only when a source returns one; GBIF's IUCN category reference can lag the latest IUCN assessment, so the interface links to the primary IUCN Red List for verification. The frontend never exposes the IUCN API secret and does not query the authenticated IUCN API directly.
+When a user selects an occurrence, the detail panel also performs on-demand lookups for common names, taxonomic classification, source descriptions and available profile information through the GBIF Species API and iNaturalist. A conservation category is shown only when a source returns one; Direct IUCN assessment data are hidden; direct IUCN API requests and scraping are stopped while permission is pending. The frontend never exposes the IUCN API secret and does not query the authenticated IUCN API directly.
 
-The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interface for the pipeline outputs. It reads the country index and generated JSON files directly, so visitors can select a country, inspect sample summaries, view occurrence points and density-grid cells, search records, and inspect source-linked details without triggering another API scan. **The first published dataset is an Indonesia pilot sample**; it is capped and must not be interpreted as a complete inventory.
+The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interface for the pipeline outputs. It reads the country index and generated JSON files directly, so visitors can select a country, inspect published record summaries, view occurrence points and density-grid cells, search records, and inspect source-linked details without triggering another API scan. **The first published country dataset is Indonesia.** The application retrieves and retains a limited, incrementally updated set of GBIF records; this describes application coverage, not the authenticity or provenance of each record. It is not a complete GBIF download or a complete species inventory.
 
 ### 4. Biodiversity Distribution Pipeline
 
 A Python pipeline, run through GitHub Actions, that produces country-level JSON and GeoJSON from:
 
-- **GBIF Occurrence API:** capped samples of georeferenced occurrence records, including source fields and record links when supplied.
+- **GBIF Occurrence API:** a bounded, incrementally collected set of georeferenced occurrence records, including source fields and record links when supplied.
 - **UNESCO DataHub — Man and the Biosphere dataset (mab001):** reserve metadata and source-provided point coordinates.
 - **IUCN Red List:** potential future source only. **🔴 NOT APPROVED YET — direct requests/scraping stopped; assessment data hidden and not published.** Do not enable direct collection or distribute cached assessment data while permission remains pending.
 
-The generated density grid summarizes the returned sample. It is **not** a confirmed habitat boundary, a species-range polygon, a completeness measure, or evidence that a species is currently present throughout a grid cell. Likewise, UNESCO source points must not be presented as official reserve boundaries.
+The generated density grid summarizes the occurrence records currently retained by the application. It is **not** a confirmed habitat boundary, a species-range polygon, a completeness measure, or evidence that a species is currently present throughout a grid cell. Likewise, UNESCO source points must not be presented as official reserve boundaries.
 
 Explore the [pipeline folder](./biodiversity/) and its [usage and source notes](./biodiversity/README.md).
 
@@ -58,7 +58,7 @@ The country pipeline publishes lightweight spatial indexes for the initial map. 
 - Follow each source's attribution, licence, API terms, rate limits, and any redistribution requirements.
 - Check the original source record and its licence before reusing an occurrence, image, or research result.
 - Do not interpret a missing record as proof that a species is absent.
-- Do not treat a sample, representative map point, or density grid as a complete biodiversity inventory or formal conservation assessment.
+- Do not treat the records currently retrieved by this application, a representative map point, or a density grid as a complete biodiversity inventory or formal conservation assessment.
 - Verify critical information with the original data provider and relevant experts before using it for conservation decisions, policy, research conclusions, or publication.
 - Respect third-party rights even when the website and source code are available without charge.
 
