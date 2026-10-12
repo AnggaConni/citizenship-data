@@ -321,7 +321,7 @@
     <section class="sources" aria-label="Data source information">
       <article class="source-card"><h3>GBIF occurrence records</h3><p>Sampled occurrence data with coordinates and source fields. Individual records may have distinct licences. <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">Check the original source ↗</a></p></article>
       <article class="source-card"><h3>UNESCO Man and the Biosphere</h3><p>Reserve metadata and point coordinates are shown only when present in the published dataset. A point is not an official reserve boundary. <a href="https://data.unesco.org/explore/dataset/mab001/information/" target="_blank" rel="noopener noreferrer">Dataset information ↗</a></p></article>
-      <article class="source-card"><h3>Conservation status references</h3><p>Automated IUCN and IUCN-derived category lookup is disabled until applicable permission is confirmed. The Atlas does not request the IUCN API or GBIF’s category endpoint, and strips IUCN/conservation-status fields from iNaturalist responses before caching them in page memory. Users can open the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a> themselves; that manual link does not mean the Atlas downloads or stores assessment data.</p></article>
+      <article class="source-card"><h3>Conservation status references</h3><p>GBIF’s public taxonomic category reference may be displayed when available; it is not a direct query to the authenticated IUCN API and may lag the latest IUCN assessment. Direct IUCN API queries remain disabled until permission is confirmed. Once authorised, a curated assessment JSON published by the Python workflow can be enabled through the data index, and the Atlas will use it without a frontend code change. Users may always open the <a href="https://www.iucnredlist.org/" target="_blank" rel="noopener noreferrer">IUCN Red List ↗</a> manually.</p></article>
     </section>
 
     <aside class="disclaimer"><strong>Use and interpretation disclaimer.</strong> This is a free-to-access, independent exploratory tool. The data may be incomplete, outdated, misidentified or spatially imprecise; missing observations do not prove a species is absent. Neither the grid nor an occurrence point should be interpreted as a confirmed habitat, full distribution range, conservation status, or protected-area boundary. Check the original records, attribution and licence before reusing data. The software licence applies to the code and does not override third-party data terms. <a href="https://github.com/AnggaConni/citizenship-data/blob/main/LICENSE">Software licence</a> · <a href="https://github.com/AnggaConni/citizenship-data/blob/main/README.md">Full project disclaimer</a>.</aside>
@@ -1362,6 +1362,79 @@
           .replace(/\s+\([^)]*\)$/,"");
       }
 
+      const CONSERVATION_CATEGORY_LABELS = {
+        EX:"Extinct",EW:"Extinct in the Wild",RE:"Regionally Extinct",
+        CR:"Critically Endangered",EN:"Endangered",VU:"Vulnerable",
+        NT:"Near Threatened",LC:"Least Concern",DD:"Data Deficient",
+        NE:"Not Evaluated",NA:"Not Applicable"
+      };
+
+      function normalizeConservationStatus(raw, source) {
+        if(raw===null||raw===undefined||raw==="")return null;
+        let value=raw;
+        if(typeof value==="object"){
+          value=value.code||value.category||value.iucnRedListCategory||
+            value.iucnRedListCategoryCode||value.red_list_category_code||
+            value.red_list_category||value.status||value.name;
+        }
+        if(value===null||value===undefined||value==="")return null;
+        const original=String(value).trim();
+        const normalized=original.toUpperCase().replace(/[\\s-]+/g,"_");
+        const aliases={
+          EXTINCT:"EX",EXTINCT_IN_THE_WILD:"EW",REGIONALLY_EXTINCT:"RE",
+          CRITICALLY_ENDANGERED:"CR",ENDANGERED:"EN",VULNERABLE:"VU",
+          NEAR_THREATENED:"NT",LEAST_CONCERN:"LC",DATA_DEFICIENT:"DD",
+          NOT_EVALUATED:"NE",NOT_APPLICABLE:"NA",
+          "LR/LC":"LC","LR/NT":"NT"
+        };
+        const code=aliases[normalized]||normalized;
+        const legacyLabel=normalized==="LR/CD"?"Lower Risk (conservation dependent; legacy category)":null;
+        return {
+          code,
+          label:legacyLabel||CONSERVATION_CATEGORY_LABELS[code]||original.replace(/_/g," "),
+          raw:original,
+          source:source||"GBIF"
+        };
+      }
+
+      function directIucnDisplayEnabled() {
+        const config=state.index&&state.index.iucn;
+        return !!config&&config.public_display_approved===true&&
+          config.dataset_available===true&&
+          ["updated","partial"].includes(String(config.status||"").toLowerCase())&&
+          config.file==="iucn-assessments.json";
+      }
+
+      function normalizedNameForms(value) {
+        const full=normalizeScientificName(value);
+        if(!full)return [];
+        const pieces=full.split(" ");
+        const names=[full];
+        // A named infraspecies may fall back to the binomial only when the
+        // stored IUCN target itself is explicitly species-level.
+        if(pieces.length>2)names.push(pieces.slice(0,2).join(" "));
+        return names;
+      }
+
+      async function fetchPublishedIucnAssessment(scientificNames) {
+        // This only reads an authorized, curated static JSON file published by
+        // the Python workflow; the browser never calls the IUCN API directly.
+        if(!directIucnDisplayEnabled())return null;
+        const config=state.index.iucn;
+        const filename=config.file;
+        if(filename!=="iucn-assessments.json")return null;
+        const url="./biodiversity/iucn-assessments.json";
+        const dataset=await fetchJsonSession(url);
+        const assessments=Array.isArray(dataset?.assessments)?dataset.assessments:[];
+        const candidateNames=[...new Set((scientificNames||[]).flatMap(normalizedNameForms).filter(Boolean))];
+        const exact=assessments.find(row=>{
+          if(!row||row.status!=="assessed"||!row.red_list_category_code)return false;
+          const names=[row.scientific_name,row.requested_name].map(normalizeScientificName);
+          return candidateNames.some(name=>names.includes(name));
+        });
+        return exact||null;
+      }
+
       function chooseVernacularName(names, inatTaxon) {
         const preferred=(Array.isArray(names)?names:[]).filter(item=>
           item&&typeof item.vernacularName==="string"&&item.vernacularName.trim()
@@ -1420,9 +1493,10 @@
             fetchJsonOptional(gbifBase),
             fetchJsonOptional(gbifBase+"/vernacularNames"),
             fetchJsonOptional(gbifBase+"/descriptions"),
-            fetchJsonOptional(gbifBase+"/speciesProfiles")
-          ]:[Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null)];
-          const [taxon,vernacularPayload,descriptionsPayload,profilesPayload]=await Promise.all(gbifRequests);
+            fetchJsonOptional(gbifBase+"/speciesProfiles"),
+            fetchJsonOptional(gbifBase+"/iucnRedListCategory")
+          ]:[Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null),Promise.resolve(null)];
+          const [taxon,vernacularPayload,descriptionsPayload,profilesPayload,gbifStatusPayload]=await Promise.all(gbifRequests);
 
           const parentScientificName=taxon&&String(taxon.rank||"").toUpperCase()==="SUBSPECIES"&&
             taxon.species&&normalizeScientificName(taxon.species)!==normalizeScientificName(scientificName)
@@ -1458,6 +1532,7 @@
             vernacularNames:apiArray(vernacularPayload,["results","vernacularNames"]),
             descriptions:apiArray(descriptionsPayload,["results","descriptions"]),
             profiles:apiArray(profilesPayload,["results","speciesProfiles"]),
+            gbifStatus:normalizeConservationStatus(gbifStatusPayload,"GBIF taxonomic reference"),
             inat
           };
         })();
@@ -1496,10 +1571,10 @@
         return facts.slice(0,5);
       }
 
-      function renderSpeciesInsights(feature,occurrence,info,errorMessage) {
+      function renderSpeciesInsights(feature,occurrence,info,errorMessage,iucnAssessment) {
         const base=properties(feature);
         const key=occurrence?.acceptedTaxonKey||occurrence?.speciesKey||occurrence?.taxonKey||
-          occurrence?.acceptedTaxonKey||base.taxon_key||base.speciesKey||base.taxonKey;
+          base.taxon_key||base.speciesKey||base.taxonKey;
         const taxon=info?.taxon||{};
         const inat=info?.inat||null;
         const scientific=taxon.scientificName||taxon.canonicalName||occurrence?.species||
@@ -1537,25 +1612,63 @@
           (/\bto\b.*\b(and|asia|africa|europe|america|indonesia|china|india|myanmar)\b/i.test(gbifDescription)||
            /clements checklist/i.test(String(descRows[0]?.source||"")));
         const sourceUrl=inat?.id?"https://www.inaturalist.org/taxa/"+encodeURIComponent(String(inat.id)):"";
-        // No IUCN API or IUCN-derived category endpoint is called automatically.
-        // This link only opens the public IUCN search after the visitor clicks it.
         const iucnUrl="https://www.iucnredlist.org/search?"+new URLSearchParams({query:scientific,searchType:"species"});
-        const statusMarkup=
-          '<div class="species-status-row"><div class="species-status-pill unknown">Lookup disabled</div>'+
-          '<div class="species-status-copy"><strong>Automated conservation-status lookup is disabled pending permission.</strong><br>'+
-          'The Atlas is not fetching or caching IUCN assessment categories. This does not indicate that the species is safe, threatened, or unassessed. '+
-          '<a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Open IUCN Red List search ↗</a></div></div>';
+
+        const directStatus=iucnAssessment
+          ?normalizeConservationStatus(iucnAssessment.red_list_category_code||iucnAssessment.red_list_category,"IUCN Red List assessment")
+          :null;
+        const gbifStatus=info?.gbifStatus||null;
+        const conservation=directStatus||gbifStatus;
+        const directAssessmentAvailable=!!directStatus;
+        const isAtRisk=conservation&&["CR","EN","VU","EW","EX","RE"].includes(conservation.code);
+        let statusMarkup="";
+        if(conservation){
+          const detailBits=[];
+          if(directAssessmentAvailable){
+            if(iucnAssessment.scope)detailBits.push("Scope: "+iucnAssessment.scope);
+            if(iucnAssessment.assessment_date)detailBits.push("Assessment date: "+iucnAssessment.assessment_date);
+            else if(iucnAssessment.year_published)detailBits.push("Published: "+iucnAssessment.year_published);
+          } else {
+            detailBits.push("From GBIF’s taxonomic reference; this is not a direct IUCN API query.");
+            detailBits.push("GBIF’s mirrored category may lag the latest IUCN assessment.");
+          }
+          const statusSource=directAssessmentAvailable?"IUCN Red List assessment":"GBIF taxonomic reference";
+          const assessmentUrl=directAssessmentAvailable
+            ?(safeHttpUrl(iucnAssessment.assessment_url||iucnAssessment.source_url)||iucnUrl)
+            :("https://www.gbif.org/species/"+encodeURIComponent(String(info?.usageKey||key||"")));
+          statusMarkup=
+            '<div class="species-status-row"><div class="species-status-pill '+(isAtRisk?"risk":"")+'">'+
+            escapeHtml(conservation.code||"Status")+'<br>'+escapeHtml(conservation.label)+'</div>'+
+            '<div class="species-status-copy"><strong>'+escapeHtml(statusSource)+'</strong><br>'+
+            escapeHtml(detailBits.join(" · "))+'<br>'+
+            (directAssessmentAvailable
+              ?'<a href="'+escapeHtml(assessmentUrl)+'" target="_blank" rel="noopener noreferrer">Open original IUCN assessment ↗</a>'
+              :'<a href="'+escapeHtml(assessmentUrl||iucnUrl)+'" target="_blank" rel="noopener noreferrer">Open GBIF taxon reference ↗</a> · <a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Search IUCN manually ↗</a>')+
+            '</div></div>';
+        } else {
+          statusMarkup=
+            '<div class="species-status-row"><div class="species-status-pill unknown">No category found</div>'+
+            '<div class="species-status-copy">GBIF did not return a category for this taxon. This does not mean the species is safe, unassessed, or unthreatened. '+
+            (directIucnDisplayEnabled()
+              ?'No matching record was found in the authorised published IUCN assessment file. '
+              :'Direct IUCN assessment lookup and publication are currently disabled pending permission. ')+
+            '<a href="'+escapeHtml(iucnUrl)+'" target="_blank" rel="noopener noreferrer">Open IUCN Red List search manually ↗</a></div></div>';
+        }
         const facts=profileFacts(info?.profiles);
         const threatNote=facts.some(f=>/threat/i.test(f.label))?"":'No specific threat explanation was returned by the available profile fields. To understand why a species is threatened, open the source assessment and read its justification and listed threat factors.';
         const descriptionMarkup=description
           ?'<p class="species-description">'+escapeHtml(description)+'</p><p class="species-insights-intro">'+(looksLikeDistributionNote?"This appears to be a brief range/distribution note, not a full natural-history description. ":"Description source: ")+escapeHtml(descriptionSource||"external source")+'. This text is not itself a conservation assessment.</p>'
           :'<p class="species-insights-intro">No full natural-history description was returned by these APIs. Some checklists provide only a short geographic range note; the linked taxon profiles may have more information.</p>';
         return '<h4>About this species</h4>'+
-          '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. Automated conservation-status lookups are disabled pending permission, so no IUCN category is automatically fetched or displayed.</p>'+
+          '<p class="species-insights-intro">Taxonomy and natural-history information is fetched on demand from GBIF and iNaturalist. GBIF’s conservation category is allowed; direct IUCN assessment data are used only if an explicitly authorised static dataset is available.</p>'+
           (common?'<p class="species-common-name">'+escapeHtml(common)+'</p>':'')+
           '<p class="species-scientific-name">'+escapeHtml(scientific)+(taxon.authorship?" · "+escapeHtml(taxon.authorship):"")+'</p>'+
           '<div class="species-section"><h5 class="species-section-title">Conservation status</h5>'+statusMarkup+
-          '<p class="species-insights-intro" style="margin-top:8px">No category is fetched, copied into the dataset, or cached by this Atlas until the applicable permission is confirmed.</p></div>'+
+          '<p class="species-insights-intro" style="margin-top:8px">'+
+          (directAssessmentAvailable
+            ?"This category is from the published IUCN assessment dataset, available because the repository configuration explicitly marks public display as authorised."
+            :"GBIF’s category reference is separate from a direct IUCN API request and may not reflect the most recent IUCN assessment.")+
+          '</p></div>'+
           '<div class="species-section"><h5 class="species-section-title">Taxonomic classification</h5><div class="species-taxonomy-grid">'+
           (classification.length?classification.map(([label,value])=>'<div class="species-taxonomy-item"><strong>'+escapeHtml(label)+'</strong><span>'+escapeHtml(fmt(value))+'</span></div>').join(""):'<p class="species-insights-intro">Taxonomic hierarchy is unavailable from the lookup.</p>')+
           '</div></div>'+
@@ -1581,13 +1694,26 @@
         try{
           const info=await fetchTaxonInsights(taxonKey,scientificName);
           if(requestToken!==state.detailRequestToken)return;
+          let iucnAssessment=null;
+          if(directIucnDisplayEnabled()){
+            try{
+              iucnAssessment=await fetchPublishedIucnAssessment([
+                scientificName,info?.taxon?.scientificName,info?.taxon?.species,
+                occurrence?.species,occurrence?.acceptedScientificName,base.scientific_name
+              ]);
+            }catch(error){
+              console.info("Authorised published IUCN file unavailable:",String(error.message||error));
+            }
+            if(requestToken!==state.detailRequestToken)return;
+          }
           const errors=[];
           if(!info.taxon)errors.push("GBIF classification");
-          container.innerHTML=renderSpeciesInsights(feature,occurrence||{},info,errors.join(", "));
+          container.innerHTML=renderSpeciesInsights(feature,occurrence||{},info,errors.join(", "),iucnAssessment);
         }catch(error){
           if(requestToken!==state.detailRequestToken)return;
           container.innerHTML='<h4>About this species</h4><p class="species-insights-intro">The taxonomic lookup could not be completed. This does not indicate anything about extinction risk. Try again later or open the source pages below.</p>'+
-            linkButton("https://api.gbif.org/","GBIF API")+linkButton("https://www.iucnredlist.org/search?"+new URLSearchParams({query:scientificName,searchType:"species"}),"Search IUCN Red List");
+            linkButton("https://api.gbif.org/","GBIF API")+
+            linkButton("https://www.iucnredlist.org/search?"+new URLSearchParams({query:scientificName,searchType:"species"}),"Search IUCN Red List");
         }
       }
 
