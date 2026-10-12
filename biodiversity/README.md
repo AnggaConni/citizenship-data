@@ -6,11 +6,11 @@ The pipeline publishes a lightweight spatial index for the Biodiversity Atlas. I
 
 - GitHub Actions runs every day at 02:17 UTC (09:17 Jakarta time).
 - Each scheduled run processes **one country only**, selected from a persisted round-robin queue. The initial country is Indonesia (ID).
-- Each run aims to append up to **300 new unique, georeferenced GBIF records** for the selected country. It does not replace the existing collection.
+- Scheduled runs aim to append up to **300 new unique, georeferenced GBIF records** for the selected country. A manual one-off run can request up to **9,000** new unique records for one country. Existing records are retained.
 - Existing GBIF occurrence IDs are checked before appending. Duplicate IDs are skipped, while previously collected points are retained.
 - The file biodiversity/harvest-state.json saves the next country in the rotation and the current query cursor for every country. It is committed alongside the JSON datasets, so the cursor survives between GitHub Actions runs.
 - For a manually triggered run, set country_code to NEXT for the next queued country or an ISO-2 code such as ID to process one specific country. Avoid ALL for normal daily incremental harvesting because it attempts every country in a single run.
-- max_records_per_country is the maximum new unique records to append in that run, from 1 to 300. A batch may append fewer than 300 if the source has fewer available records, the batch encounters many duplicates, or an API request fails.
+- max_records_per_country is the target maximum of new unique records to append, from 1 to 9,000. The normal scheduled default is 300. GBIF returns at most 300 rows per occurrence-search page, so a 9,000-record batch requires pagination (at least 30 pages when no duplicates are encountered). A batch may append fewer if many duplicates are skipped, matching records are scarce, or API/page/partition limits are reached.
 
 **The 300 records are not necessarily observations first created in the last 24 hours.** The cursor progresses through the GBIF country query and, when the occurrence-search offset limit is reached, through year/month and date partitions. This lets the collector continue beyond the first search pages while avoiding repeated records. The daily job stores only records that are new to this repository.
 
@@ -47,7 +47,7 @@ Open **Actions → Build biodiversity country datasets → Run workflow**.
 - country_code = NEXT — process the next country in the daily rotation (default).
 - country_code = ID — process one specific country and append its next batch.
 - country_code = ALL — explicitly process every country in one run; use sparingly.
-- max_records_per_country = 300 — maximum new unique records to append in this run.
+- max_records_per_country = 300 by default; it can be raised to 9,000 for a manual single-country run.
 - grid_size_degrees = 0.5 — grid-cell size for the density overlay.
 - IUCN direct lookup — unavailable by design; requests and scraping are stopped pending permission.
 
