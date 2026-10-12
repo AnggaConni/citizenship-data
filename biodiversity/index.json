@@ -1,9 +1,1 @@
-{
-  "dataset_type": "GBIF country dataset index",
-  "schema_version": 1,
-  "generated_at_utc": null,
-  "country_count_in_index": 0,
-  "available_country_count": 0,
-  "countries": [],
-  "note": "Not generated yet. Run the Build biodiversity country datasets workflow. Country files are capped samples; grid cells summarize occurrence records and do not define confirmed species ranges."
-}
+{"dataset_type":"GBIF country dataset index","schema_version":1,"generated_at_utc":"2026-10-12T09:02:40Z","source":"https://api.gbif.org/v1/enumeration/country","countries_attempted_this_run":1,"country_count_in_index":1,"available_country_count":1,"error_or_partial_count":0,"default_sample_cap_per_country":300,"grid_size_degrees":0.5,"countries":[{"code":"ID","name":"Indonesia","file":"indonesia.json","available":true,"status":"updated","generated_at_utc":"2026-10-12T09:02:40Z","summary":{"total_matching_records":3812893,"unique_occurrence_records":300,"mapped_occurrence_points":300,"unique_taxa_in_sample":181,"distribution_grid_cells":50,"is_sample":true,"complete_for_requested_sample":true,"file_size_bytes":262914}}],"note":"Samples are capped and may be incomplete. Distribution grid cells summarize returned occurrence records; they do not represent confirmed habitat or range boundaries."}
