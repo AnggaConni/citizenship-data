@@ -1295,18 +1295,41 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
                 file=sys.stderr, flush=True,
             )
 
-    iucn_summary = old_index.get("iucn") if isinstance(old_index.get("iucn"), dict) else {
-        "file": "iucn-assessments.json",
-        "source": IUCN_DATASET_URL,
-        "status": "not-run",
-        "note": "Optional and disabled by default. Public caching/publication requires confirmation of applicable IUCN terms.",
-    }
+    iucn_path = output_dir / "iucn-assessments.json"
+    publication_approved = os.environ.get(IUCN_PUBLICATION_APPROVED_ENV, "").strip().casefold() in {"1", "true", "yes"}
+    if include_iucn and not publication_approved:
+        raise ValueError(
+            "IUCN enrichment was requested, but public caching/display permission is not confirmed. "
+            "Do not enable it until IUCN has explicitly permitted this use."
+        )
+
+    old_iucn_summary = old_index.get("iucn") if isinstance(old_index.get("iucn"), dict) else {}
+    if not publication_approved:
+        # Fail closed: a false approval variable also withdraws any previously
+        # published direct-IUCN assessment file on the next normal pipeline run.
+        if iucn_path.exists():
+            iucn_path.unlink()
+        iucn_summary = {
+            "file": "iucn-assessments.json",
+            "source": IUCN_DATASET_URL,
+            "status": "disabled",
+            "public_display_approved": False,
+            "dataset_available": False,
+            "note": "Direct IUCN API lookup and public assessment publication are disabled until explicit permission is confirmed.",
+        }
+    else:
+        dataset_available = iucn_path.is_file() and old_iucn_summary.get("status") in {"updated", "partial"}
+        iucn_summary = {
+            **old_iucn_summary,
+            "file": "iucn-assessments.json",
+            "source": IUCN_DATASET_URL,
+            "status": old_iucn_summary.get("status") if dataset_available else "authorized-not-populated",
+            "public_display_approved": bool(dataset_available),
+            "dataset_available": bool(dataset_available),
+            "note": "Direct IUCN assessments are displayed only from this explicitly permission-gated static file; no direct IUCN API call is made by the frontend.",
+        }
+
     if include_iucn:
-        if os.environ.get(IUCN_PUBLICATION_APPROVED_ENV, "").strip().casefold() not in {"1", "true", "yes"}:
-            raise ValueError(
-                "IUCN enrichment was requested, but public caching is locked. After IUCN confirms "
-                "that this use is permitted, set the repository variable IUCN_PUBLICATION_APPROVED=true."
-            )
         api_key = os.environ.get("IUCN_API_KEY", "").strip()
         if not api_key:
             raise ValueError("IUCN enrichment was requested, but the IUCN_API_KEY secret is missing.")
@@ -1317,17 +1340,19 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
                 f"No valid species targets were found in {targets_path}; add selected species before enabling IUCN."
             )
         iucn_dataset = fetch_iucn_dataset(iucn_targets, api_key)
-        iucn_path = output_dir / "iucn-assessments.json"
         write_json(iucn_path, iucn_dataset)
         iucn_summary = {
             "file": "iucn-assessments.json",
             "source": IUCN_DATASET_URL,
             "status": iucn_dataset["summary"]["status"],
+            "public_display_approved": True,
+            "dataset_available": True,
             "red_list_version": iucn_dataset["source"].get("red_list_version"),
             "requested_species": iucn_dataset["summary"]["requested_species"],
             "assessed_species": iucn_dataset["summary"]["assessed_species"],
             "request_errors": iucn_dataset["summary"]["request_errors"],
             "generated_at_utc": iucn_dataset["generated_at_utc"],
+            "note": "Published selected IUCN assessment data after explicit permission was confirmed.",
         }
 
     failures = 0
