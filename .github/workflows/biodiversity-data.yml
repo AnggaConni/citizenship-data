@@ -68,7 +68,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add biodiversity/*.json
+          git add -A biodiversity/
           if git diff --cached --quiet; then
             echo "No biodiversity data changes to commit."
           else
