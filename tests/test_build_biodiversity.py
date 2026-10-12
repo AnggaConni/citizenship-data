@@ -12,7 +12,7 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertEqual(pipeline.slugify_country("Côte d’Ivoire", "CI"), "cote-divoire")
         self.assertEqual(pipeline.slugify_country("United States of America", "US"), "united-states-of-america")
 
-    def test_occurrence_feature_preserves_source_payload_and_description(self):
+    def test_occurrence_feature_contains_only_map_fields(self):
         record = {
             "key": 12345,
             "speciesKey": 987,
@@ -29,9 +29,12 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertEqual(feature["geometry"]["coordinates"], [106.8, -6.2])
         self.assertEqual(feature["properties"]["taxon_key"], 987)
         self.assertEqual(feature["properties"]["recordedBy"], "Observer")
-        self.assertIn("Urban areas", feature["properties"]["description"])
+        self.assertNotIn("description", feature["properties"])
+        self.assertNotIn("habitat", feature["properties"])
         self.assertNotIn("media", feature["properties"])
-        self.assertEqual(feature["properties"]["image_url"], "https://example.org/cat.jpg")
+        self.assertNotIn("image_url", feature["properties"])
+        self.assertEqual(feature["properties"]["scientific_name"], "Felis catus")
+        self.assertEqual(feature["properties"]["gbif_id"], 12345)
 
     def test_occurrence_payload_is_compact_and_keeps_image_url_only(self):
         record = {
@@ -52,11 +55,11 @@ class BiodiversityPipelineTests(unittest.TestCase):
         }
         feature = pipeline.occurrence_feature(record, {"code": "ID", "name": "Indonesia"})
         props = feature["properties"]
-        self.assertEqual(props["image_url"], "https://example.org/cat.png")
+        self.assertNotIn("image_url", props)
         self.assertNotIn("media", props)
+        self.assertNotIn("occurrenceRemarks", props)
         self.assertNotIn("unneeded_upstream_payload", props)
-        self.assertLessEqual(len(props["occurrenceRemarks"]), pipeline.MAX_GBIF_NARRATIVE_CHARS)
-        self.assertLess(len(json.dumps(feature)), 5000)
+        self.assertLess(len(json.dumps(feature)), 1500)
 
     def test_distribution_grid_aggregates_points(self):
         features = [
@@ -89,12 +92,12 @@ class BiodiversityPipelineTests(unittest.TestCase):
         normalized = pipeline.normalize_biosphere_record(record)
         feature = pipeline.biosphere_feature(record)
         self.assertNotIn("unneeded_attachment", normalized)
-        self.assertLessEqual(len(normalized["introduction_en"]), pipeline.MAX_MAB_NARRATIVE_CHARS)
-        self.assertLessEqual(len(normalized["description"]), pipeline.MAX_MAB_DESCRIPTION_CHARS)
-        self.assertEqual(feature["properties"]["main_image_url"], "https://example.org/reserve.jpg")
+        self.assertNotIn("introduction_en", normalized)
+        self.assertNotIn("ecological_characteristics_en", normalized)
+        self.assertNotIn("description", normalized)
+        self.assertNotIn("main_image_url", feature["properties"])
         self.assertNotIn("description", feature["properties"])
-        self.assertNotIn("introduction_en", feature["properties"])
-        self.assertLess(len(json.dumps(feature)), 3000)
+        self.assertLess(len(json.dumps(feature)), 1500)
 
     def test_biosphere_geojson_reverses_lat_lon_and_keeps_description(self):
         record = {
@@ -110,7 +113,7 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertEqual(feature["geometry"]["type"], "Point")
         self.assertEqual(feature["geometry"]["coordinates"], [106.8, -6.2])
         normalized = pipeline.normalize_biosphere_record(record)
-        self.assertIn("A reserve introduction.", normalized["description"])
+        self.assertNotIn("description", normalized)
         self.assertEqual(feature["properties"]["country_code"], "ID")
         self.assertNotIn("description", feature["properties"])
 
@@ -204,6 +207,24 @@ class BiodiversityPipelineTests(unittest.TestCase):
         args, kwargs = request_mock.call_args
         self.assertIn("select", args[1])
         self.assertEqual(args[1]["select"], ",".join(pipeline.MAB_API_FIELDS))
+
+    def test_mab_map_index_keeps_api_record_id(self):
+        wrapped = {
+            "recordid": "abcd-1234",
+            "mab_id": "MAB-11",
+            "title_en": "Reserve Eleven",
+            "iso2": "ID",
+            "country_title_en": "Indonesia",
+            "coordinates": {"lat": -6.2, "lon": 106.8},
+            "introduction_en": "This lengthy narrative is intentionally not stored in the map index.",
+        }
+        fields = pipeline.extract_unesco_fields(wrapped)
+        feature = pipeline.biosphere_feature(fields)
+        self.assertEqual(feature["properties"]["api_record_id"], "abcd-1234")
+        self.assertNotIn("introduction_en", feature["properties"])
+        output = pipeline.build_biosphere_dataset([fields])
+        self.assertNotIn("records", output)
+        self.assertEqual(len(output["geojson"]["features"]), 1)
 
     def test_unesco_v21_flattened_results_are_supported(self):
         record = {
