@@ -268,7 +268,8 @@
         index: null, dataset: null, countries: [], activeCode: null,
         observations: [], filtered: [], markersById: new Map(), selectedId: null,
         observationLayer: null, gridLayer: null, reserveLayer: null, clusterLayer: null,
-        clusterGroups: [], activeScope: null, activeIndices: null, map: null, abort: null
+        clusterGroups: [], activeScope: null, activeIndices: null, map: null, abort: null,
+        gbifDetailCache: new Map(), mabDetailCache: new Map(), detailRequestToken: 0
       };
 
       function escapeHtml(value) {
@@ -400,7 +401,10 @@
               "<br><em>Source-provided point; not the reserve boundary. Click to inspect nearby sampled records.</em>" +
               (safeHttpUrl(p.source_url || p.url) ? '<br><a href="' + escapeHtml(safeHttpUrl(p.source_url || p.url)) + '" target="_blank" rel="noopener noreferrer">Source ↗</a>' : "")
             );
-            layer.on("click", () => activateReserveNeighborhood(feature));
+            layer.on("click", () => {
+              activateReserveNeighborhood(feature);
+              showMabDetail(feature);
+            });
           }
         }).addTo(state.map);
 
@@ -877,10 +881,65 @@
         list.replaceChildren(fragment);
       }
 
-      function selectRecord(id,panTo) {
+      async function fetchGbifDetail(key) {
+        const cacheKey=String(key);
+        if(state.gbifDetailCache.has(cacheKey))return state.gbifDetailCache.get(cacheKey);
+        const url="https://api.gbif.org/v1/occurrence/"+encodeURIComponent(cacheKey);
+        const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
+        if(!response.ok)throw new Error("GBIF detail API returned HTTP "+response.status);
+        const detail=await response.json();
+        if(!detail||typeof detail!=="object")throw new Error("GBIF detail response was not an object");
+        state.gbifDetailCache.set(cacheKey,detail);
+        return detail;
+      }
+
+      function renderOccurrenceDetail(feature,detail,errorMessage) {
+        const base=properties(feature);
+        const p={...base,...(detail||{})};
+        p.gbif_id=p.key??base.gbif_id??feature.id;
+        p.scientific_name=detail?.species||detail?.scientificName||detail?.acceptedScientificName||
+          base.scientific_name||base.species||"Unidentified taxon";
+        p.country=detail?.country||base.country||base.countryCode;
+        const coords=feature.geometry.coordinates.map(Number);
+        const image=mediaUrl(p);
+        const sourceUrl="https://www.gbif.org/occurrence/"+encodeURIComponent(String(p.gbif_id));
+        const place=[p.locality,p.municipality,p.county,p.stateProvince,p.country||p.countryCode].filter(Boolean).join(", ");
+        const facts=[
+          ["GBIF record ID",p.gbif_id],["Observed date",p.eventDate||p.eventDateTime],
+          ["Recorded by",p.recordedBy],["Basis of record",p.basisOfRecord],
+          ["Kingdom",p.kingdom],["Phylum",p.phylum],["Class",p.class],["Family",p.family],
+          ["Coordinates",coords[1].toFixed(5)+", "+coords[0].toFixed(5)],
+          ["Coordinate uncertainty",p.coordinateUncertaintyInMeters==null?null:fmt(p.coordinateUncertaintyInMeters)+" m"],
+          ["Licence",p.license||p.licenseTitle],["Dataset",p.datasetName||p.datasetKey]
+        ];
+        const narratives=[
+          ["Description",p.description],["Taxon remarks",p.taxonRemarks],
+          ["Occurrence remarks",p.occurrenceRemarks],["Habitat",p.habitat],
+          ["Event remarks",p.eventRemarks],["Field notes",p.fieldNotes],
+          ["Identification remarks",p.identificationRemarks]
+        ].filter(([label,value])=>typeof value==="string"&&value.trim()).filter((row,index,all)=>
+          all.findIndex(other=>other[1]===row[1])===index
+        );
+        $("record-detail").innerHTML=
+          (image?'<img class="detail-img" src="'+escapeHtml(image)+'" alt="Source image associated with '+escapeHtml(p.scientific_name)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">':"")+
+          '<h3 class="detail-species">'+escapeHtml(p.scientific_name)+'</h3>'+
+          '<div class="detail-scientific">GBIF occurrence record · '+escapeHtml(place||"Location not described")+'</div>'+
+          (errorMessage?'<p class="description">The full record could not be retrieved from GBIF right now. This view shows the compact mapping fields available in the Atlas. '+escapeHtml(errorMessage)+'</p>':
+            '<p class="description">Full metadata was loaded directly from GBIF when this record was opened.</p>')+
+          '<div class="properties">'+facts.filter(item=>item[1]!==undefined&&item[1]!==null&&item[1]!=="").map(item=>
+            '<div class="prop"><div class="prop-label">'+escapeHtml(item[0])+'</div><div class="prop-value">'+escapeHtml(fmt(item[1]))+'</div></div>'
+          ).join("")+'</div>'+
+          narratives.map(([label,value])=>'<p class="description"><strong>'+escapeHtml(label)+':</strong> '+escapeHtml(value)+'</p>').join("")+
+          '<div class="detail-actions">'+linkButton(sourceUrl,"Open GBIF record")+
+          linkButton(p.datasetKey?"https://www.gbif.org/dataset/"+encodeURIComponent(String(p.datasetKey)):"","Source dataset")+
+          (image?linkButton(image,"Open image source"):"")+'</div>';
+      }
+
+      async function selectRecord(id,panTo) {
         const selected=state.markersById.get(String(id));
         if(!selected)return;
         state.selectedId=String(id);
+        const requestToken=++state.detailRequestToken;
         if(!state.map.hasLayer(state.observationLayer)){
           $("layer-observations").checked=true;
           toggleLayer(true,state.observationLayer);
@@ -891,30 +950,104 @@
         const p=properties(selected.feature),coords=selected.feature.geometry.coordinates.map(Number);
         if(panTo)state.map.flyTo([coords[1],coords[0]],Math.max(state.map.getZoom(),8),{duration:.45});
         selected.marker.openPopup();
-        const image=mediaUrl(p);
-        const sourceUrl=safeHttpUrl(p.source_url)||(p.gbif_id||p.key
-          ?"https://www.gbif.org/occurrence/"+encodeURIComponent(String(p.gbif_id||p.key)):"");
-        const place=[p.locality,p.municipality,p.county,p.stateProvince,p.country||p.countryCode].filter(Boolean).join(", ");
+        $("record-detail").innerHTML='<p class="detail-placeholder">Loading full record metadata and image references from the GBIF API…</p>';
+        renderRecords();
+        const gbifId=p.gbif_id||p.key||selected.feature.id;
+        let detail=null,errorMessage="";
+        try{detail=await fetchGbifDetail(gbifId);}
+        catch(error){console.warn("GBIF detail lookup failed:",error);errorMessage="Live detail lookup failed ("+String(error.message||"network error").slice(0,180)+").";}
+        if(requestToken!==state.detailRequestToken||state.selectedId!==String(id))return;
+        renderOccurrenceDetail(selected.feature,detail,errorMessage);
+      }
+
+      function unpackMabFields(payload) {
+        if(!payload||typeof payload!=="object")return null;
+        if(payload.fields&&typeof payload.fields==="object")return payload.fields;
+        if(payload.record&&payload.record.fields&&typeof payload.record.fields==="object")return payload.record.fields;
+        if(payload.result&&payload.result.fields&&typeof payload.result.fields==="object")return payload.result.fields;
+        if(Array.isArray(payload.results)&&payload.results.length){
+          const first=payload.results[0];
+          if(first.fields&&typeof first.fields==="object")return first.fields;
+          if(first.record&&first.record.fields&&typeof first.record.fields==="object")return first.record.fields;
+          if(first&&typeof first==="object")return first;
+        }
+        if(payload.mab_id||payload.title_en||payload.introduction_en)return payload;
+        return null;
+      }
+
+      async function fetchMabDetail(props) {
+        const mabId=String(props.mab_id||props.biosphere_id||props.uuid||"").trim();
+        const recordId=String(props.api_record_id||"").trim();
+        const cacheKey=recordId||mabId;
+        if(!cacheKey)throw new Error("This MAB point has no source record identifier.");
+        if(state.mabDetailCache.has(cacheKey))return state.mabDetailCache.get(cacheKey);
+        const base="https://data.unesco.org/api/explore/v2.1/catalog/datasets/mab001/records";
+        const urls=[];
+        if(recordId)urls.push(base+"/"+encodeURIComponent(recordId));
+        if(mabId){
+          const escaped=mabId.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+          urls.push(base+"?"+new URLSearchParams({where:"mab_id = '"+escaped+"'",limit:"1"}).toString());
+        }
+        let lastError=null;
+        for(const url of urls){
+          try{
+            const response=await fetch(url,{headers:{Accept:"application/json"},cache:"default"});
+            if(!response.ok)throw new Error("UNESCO DataHub returned HTTP "+response.status);
+            const payload=await response.json();
+            const fields=unpackMabFields(payload);
+            if(fields){
+              state.mabDetailCache.set(cacheKey,fields);
+              return fields;
+            }
+            throw new Error("UNESCO DataHub detail response had no record fields");
+          }catch(error){lastError=error;}
+        }
+        throw lastError||new Error("UNESCO MAB detail is not available");
+      }
+
+      async function showMabDetail(feature) {
+        const props=properties(feature);
+        const requestToken=++state.detailRequestToken;
+        const name=props.name||props.title_en||"UNESCO biosphere reserve";
+        $("record-detail").innerHTML='<p class="detail-placeholder">Loading detailed reserve information from UNESCO DataHub…</p>';
+        let detail=null,errorMessage="";
+        try{detail=await fetchMabDetail(props);}
+        catch(error){console.warn("MAB detail lookup failed:",error);errorMessage="Full reserve information could not be loaded from UNESCO DataHub right now.";}
+        if(requestToken!==state.detailRequestToken)return;
+        const d={...props,...(detail||{})};
+        const title=d.title_en||d.name||name;
+        const imageValue=d.main_image_url||d.image_url||d.image||"";
+        const imageUrl=safeHttpUrl(typeof imageValue==="string"?imageValue:(imageValue.url||imageValue.href||""));
+        const sourceUrl=safeHttpUrl(d.url)||safeHttpUrl(d.source_url)||"https://data.unesco.org/explore/dataset/mab001/information/";
+        const coords=feature.geometry&&Array.isArray(feature.geometry.coordinates)?feature.geometry.coordinates.map(Number):[];
         const facts=[
-          ["GBIF record ID",p.gbif_id||p.key],["Observed date",p.eventDate||p.eventDateTime],
-          ["Recorded by",p.recordedBy],["Basis of record",p.basisOfRecord],["Kingdom",p.kingdom],
-          ["Family",p.family],["Coordinates",coords[1].toFixed(5)+", "+coords[0].toFixed(5)],
-          ["Licence",p.license||p.licenseTitle]
+          ["Country",d.country_title_en||d.country],["Programme status",d.tbr],
+          ["Reserve ID",d.mab_id||d.uuid],["Established / listed",d.date||d.createdat],
+          ["Regional network",d.regional_network],["Thematic network",d.thematic_network],
+          ["Coordinates",coords.length>=2?coords[1].toFixed(5)+", "+coords[0].toFixed(5):null]
         ];
+        const descriptions=[
+          ["Introduction",d.introduction_en||d.introduction],
+          ["Ecological characteristics",d.ecological_characteristics_en||d.ecological_characteristics],
+          ["Additional description",d.description]
+        ].filter(([label,value])=>typeof value==="string"&&value.trim()).filter((row,index,all)=>
+          all.findIndex(other=>other[1]===row[1])===index
+        );
         $("record-detail").innerHTML=
-          (image?'<img class="detail-img" src="'+escapeHtml(image)+'" alt="Source image associated with '+escapeHtml(displayName(p))+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">':"")+
-          '<h3 class="detail-species">'+escapeHtml(displayName(p))+'</h3>'+
-          '<div class="detail-scientific">Occurrence record · '+escapeHtml(place||"Location not described")+'</div>'+
+          (imageUrl?'<img class="detail-img" src="'+escapeHtml(imageUrl)+'" alt="Image for '+escapeHtml(title)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">':"")+
+          '<h3 class="detail-species">'+escapeHtml(title)+'</h3>'+
+          '<div class="detail-scientific">UNESCO Man and the Biosphere Programme · source point only</div>'+
+          (errorMessage?'<p class="description">'+escapeHtml(errorMessage)+'</p>':
+            '<p class="description">Detailed reserve metadata was loaded from UNESCO DataHub after you selected this point.</p>')+
           '<div class="properties">'+facts.filter(item=>item[1]!==undefined&&item[1]!==null&&item[1]!=="").map(item=>
             '<div class="prop"><div class="prop-label">'+escapeHtml(item[0])+'</div><div class="prop-value">'+escapeHtml(fmt(item[1]))+'</div></div>'
           ).join("")+'</div>'+
-          (p.description?'<p class="description">'+escapeHtml(p.description)+'</p>':"")+
-          (p.occurrenceRemarks?'<p class="description"><strong>Occurrence remarks:</strong> '+escapeHtml(p.occurrenceRemarks)+'</p>':"")+
-          '<div class="detail-actions">'+linkButton(sourceUrl,"Open source record")+
-          linkButton(p.datasetKey?"https://www.gbif.org/dataset/"+encodeURIComponent(String(p.datasetKey)):"","Source dataset")+
-          (image?linkButton(image,"Open image source"):"")+'</div>';
-        renderRecords();
+          descriptions.map(([label,value])=>'<p class="description"><strong>'+escapeHtml(label)+':</strong> '+escapeHtml(value)+'</p>').join("")+
+          '<div class="detail-actions">'+linkButton(sourceUrl,"Open UNESCO source")+
+          linkButton(d.website,"Reserve website")+(imageUrl?linkButton(imageUrl,"Open image source"):"")+'</div>'+
+          '<p class="description">The source coordinate is a point, not an official reserve boundary. The nearby biodiversity records shown on the map are selected by distance only.</p>';
       }
+
 
       initMap();
       loadIndex();
