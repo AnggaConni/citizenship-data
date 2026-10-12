@@ -231,6 +231,19 @@ class BiodiversityPipelineTests(unittest.TestCase):
         feature = pipeline.biosphere_feature(fields)
         self.assertEqual(feature["geometry"]["coordinates"], [110.4, -7.1])
 
+    def test_oversize_json_is_rejected_before_overwriting_target(self):
+        with TemporaryDirectory() as temporary_dir:
+            output = Path(temporary_dir) / "large.json"
+            output.write_text("previous-version", encoding="utf-8")
+            old_limit = pipeline.MAX_PUBLISHED_JSON_BYTES
+            try:
+                pipeline.MAX_PUBLISHED_JSON_BYTES = 32
+                with self.assertRaises(ValueError):
+                    pipeline.write_json(output, {"payload": "x" * 1000})
+                self.assertEqual(output.read_text(encoding="utf-8"), "previous-version")
+            finally:
+                pipeline.MAX_PUBLISHED_JSON_BYTES = old_limit
+
     def test_invalid_coordinates_are_rejected(self):
         self.assertIsNone(pipeline.valid_coordinates({"decimalLatitude": 91, "decimalLongitude": 0}))
         self.assertIsNone(pipeline.valid_coordinates({"decimalLatitude": "north", "decimalLongitude": 0}))
