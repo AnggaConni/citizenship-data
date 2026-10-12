@@ -1221,20 +1221,44 @@ def write_json(path: Path, value: dict) -> None:
 def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
         include_iucn: bool = False, iucn_targets_path: Path | None = None) -> int:
     if not 1 <= maximum <= MAX_RECORDS_PER_COUNTRY:
-        raise ValueError(f"max_records must be between 1 and {MAX_RECORDS_PER_COUNTRY}.")
+        raise ValueError(f"batch size must be between 1 and {MAX_RECORDS_PER_COUNTRY}.")
     if not (0 < grid_size <= 10):
         raise ValueError("grid_size must be greater than 0 and no more than 10 degrees.")
 
     countries = get_countries()
     filename_by_code = country_filenames(countries)
     selected = country_filter.strip().upper()
-    if selected != "ALL":
+    index_path = output_dir / "index.json"
+    state_path = output_dir / "harvest-state.json"
+    old_index = read_json(index_path) or {}
+    harvest_state = read_json(state_path) or {
+        "schema_version": 1,
+        "next_country_code": "ID",
+        "countries": {},
+    }
+    country_states = harvest_state.get("countries")
+    if not isinstance(country_states, dict):
+        country_states = {}
+        harvest_state["countries"] = country_states
+    entries_by_code = {
+        entry.get("code"): entry for entry in old_index.get("countries", [])
+        if isinstance(entry, dict) and entry.get("code")
+    }
+
+    if selected == "NEXT":
+        next_code = str(harvest_state.get("next_country_code") or "ID").upper()
+        by_code = {row["code"]: row for row in countries}
+        chosen = by_code.get(next_code) or by_code.get("ID") or (countries[0] if countries else None)
+        if not chosen:
+            raise RuntimeError("No country was available for the next incremental run.")
+        countries_to_process = [chosen]
+    elif selected == "ALL":
+        countries_to_process = countries
+    else:
         choices = [row for row in countries if row["code"] == selected]
         if not choices:
             raise ValueError(f"Country code {selected!r} was not found in GBIF's country enumeration.")
         countries_to_process = choices
-    else:
-        countries_to_process = countries
 
     output_dir.mkdir(parents=True, exist_ok=True)
     biosphere_records: list[dict] = []
@@ -1247,18 +1271,30 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
     except Exception as exc:
         biosphere_error = str(exc)[:500]
         previous_biosphere = read_json(biosphere_path) if biosphere_path.exists() else None
-        if previous_biosphere and isinstance(previous_biosphere.get("records"), list) and previous_biosphere["records"]:
-            biosphere_records = [
-                normalize_biosphere_record(row) for row in previous_biosphere["records"]
-                if isinstance(row, dict)
-            ]
+        if previous_biosphere and isinstance(previous_biosphere.get("geojson"), dict):
+            for feature in previous_biosphere["geojson"].get("features", []):
+                props = feature.get("properties", {}) if isinstance(feature, dict) else {}
+                coords = feature.get("geometry", {}).get("coordinates", []) if isinstance(feature, dict) else []
+                if len(coords) >= 2:
+                    biosphere_records.append({
+                        **props,
+                        "mab_id": props.get("mab_id") or props.get("biosphere_id"),
+                        "title_en": props.get("name") or props.get("title_en"),
+                        "iso2": props.get("country_code") or props.get("iso2"),
+                        "country_title_en": props.get("country") or props.get("country_title_en"),
+                        "coordinates": {"lat": coords[1], "lon": coords[0]},
+                    })
+        if not biosphere_records:
+            print(
+                f"WARNING: UNESCO MAB refresh failed and no prior points were available: {biosphere_error}",
+                file=sys.stderr, flush=True,
+            )
         else:
-            # Do not keep a previously empty file that falsely looks like a successful refresh.
-            write_json(biosphere_path, build_biosphere_dataset([], biosphere_error))
-        print(f"WARNING: UNESCO MAB refresh failed; retaining previous data when available: {biosphere_error}", file=sys.stderr, flush=True)
+            print(
+                f"WARNING: UNESCO MAB refresh failed; retaining {len(biosphere_records)} previous points: {biosphere_error}",
+                file=sys.stderr, flush=True,
+            )
 
-    index_path = output_dir / "index.json"
-    old_index = read_json(index_path) or {}
     iucn_summary = old_index.get("iucn") if isinstance(old_index.get("iucn"), dict) else {
         "file": "iucn-assessments.json",
         "source": IUCN_DATASET_URL,
@@ -1293,34 +1329,45 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
             "request_errors": iucn_dataset["summary"]["request_errors"],
             "generated_at_utc": iucn_dataset["generated_at_utc"],
         }
-        print(
-            f"IUCN Red List: {iucn_summary['assessed_species']}/"
-            f"{iucn_summary['requested_species']} selected species assessed "
-            f"(version {iucn_summary.get('red_list_version')}).",
-            flush=True,
-        )
-    entries_by_code = {
-        entry.get("code"): entry for entry in old_index.get("countries", [])
-        if isinstance(entry, dict) and entry.get("code")
-    }
-    if selected == "ALL":
-        entries_by_code = {}
 
     failures = 0
     for number, country in enumerate(countries_to_process, start=1):
         code = country["code"]
         filename = filename_by_code[code]
         file_path = output_dir / filename
-        print(f"[{number}/{len(countries_to_process)}] {country['name']} ({code})", flush=True)
+        previous = read_json(file_path) if file_path.exists() else None
+        old_features = (
+            previous.get("observations_geojson", {}).get("features", [])
+            if isinstance(previous, dict) else []
+        )
+        existing_ids = {
+            feature_identity(feature) for feature in old_features
+            if isinstance(feature, dict) and feature_identity(feature)
+        }
+        stored_state = country_states.get(code) if isinstance(country_states.get(code), dict) else {}
+        stored_cursor = stored_state.get("cursor") if isinstance(stored_state.get("cursor"), dict) else None
+        cursor = dict(stored_cursor) if stored_cursor else initial_harvest_cursor(previous)
+        cursor_start = dict(cursor)
+        print(
+            f"[{number}/{len(countries_to_process)}] {country['name']} ({code}) "
+            f"— append up to {maximum} new unique records; cursor={cursor_start}",
+            flush=True,
+        )
         try:
-            records, total, raw_count, page_errors = fetch_country_records(code, maximum)
+            total = fetch_country_total(code)
+            records, raw_count, page_errors, cursor, harvest_meta = fetch_incremental_records(
+                code, maximum, cursor, existing_ids
+            )
+            harvest_meta["cursor_start"] = cursor_start
+            harvest_meta["cursor_after"] = dict(cursor)
             dataset = build_dataset(
                 country, records, total, raw_count, page_errors, maximum, grid_size,
                 biosphere_records=biosphere_records, biosphere_error=biosphere_error,
+                previous_dataset=previous, harvest_meta=harvest_meta,
             )
             write_json(file_path, dataset)
             summary = dataset["summary"]
-            status = "partial" if page_errors or not summary["complete_for_requested_sample"] else "updated"
+            status = "partial" if page_errors else "updated"
             entries_by_code[code] = {
                 "code": code,
                 "name": country["name"],
@@ -1332,27 +1379,37 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
                     "total_matching_records": total,
                     "unique_occurrence_records": summary["unique_occurrence_records"],
                     "mapped_occurrence_points": summary["mapped_occurrence_points"],
+                    "new_occurrence_records_added": summary["new_occurrence_records_added"],
+                    "previous_points_retained": summary["previous_points_retained"],
                     "unique_taxa_in_sample": summary["unique_taxa_in_sample"],
                     "distribution_grid_cells": summary["distribution_grid_cells"],
                     "biosphere_reserves_in_country": summary["biosphere_reserves_in_country"],
                     "biosphere_reserve_points_with_coordinates": summary["biosphere_reserve_points_with_coordinates"],
                     "is_sample": summary["is_sample"],
                     "complete_for_requested_sample": summary["complete_for_requested_sample"],
+                    "batch_goal_met": summary["batch_goal_met"],
+                    "last_batch_pages_queried": harvest_meta["pages_queried"],
                     "file_size_bytes": file_path.stat().st_size,
                 },
             }
-            if page_errors:
-                failures += 1
+            country_states[code] = {
+                "cursor": cursor,
+                "last_successful_generated_at_utc": dataset["generated_at_utc"],
+                "last_batch_new_records": summary["new_occurrence_records_added"],
+                "last_batch_raw_rows": raw_count,
+                "last_batch_pages_queried": harvest_meta["pages_queried"],
+                "cumulative_points": summary["mapped_occurrence_points"],
+            }
+            harvest_state["next_country_code"] = next_country_code(countries, code)
             print(
-                f"  {status}: {summary['mapped_occurrence_points']} mapped points, "
-                f"{summary['unique_taxa_in_sample']} taxa, "
-                f"{summary['distribution_grid_cells']} grid cells "
-                f"(GBIF count: {total:,})",
+                f"  {status}: appended {summary['new_occurrence_records_added']} new unique points; "
+                f"{summary['mapped_occurrence_points']} cumulative points, "
+                f"{summary['unique_taxa_in_sample']} taxa, {summary['distribution_grid_cells']} grid cells "
+                f"(GBIF full query count: {total:,}; pages queried: {harvest_meta['pages_queried']}).",
                 flush=True,
             )
         except Exception as exc:
             failures += 1
-            previous = read_json(file_path) if file_path.exists() else None
             previous_summary = previous.get("summary", {}) if previous else {}
             entries_by_code[code] = {
                 "code": code,
@@ -1366,24 +1423,29 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
                     "total_matching_records": previous_summary.get("total_matching_records_reported_by_gbif", 0),
                     "unique_occurrence_records": previous_summary.get("unique_occurrence_records", 0),
                     "mapped_occurrence_points": previous_summary.get("mapped_occurrence_points", 0),
+                    "new_occurrence_records_added": 0,
                     "unique_taxa_in_sample": previous_summary.get("unique_taxa_in_sample", 0),
                     "distribution_grid_cells": previous_summary.get("distribution_grid_cells", 0),
                     "file_size_bytes": file_path.stat().st_size if previous else 0,
                 },
             }
             print(f"  ERROR: {exc}", file=sys.stderr, flush=True)
+            # Leave the rotation pointer unchanged to retry this country next time.
+            harvest_state["next_country_code"] = code
 
     ordered_entries = sorted(entries_by_code.values(), key=lambda row: str(row.get("name", "")).casefold())
     write_json(index_path, {
         "dataset_type": "GBIF country dataset index",
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": utc_now(),
         "source": "https://api.gbif.org/v1/enumeration/country",
         "countries_attempted_this_run": len(countries_to_process),
         "country_count_in_index": len(ordered_entries),
         "available_country_count": sum(bool(row.get("available")) for row in ordered_entries),
         "error_or_partial_count": sum(row.get("status") in ("error", "partial") for row in ordered_entries),
-        "default_sample_cap_per_country": maximum,
+        "default_new_records_per_run": maximum,
+        "harvest_mode": "incremental-append",
+        "country_rotation_next": harvest_state.get("next_country_code", "ID"),
         "grid_size_degrees": grid_size,
         "biosphere": {
             "file": "biosphere.json",
@@ -1395,9 +1457,14 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
         },
         "iucn": iucn_summary,
         "countries": ordered_entries,
-        "note": "Samples are capped and may be incomplete. Distribution grid cells summarize returned occurrence records; they do not represent confirmed habitat or range boundaries.",
+        "note": "Country JSON files retain prior unique GBIF points and append new records in rotating daily batches. GBIF IDs are deduplicated. Date partitions help avoid deep-search offsets; samples remain incomplete and grid cells are not habitat/range boundaries.",
     })
-    print(f"Updated {index_path}. Countries with partial results or errors: {failures}.", flush=True)
+    write_json(state_path, harvest_state)
+    print(
+        f"Updated {index_path}. Next daily country: {harvest_state.get('next_country_code')}. "
+        f"Countries with errors/partial pages: {failures}.",
+        flush=True,
+    )
     return 0
 
 
