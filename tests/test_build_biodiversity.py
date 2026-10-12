@@ -109,8 +109,10 @@ class BiodiversityPipelineTests(unittest.TestCase):
         feature = pipeline.biosphere_feature(record)
         self.assertEqual(feature["geometry"]["type"], "Point")
         self.assertEqual(feature["geometry"]["coordinates"], [106.8, -6.2])
-        self.assertIn("A reserve introduction.", feature["properties"]["description"])
+        normalized = pipeline.normalize_biosphere_record(record)
+        self.assertIn("A reserve introduction.", normalized["description"])
         self.assertEqual(feature["properties"]["country_code"], "ID")
+        self.assertNotIn("description", feature["properties"])
 
 
     def test_iucn_target_normalization_and_allowlist_deduplication(self):
