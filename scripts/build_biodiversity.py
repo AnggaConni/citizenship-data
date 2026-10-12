@@ -909,12 +909,13 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
     except Exception as exc:
         biosphere_error = str(exc)[:500]
         previous_biosphere = read_json(biosphere_path) if biosphere_path.exists() else None
-        if previous_biosphere and isinstance(previous_biosphere.get("records"), list):
+        if previous_biosphere and isinstance(previous_biosphere.get("records"), list) and previous_biosphere["records"]:
             biosphere_records = [
                 normalize_biosphere_record(row) for row in previous_biosphere["records"]
                 if isinstance(row, dict)
             ]
         else:
+            # Do not keep a previously empty file that falsely looks like a successful refresh.
             write_json(biosphere_path, build_biosphere_dataset([], biosphere_error))
         print(f"WARNING: UNESCO MAB refresh failed; retaining previous data when available: {biosphere_error}", file=sys.stderr, flush=True)
 
