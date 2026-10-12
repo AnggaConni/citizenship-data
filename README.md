@@ -14,7 +14,7 @@ This project is freely accessible and is not operated as a paid service. However
 
 1. **Software licence.** The repository has a custom licence focused on personal, educational, research, non-profit, and social-impact use. It permits copying and modifying the software for the uses described in [LICENSE](./LICENSE), subject to its conditions. Commercial use or inclusion in a paid product requires prior written permission from the author. This is not an unrestricted commercial-use licence.
 2. **Third-party data.** GBIF occurrence records, UNESCO DataHub records, map tiles, photographs, and publication metadata retain the applicable source terms, record-level licences, attribution requirements, and usage limits. The repository's software licence does not replace or override those terms.
-3. **IUCN Red List — 🔴 NOT APPROVED YET.** Direct IUCN API requests, scraping, enrichment, caching, and publication are **stopped** while permission is pending. IUCN assessment data are hidden and are not served by this project. The workflow no longer offers an enable switch, and the pipeline refuses direct IUCN lookup even if an API key or old approval variable exists. A conservation category returned by GBIF may still be shown only as a **GBIF-sourced reference**; it is not direct IUCN API data and may lag the latest IUCN assessment. This does not imply IUCN approval.
+3. **IUCN Red List — 🔴 NOT APPROVED YET.** Direct IUCN API requests, scraping, enrichment, caching, and publication are **stopped** while permission is pending. IUCN assessment data are hidden and are not served by this project. The workflow no longer offers an enable switch, and the pipeline refuses direct IUCN lookup even if an API key or old approval variable exists. The Atlas does not request or display IUCN-derived conservation categories while permission is pending. Direct assessment data remain hidden and unpublished. This does not imply IUCN approval.
 4. **Independent project.** This project is not an official UNESCO, GBIF, IUCN, OpenAlex, Crossref, or OpenStreetMap product. References to these organisations identify data sources only; they do not imply affiliation, sponsorship, review, approval, or endorsement.
 
 ## What is included?
@@ -35,7 +35,7 @@ Open the [Biodiversity Explorer](./biodiversity.html).
 
 ### 3. Biodiversity Atlas
 
-When a user selects an occurrence, the detail panel also performs on-demand lookups for common names, taxonomic classification, source descriptions and available profile information through the GBIF Species API and iNaturalist. A conservation category is shown only when a source returns one; Direct IUCN assessment data are hidden; direct IUCN API requests and scraping are stopped while permission is pending. The frontend never exposes the IUCN API secret and does not query the authenticated IUCN API directly.
+When a user selects an occurrence, the detail panel performs on-demand lookups for common names, taxonomic classification, source descriptions and available profile information through the GBIF Species API and iNaturalist. The Atlas does not request or display IUCN-derived conservation categories. Direct IUCN API requests and scraping are stopped; IUCN assessment data remain hidden and unpublished while permission is pending.
 
 The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interface for the pipeline outputs. It reads the country index and generated JSON files directly, so visitors can select a country, inspect published record summaries, view occurrence points and density-grid cells, search records, and inspect source-linked details without triggering another API scan. **The first published country dataset is Indonesia.** The application retrieves and retains a limited, incrementally updated set of GBIF records; this describes application coverage, not the authenticity or provenance of each record. It is not a complete GBIF download or a complete species inventory.
 
@@ -43,7 +43,7 @@ The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interf
 
 A Python pipeline, run through GitHub Actions, that produces country-level JSON and GeoJSON from:
 
-- **GBIF Occurrence API:** a bounded, incrementally collected set of georeferenced occurrence records, including source fields and record links when supplied.
+- **GBIF Occurrence API:** access to georeferenced occurrence records, including source fields and record links when supplied. The pipeline retrieves records in batches; this application view is not a complete GBIF download.
 - **UNESCO DataHub — Man and the Biosphere dataset (mab001):** reserve metadata and source-provided point coordinates.
 - **IUCN Red List:** potential future source only. **🔴 NOT APPROVED YET — direct requests/scraping stopped; assessment data hidden and not published.** Do not enable direct collection or distribute cached assessment data while permission remains pending.
 
@@ -51,7 +51,7 @@ The generated density grid summarizes the occurrence records currently retained 
 
 Explore the [pipeline folder](./biodiversity/) and its [usage and source notes](./biodiversity/README.md).
 
-The country pipeline publishes lightweight spatial indexes for the initial map. Full GBIF occurrence metadata and UNESCO MAB descriptions are fetched from the source APIs only when a visitor opens a point or reserve; those descriptions are not copied into static mapping JSON. Source images, when available, are loaded by URL on demand rather than downloaded into the repository. The pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit. A conservation category independently returned by GBIF may be shown only as a GBIF-sourced reference, clearly identified as such. The frontend does not call the authenticated IUCN API or read IUCN-derived status fields from iNaturalist. Direct IUCN assessments are currently hidden and not published.
+The country pipeline publishes lightweight spatial indexes for the initial map. Full GBIF occurrence metadata and UNESCO MAB descriptions are fetched from the source APIs only when a visitor opens a point or reserve; those descriptions are not copied into static mapping JSON. Source images, when available, are loaded by URL on demand rather than downloaded into the repository. The pipeline aborts if a generated JSON file exceeds its 45 MiB safety limit. The frontend does not request or display IUCN-derived conservation-status fields, does not call the authenticated IUCN API, and does not read IUCN-derived status fields from iNaturalist. Direct IUCN assessments are hidden and not published.
 
 ## Data-use and interpretation rules
 
