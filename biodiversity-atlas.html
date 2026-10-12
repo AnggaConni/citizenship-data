@@ -383,7 +383,7 @@
               );
               layer.on("click", () => activateScope(
                 "isolated", String(p.point_index), [Number(p.point_index)],
-                "One isolated sample record", layer.getBounds()
+                "One isolated sample record", L.latLngBounds(layer.getLatLng())
               ));
             }
           }
@@ -658,7 +658,7 @@
           }
           if(best<0||bestCount<MIN_CLUSTER_POINTS)break;
           const indices=bestMembers.map(j=>pts[j].index).sort((a,b)=>a-b);
-          indices.forEach(index=>remaining.delete(pts.findIndex(p=>p.index===index)));
+          bestMembers.forEach(localIndex=>remaining.delete(localIndex));
           groups.push({id:String(groups.length+1),indices});
         }
         const features=[];
@@ -837,11 +837,6 @@
         $("record-detail").innerHTML='<p class="detail-placeholder">Select a point on the map or an item in the record list to see its details here.</p>';
       }
 
-      function loadCountryCountryName(code) {
-        const country=state.countries.find(c=>c.code===code);
-        return country?country.name:code;
-      }
-
       function updateCountrySource(dataset) {
         const url=safeHttpUrl(dataset&&dataset.source&&dataset.source.api);
         const link=$("country-source");
@@ -914,6 +909,19 @@
             f&&f.geometry&&f.geometry.type==="Point"&&Array.isArray(f.geometry.coordinates)&&
             f.geometry.coordinates.length>=2&&f.geometry.coordinates.every(v=>Number.isFinite(Number(v)))
           ):[];
+          // Fall back to the global MAB file if an older country JSON does not embed mappable reserve points.
+          if(!Array.isArray(dataset.biosphere_geojson?.features)||dataset.biosphere_geojson.features.length===0){
+            try{
+              const mabResponse=await fetch("./biodiversity/biosphere.json",{cache:"default",signal});
+              if(mabResponse.ok){
+                const mabData=await mabResponse.json();
+                const mabFeatures=((mabData.geojson||{}).features||[]).filter(feature=>
+                  String(properties(feature).country_code||"").toUpperCase()===code
+                );
+                if(mabFeatures.length)dataset.biosphere_geojson={type:"FeatureCollection",features:mabFeatures};
+              }
+            }catch(mabError){if(mabError.name==="AbortError")return;}
+          }
 
           updateStats(dataset);updateCountrySource(dataset);updateMap(dataset);renderRecords();
           const summary=dataset.summary||{};
