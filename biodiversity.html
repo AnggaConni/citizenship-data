@@ -83,7 +83,7 @@
     <section class="stats" aria-label="Explorer statistics">
       <div class="stat"><div class="stat-label"><i class="fa-solid fa-location-dot"></i> Species on map</div><div class="stat-value" id="statSpecies">—</div><div class="stat-foot">Unique species in scanned records</div></div>
       <div class="stat"><div class="stat-label"><i class="fa-solid fa-list-check"></i> Records scanned</div><div class="stat-value" id="statRecords">—</div><div class="stat-foot">Distinct GBIF occurrence records processed</div></div>
-      <div class="stat"><div class="stat-label"><i class="fa-solid fa-camera"></i> Records with media</div><div class="stat-value" id="statMedia">—</div><div class="stat-foot">Images and other media available in sample</div></div>
+      <div class="stat"><div class="stat-label"><i class="fa-solid fa-camera"></i> Records with media</div><div class="stat-value" id="statMedia">—</div><div class="stat-foot">Images and other media attached to retrieved records</div></div>
       <div class="stat"><div class="stat-label"><i class="fa-solid fa-globe"></i> Global lookup</div><div class="stat-value">On click</div><div class="stat-foot">Queries worldwide records for the selected species</div></div>
     </section>
 
@@ -126,7 +126,7 @@
           </div>
         </div>
         <div class="side-body">
-          <div class="filter-row"><label for="kingdomFilter">Filter sample</label><select id="kingdomFilter"><option value="all">All kingdoms</option><option value="animalia">Animalia</option><option value="plantae">Plantae</option><option value="fungi">Fungi</option><option value="other">Other / unknown</option></select></div>
+          <div class="filter-row"><label for="kingdomFilter">Filter records</label><select id="kingdomFilter"><option value="all">All kingdoms</option><option value="animalia">Animalia</option><option value="plantae">Plantae</option><option value="fungi">Fungi</option><option value="other">Other / unknown</option></select></div>
           <div class="section-title-row" style="margin-bottom:10px"><div><h2 style="font-size:12px">Species in this view</h2><p id="speciesListCaption">Preparing full scan…</p></div></div>
           <div id="speciesList" class="species-list"><div class="side-empty"><i class="fa-solid fa-earth-americas"></i>Choose a country or worldwide scan to discover species here.</div></div>
           <div class="source-note"><strong><i class="fa-solid fa-circle-info"></i> Live-data note</strong><br>The explorer scans up to 9,900 georeferenced records using paginated requests, then deduplicates by species key. This cap keeps offsets below GBIF's high-offset restriction; use GBIF's download service for larger extracts. Each selected species is queried worldwide only when opened.</div>
@@ -135,7 +135,7 @@
     </section>
 
     <section class="section-card">
-      <div class="section-title-row"><div><h2>Recently discovered species</h2><p>Click a species card to inspect its global occurrences, available images, source datasets and related research.</p></div><span id="galleryCount" class="api-pill" style="background:#edf6ee;color:#3c7450;border-color:#dceadd"><i class="fa-solid fa-leaf"></i> Live GBIF sample</span></div>
+      <div class="section-title-row"><div><h2>Recently discovered species</h2><p>Click a species card to inspect its global occurrences, available images, source datasets and related research.</p></div><span id="galleryCount" class="api-pill" style="background:#edf6ee;color:#3c7450;border-color:#dceadd"><i class="fa-solid fa-leaf"></i> Live GBIF records</span></div>
       <div id="speciesGallery" class="species-grid"><div class="side-empty">Choose a scan area to start discovering species. You can search for a species above at any time.</div></div>
     </section>
     <footer class="footer"><span>Open Data Explorers · Biodiversity Explorer</span><span>Data: <a href="https://www.gbif.org/" target="_blank" rel="noopener noreferrer">GBIF</a> · Research: <a href="https://openalex.org/" target="_blank" rel="noopener noreferrer">OpenAlex</a> and <a href="https://www.crossref.org/" target="_blank" rel="noopener noreferrer">Crossref</a> · Map tiles: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a></span></footer>
@@ -279,7 +279,7 @@
           kingdom:record.kingdom || '', phylum:record.phylum || '', class:record.class || '',
           order:record.order || '', family:record.family || '', genus:record.genus || '',
           taxonRank:'SPECIES', lat:Number(record.decimalLatitude), lng:Number(record.decimalLongitude),
-          representative:representative, image:getImage(record), occurrenceCount:null, source:'GBIF occurrence sample'
+          representative:representative, image:getImage(record), occurrenceCount:null, source:'GBIF occurrence records'
         };
       }
       function addSpecies(item, options){
@@ -428,7 +428,7 @@
         }
         $('countryStatus').textContent=area.code
           ? area.name+' selected. The scan will use GBIF records with coordinates recorded in this country.'
-          : 'Worldwide selected. The scan will sample the global searchable record range rather than focus on one country.';
+          : 'Worldwide selected. The scan will retrieve a bounded set from the global searchable record range rather than focus on one country.';
         setStatus('Ready to scan '+area.name+'. Press Start scan when you are ready.');
       }
       async function loadCountries(){
@@ -831,7 +831,7 @@
           state.recordLoading=false;
           $('modalRecordCount').textContent=number(state.recordTotal)+' global records';
           $('modalMediaCount').textContent=number(state.records.filter(r=>getMedia(r).length).length)+' images in loaded pages';
-          $('occurrenceSummary').innerHTML='<div class="stat-value" style="font-size:27px">'+number(state.recordTotal)+'</div><p style="margin:3px 0 10px">GBIF occurrence records returned for this species from around the world.</p><div class="taxonomy-grid"><div class="taxon-field"><span>Loaded so far</span><strong>'+number(state.records.length)+' records</strong></div><div class="taxon-field"><span>With coordinates</span><strong>'+number(state.records.filter(validPoint).length)+' records</strong></div><div class="taxon-field"><span>With media</span><strong>'+number(state.records.filter(r=>getMedia(r).length).length)+' records</strong></div><div class="taxon-field"><span>API sample page</span><strong>'+PAGE_SIZE+' max / request</strong></div></div>';
+          $('occurrenceSummary').innerHTML='<div class="stat-value" style="font-size:27px">'+number(state.recordTotal)+'</div><p style="margin:3px 0 10px">GBIF occurrence records returned for this species from around the world.</p><div class="taxonomy-grid"><div class="taxon-field"><span>Loaded so far</span><strong>'+number(state.records.length)+' records</strong></div><div class="taxon-field"><span>With coordinates</span><strong>'+number(state.records.filter(validPoint).length)+' records</strong></div><div class="taxon-field"><span>With media</span><strong>'+number(state.records.filter(r=>getMedia(r).length).length)+' records</strong></div><div class="taxon-field"><span>API page size</span><strong>'+PAGE_SIZE+' max / request</strong></div></div>';
           $('largeDatasetNotice').classList.toggle('hidden',state.recordTotal<=100000);
           renderRecords();renderMedia(state.records);
           addOccurrencePoints(state.records,!!reset);
@@ -975,7 +975,7 @@
         $('stopScanBtn').disabled=true;
         $('startScanBtn').disabled=true;
         $('reloadBtn').disabled=true;
-        setStatus('Choose a country or Worldwide to begin. The map will not start with a random sample.');
+        setStatus('Choose a country or Worldwide to begin. The map will not start scanning until you choose a geographic scope.');
         loadCountries();
       }
       window.biodiversityExplorer={reload:loadInitialSample,openSpecies:openSpecies};
