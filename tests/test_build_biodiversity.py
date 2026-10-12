@@ -36,7 +36,7 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertEqual(feature["properties"]["scientific_name"], "Felis catus")
         self.assertEqual(feature["properties"]["gbif_id"], 12345)
 
-    def test_occurrence_payload_is_compact_and_keeps_image_url_only(self):
+    def test_occurrence_static_feature_excludes_image_and_long_details(self):
         record = {
             "key": 98765,
             "speciesKey": 123,
@@ -77,7 +77,7 @@ class BiodiversityPipelineTests(unittest.TestCase):
         self.assertEqual(busiest["properties"]["observation_count"], 2)
         self.assertEqual(busiest["properties"]["unique_taxa_count"], 2)
 
-    def test_mab_payload_is_compact_and_image_fields_are_urls(self):
+    def test_mab_map_index_excludes_long_details_and_images(self):
         record = {
             "mab_id": "TEST-COMPACT",
             "title_en": "A Compact Reserve",
