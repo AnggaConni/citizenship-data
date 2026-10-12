@@ -8,6 +8,7 @@ Uses only the Python standard library.
 from __future__ import annotations
 
 import argparse
+import calendar
 import json
 import math
 import os
@@ -38,8 +39,12 @@ IUCN_CATEGORY_LABELS = {
 }
 REPOSITORY_URL = "https://github.com/AnggaConni/citizenship-data"
 PAGE_SIZE = 300
-MAX_RECORDS_PER_COUNTRY = 9900  # Keep search offsets below 10,000.
+GBIF_SEARCH_OFFSET_LIMIT = 10_000  # GBIF restricts high-offset occurrence search queries.
+MAX_RECORDS_PER_COUNTRY = 300  # Maximum new unique records appended per run.
 DEFAULT_RECORDS_PER_COUNTRY = 300
+MAX_BATCH_PAGE_REQUESTS = 24
+MAX_PARTITION_ADVANCES_PER_RUN = 24
+MIN_HARVEST_YEAR = 1800
 USER_AGENT = "OpenDataExplorers-BiodiversityPipeline/1.0"
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "biodiversity"
 MAX_PUBLISHED_JSON_BYTES = 45 * 1024 * 1024
@@ -536,6 +541,254 @@ def fetch_country_records(country_code: str, maximum: int) -> tuple[list[dict], 
     return unique_records(all_rows), total, raw_count, errors
 
 
+def feature_identity(feature: dict) -> str:
+    """Stable identity for an existing compact GeoJSON point."""
+    props = feature.get("properties") if isinstance(feature.get("properties"), dict) else {}
+    value = props.get("gbif_id") or props.get("key") or feature.get("id")
+    return str(value) if value not in (None, "") else ""
+
+
+def compact_existing_occurrence(feature: dict, country: dict) -> dict | None:
+    """Migrate older, verbose occurrence features into the current map-only schema."""
+    geometry = feature.get("geometry") if isinstance(feature.get("geometry"), dict) else {}
+    coordinates = geometry.get("coordinates")
+    if geometry.get("type") != "Point" or not isinstance(coordinates, (list, tuple)) or len(coordinates) < 2:
+        return None
+    try:
+        lon, lat = float(coordinates[0]), float(coordinates[1])
+    except (TypeError, ValueError):
+        return None
+    if not (math.isfinite(lon) and math.isfinite(lat) and -180 <= lon <= 180 and -90 <= lat <= 90):
+        return None
+    old_props = feature.get("properties") if isinstance(feature.get("properties"), dict) else {}
+    props = compact_scalar_fields(old_props, GBIF_MAP_FIELDS, set(), 500)
+    record_id = old_props.get("gbif_id") or old_props.get("key") or feature.get("id")
+    taxon_key = old_props.get("taxon_key") or old_props.get("speciesKey") or old_props.get("taxonKey")
+    scientific = (
+        old_props.get("scientific_name") or old_props.get("species")
+        or old_props.get("scientificName") or old_props.get("acceptedScientificName")
+    )
+    props.update({
+        "key": props.get("key") or record_id,
+        "gbif_id": record_id,
+        "taxon_key": taxon_key,
+        "scientific_name": scientific,
+        "country_code": old_props.get("country_code") or country["code"],
+        "country": old_props.get("country") or country["name"],
+        "source_url": old_props.get("source_url") or (
+            f"https://www.gbif.org/occurrence/{record_id}" if record_id else None
+        ),
+    })
+    props = {key: value for key, value in props.items() if value is not None and value != ""}
+    return {
+        "type": "Feature",
+        "id": str(record_id or feature.get("id") or ""),
+        "geometry": {"type": "Point", "coordinates": [round(lon, 6), round(lat, 6)]},
+        "properties": props,
+    }
+
+
+def initial_harvest_cursor(previous_dataset: dict | None) -> dict:
+    """Resume after a previous country-wide sample; then use date partitions."""
+    now = datetime.now(timezone.utc)
+    old_points = (
+        previous_dataset.get("observations_geojson", {}).get("features", [])
+        if isinstance(previous_dataset, dict) else []
+    )
+    count = len(old_points) if isinstance(old_points, list) else 0
+    if count < GBIF_SEARCH_OFFSET_LIMIT:
+        return {
+            "mode": "country", "offset": count,
+            "year": now.year, "month": now.month, "day": None,
+        }
+    return {"mode": "month", "offset": 0, "year": now.year, "month": now.month, "day": None}
+
+
+def advance_harvest_partition(cursor: dict) -> None:
+    """Move backwards through month/day partitions and wrap after MIN_HARVEST_YEAR."""
+    year, month, day = int(cursor["year"]), int(cursor["month"]), cursor.get("day")
+    cursor["offset"] = 0
+    if day is not None and int(day) < calendar.monthrange(year, month)[1]:
+        cursor["day"] = int(day) + 1
+        return
+    if month > 1:
+        year, month = year, month - 1
+    else:
+        year, month = year - 1, 12
+    if year < MIN_HARVEST_YEAR:
+        now = datetime.now(timezone.utc)
+        year, month = now.year, now.month
+    cursor.update({"mode": "month", "year": year, "month": month, "day": None})
+
+
+def next_country_code(countries: list[dict], code: str) -> str:
+    """Return the next country in the stable GBIF name-sorted rotation."""
+    codes = [row["code"] for row in countries]
+    if not codes:
+        return "ID"
+    try:
+        index = codes.index(code)
+    except ValueError:
+        return codes[0]
+    return codes[(index + 1) % len(codes)]
+
+
+def fetch_country_total(country_code: str) -> int:
+    """Retrieve a fresh count for the full country georeferenced occurrence query."""
+    response = request_json("occurrence/search", {
+        "country": country_code,
+        "hasCoordinate": "true",
+        "hasGeospatialIssue": "false",
+        "limit": 1,
+        "offset": 0,
+    })
+    if not isinstance(response, dict):
+        raise RuntimeError("GBIF country-count response was not an object.")
+    return max(0, int(response.get("count") or 0))
+
+
+def fetch_incremental_records(
+    country_code: str,
+    maximum: int,
+    cursor: dict,
+    existing_ids: set[str],
+) -> tuple[list[dict], int, list[dict], dict, dict]:
+    """Fetch up to a batch of new unique mapped records without replacing existing records.
+
+    Start where the prior country-wide query left off. After the deep-offset limit,
+    proceed through year/month partitions and split heavily populated months by date.
+    """
+    if not 1 <= maximum <= MAX_RECORDS_PER_COUNTRY:
+        raise ValueError(f"batch size must be between 1 and {MAX_RECORDS_PER_COUNTRY}.")
+    cursor = {
+        "mode": str(cursor.get("mode") or "country"),
+        "offset": max(0, int(cursor.get("offset") or 0)),
+        "year": int(cursor.get("year") or datetime.now(timezone.utc).year),
+        "month": int(cursor.get("month") or datetime.now(timezone.utc).month),
+        "day": int(cursor["day"]) if cursor.get("day") not in (None, "", 0) else None,
+    }
+    seen = set(existing_ids)
+    new_records: list[dict] = []
+    raw_rows = 0
+    page_errors: list[dict] = []
+    pages = 0
+    advances = 0
+    partition_labels: list[str] = []
+
+    while len(new_records) < maximum and pages < MAX_BATCH_PAGE_REQUESTS:
+        if cursor["mode"] == "country" and cursor["offset"] >= GBIF_SEARCH_OFFSET_LIMIT:
+            cursor.update({
+                "mode": "month", "offset": 0,
+                "year": datetime.now(timezone.utc).year,
+                "month": datetime.now(timezone.utc).month, "day": None,
+            })
+            continue
+        if advances >= MAX_PARTITION_ADVANCES_PER_RUN:
+            break
+        if cursor["mode"] != "country" and cursor["offset"] >= GBIF_SEARCH_OFFSET_LIMIT:
+            page_errors.append({
+                "message": "A date partition exceeded GBIF's safe search offset; remaining rows in that partition were skipped."
+            })
+            advance_harvest_partition(cursor)
+            advances += 1
+            continue
+
+        limit = min(PAGE_SIZE, maximum - len(new_records), GBIF_SEARCH_OFFSET_LIMIT - cursor["offset"])
+        if limit <= 0:
+            cursor["offset"] = GBIF_SEARCH_OFFSET_LIMIT
+            continue
+        params = {
+            "country": country_code,
+            "hasCoordinate": "true",
+            "hasGeospatialIssue": "false",
+            "limit": limit,
+            "offset": cursor["offset"],
+        }
+        if cursor["mode"] != "country":
+            if cursor["day"] is None:
+                params["year"] = cursor["year"]
+                params["month"] = cursor["month"]
+                label = f"{cursor['year']:04d}-{cursor['month']:02d}"
+            else:
+                params["eventDate"] = f"{cursor['year']:04d}-{cursor['month']:02d}-{cursor['day']:02d}"
+                label = params["eventDate"]
+            if label not in partition_labels:
+                partition_labels.append(label)
+
+        try:
+            response = request_json("occurrence/search", params)
+        except RuntimeError as exc:
+            page_errors.append({
+                "offset": cursor["offset"],
+                "partition": partition_labels[-1] if partition_labels else "country",
+                "message": str(exc)[:400],
+            })
+            break
+        pages += 1
+        if not isinstance(response, dict):
+            page_errors.append({"message": "GBIF occurrence response was not a JSON object."})
+            break
+        try:
+            partition_total = max(0, int(response.get("count") or 0))
+        except (TypeError, ValueError):
+            partition_total = 0
+
+        # Deep month queries are split into daily event-date partitions before paging.
+        if cursor["mode"] != "country" and cursor["day"] is None and partition_total >= GBIF_SEARCH_OFFSET_LIMIT:
+            cursor["day"] = 1
+            cursor["offset"] = 0
+            advances = 0
+            continue
+
+        if cursor["offset"] >= partition_total:
+            advance_harvest_partition(cursor)
+            advances += 1
+            continue
+
+        rows = response.get("results", [])
+        if not isinstance(rows, list) or not rows:
+            advance_harvest_partition(cursor)
+            advances += 1
+            continue
+
+        raw_rows += len(rows)
+        for row in rows:
+            if not isinstance(row, dict) or valid_coordinates(row) is None:
+                continue
+            identifier = stable_record_id(row)
+            if not identifier or identifier in seen:
+                continue
+            new_records.append(row)
+            seen.add(identifier)
+            if len(new_records) >= maximum:
+                break
+
+        cursor["offset"] += len(rows)
+        if cursor["offset"] >= partition_total:
+            advance_harvest_partition(cursor)
+            advances += 1
+        elif len(rows) < limit:
+            page_errors.append({
+                "offset": cursor["offset"],
+                "partition": partition_labels[-1] if partition_labels else "country",
+                "message": "GBIF returned a short page before the partition count was reached.",
+            })
+            advance_harvest_partition(cursor)
+            advances += 1
+
+    metadata = {
+        "mode": "incremental-append",
+        "batch_requested": maximum,
+        "new_records_returned": len(new_records),
+        "raw_rows_received": raw_rows,
+        "pages_queried": pages,
+        "batch_goal_met": len(new_records) >= maximum,
+        "partitions_touched": partition_labels,
+        "cursor_after": dict(cursor),
+    }
+    return new_records, raw_rows, page_errors, cursor, metadata
+
+
 def bounded_text(value: object, limit: int) -> str | None:
     """Return compact text while marking long values as truncated."""
     if not isinstance(value, str):
@@ -831,12 +1084,40 @@ def build_biosphere_dataset(records: list[dict], error: str | None = None) -> di
 def build_dataset(country: dict, records: list[dict], total: int, raw_count: int,
                   page_errors: list[dict], maximum: int, grid_size: float,
                   biosphere_records: list[dict] | None = None,
-                  biosphere_error: str | None = None) -> dict:
-    points = []
+                  biosphere_error: str | None = None,
+                  previous_dataset: dict | None = None,
+                  harvest_meta: dict | None = None) -> dict:
+    """Append new mapped points to a prior country dataset and rebuild cumulative summaries."""
+    old_features = (
+        previous_dataset.get("observations_geojson", {}).get("features", [])
+        if isinstance(previous_dataset, dict) else []
+    )
+    old_points: list[dict] = []
+    seen: set[str] = set()
+    for feature in old_features if isinstance(old_features, list) else []:
+        if not isinstance(feature, dict):
+            continue
+        compact = compact_existing_occurrence(feature, country)
+        if compact is None:
+            continue
+        identifier = feature_identity(compact)
+        if identifier and identifier not in seen:
+            seen.add(identifier)
+            old_points.append(compact)
+
+    added_points: list[dict] = []
     for record in records:
         feature = occurrence_feature(record, country)
-        if feature is not None:
-            points.append(feature)
+        if feature is None:
+            continue
+        identifier = feature_identity(feature)
+        if identifier and identifier in seen:
+            continue
+        if identifier:
+            seen.add(identifier)
+        added_points.append(feature)
+
+    points = old_points + added_points
     taxa = {
         str(feature["properties"].get("taxon_key") or feature["properties"].get("scientific_name"))
         for feature in points
@@ -848,11 +1129,21 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
         if str(record.get("country_code") or "").upper() == country["code"]
     ]
     reserve_features = [feature for record in reserves if (feature := biosphere_feature(record)) is not None]
-    complete = not page_errors and len(records) >= min(total, maximum)
+    complete = not page_errors and raw_count > 0
     generated = utc_now()
+    harvest = dict(harvest_meta or {})
+    harvest.update({
+        "mode": "incremental-append",
+        "batch_new_records_added": len(added_points),
+        "cumulative_mapped_points": len(points),
+        "previous_points_retained": len(old_points),
+        "batch_goal_met": len(added_points) >= maximum,
+        "raw_rows_received": raw_count,
+        "page_errors": page_errors,
+    })
     return {
-        "dataset_type": "GBIF country biodiversity sample + UNESCO MAB records",
-        "schema_version": 3,
+        "dataset_type": "GBIF country biodiversity spatial index + UNESCO MAB points",
+        "schema_version": 4,
         "generated_at_utc": generated,
         "repository": REPOSITORY_URL,
         "source": {
@@ -866,23 +1157,30 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
             "country": country["code"],
             "hasCoordinate": True,
             "hasGeospatialIssue": False,
-            "maximum_records_per_country": maximum,
+            "batch_size_per_run": maximum,
+            "harvest_mode": "incremental-append",
             "grid_size_degrees": grid_size,
             "page_size": PAGE_SIZE,
+            "cursor": harvest.get("cursor_after"),
+            "partitions_touched": harvest.get("partitions_touched", []),
         },
         "summary": {
             "total_matching_records_reported_by_gbif": total,
             "raw_rows_received": raw_count,
-            "unique_occurrence_records": len(records),
+            "unique_occurrence_records": len(points),
             "mapped_occurrence_points": len(points),
+            "new_occurrence_records_added": len(added_points),
+            "previous_points_retained": len(old_points),
             "unique_taxa_in_sample": len(taxa),
             "distribution_grid_cells": len(grid["features"]),
             "biosphere_reserves_in_country": len(reserves),
             "biosphere_reserve_points_with_coordinates": len(reserve_features),
-            "is_sample": total > len(records) or bool(page_errors) or len(points) < total,
+            "is_sample": total > len(points) or bool(page_errors) or len(points) < total,
             "complete_for_requested_sample": complete,
+            "batch_goal_met": len(added_points) >= maximum,
             "failed_pages": page_errors,
-            "interpretation": "A capped sample of georeferenced occurrence records, not a census of all biodiversity or a confirmed species range.",
+            "harvest": harvest,
+            "interpretation": "Cumulative, deduplicated GBIF occurrence points appended in rotating daily batches. Stored points remain a partial sample, not a census or confirmed species range.",
         },
         "observations_geojson": {"type": "FeatureCollection", "features": points},
         "distribution_geojson": grid,
@@ -896,6 +1194,7 @@ def build_dataset(country: dict, records: list[dict], total: int, raw_count: int
             "geometry_note": "Only source-provided reserve point coordinates are included here; official reserve boundary polygons are not provided by this endpoint.",
         },
     }
+
 
 def read_json(path: Path) -> dict | None:
     try:
@@ -1104,9 +1403,9 @@ def run(country_filter: str, maximum: int, grid_size: float, output_dir: Path,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--country", default="ALL", help="GBIF ISO-2 country code, or ALL (default).")
+    parser.add_argument("--country", default="NEXT", help="NEXT selects the next country in the persisted rotation; or provide one GBIF ISO-2 country code. ALL explicitly processes every country.")
     parser.add_argument("--max-records", type=int, default=DEFAULT_RECORDS_PER_COUNTRY,
-                        help=f"Maximum records sampled per country, 1–{MAX_RECORDS_PER_COUNTRY}; default {DEFAULT_RECORDS_PER_COUNTRY}.")
+                        help=f"Maximum new unique records to append in this run, 1–{MAX_RECORDS_PER_COUNTRY}; default {DEFAULT_RECORDS_PER_COUNTRY}.")
     parser.add_argument("--grid-size", type=float, default=0.5, help="Grid-cell size in degrees; default 0.5.")
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR, help="Output directory (default: repo/biodiversity).")
     parser.add_argument("--include-iucn", action="store_true", help="Query only manually selected species from biodiversity/iucn_targets.json and write selected assessment metadata. Requires IUCN_PUBLICATION_APPROVED=true after publication/caching permission is confirmed.")
