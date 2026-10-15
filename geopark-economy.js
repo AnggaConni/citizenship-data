@@ -367,10 +367,10 @@ async function loadUnTourismManifest(){
   if(!response.ok)throw new Error("Manifest HTTP "+response.status);
   const manifest=await response.json();
   const dataSheets=(manifest.worksheets||[]).filter(item=>item.worksheet==="Data"&&item.file);
-  if(!dataSheets.length)throw new Error("Manifest tidak berisi data sheet yang dapat dipilih");
+  if(!dataSheets.length)throw new Error("The manifest contains no selectable data sheets");
   state.unTourismManifest=manifest;
   state.unTourismDatasets=dataSheets;
-  select.innerHTML=dataSheets.map(item=>'<option value="'+esc(item.file)+'">'+esc(statDatasetTitle(item))+' · '+Number(item.rows||0).toLocaleString("id-ID")+' baris</option>').join("");
+  select.innerHTML=dataSheets.map(item=>'<option value="'+esc(item.file)+'">'+esc(statDatasetTitle(item))+' · '+Number(item.rows||0).toLocaleString("id-ID")+' rows</option>').join("");
   select.disabled=false;
   const preferred=dataSheets.find(item=>/inbound_arrivals_12_2025__02_Data/i.test(item.file))||
    dataSheets.find(item=>/inbound_arrivals.*02_Data/i.test(item.file))||
@@ -462,7 +462,7 @@ async function loadUnTourismDataset(){
   const response=await fetch(UN_TOURISM_SHEETS_URL+encodeURIComponent(dataset.file),{cache:"force-cache",headers:{Accept:"application/json"}});
   if(!response.ok)throw new Error("Dataset HTTP "+response.status);
   const raw=await response.json(),parsed=normalizeUnTourismWorksheet(raw,dataset);
-  if(!parsed.records.length)throw new Error("Worksheet tidak menghasilkan observasi yang dapat dibaca. Periksa header data.");
+  if(!parsed.records.length)throw new Error("The worksheet did not produce readable observations. Check the data headers.");
   state.unTourismDataset=dataset;state.unTourismRaw=raw;state.unTourismHeaders=parsed.headers;state.unTourismRecords=parsed.records;
   populateUnTourismFilters();
   const years=[...new Set(parsed.records.map(row=>row.year).filter(Number.isFinite))];
