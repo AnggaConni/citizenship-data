@@ -990,6 +990,13 @@
         document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("geoecon-modal").classList.contains("is-open"))closeGeoeconModal();});
         $("selected-detail").addEventListener("click",event=>{const button=event.target.closest("#selected-geoecon-trigger");if(button&&state.selected)openGeoeconModal(state.selected);});
         document.addEventListener("click",event=>{
+          const placeButton=event.target.closest("[data-geoecon-poi-popup]");
+          if(placeButton){
+            event.preventDefault();
+            event.stopPropagation();
+            selectGeoeconPoi(placeButton.getAttribute("data-geoecon-poi-popup"),true);
+            return;
+          }
           const button=event.target.closest("[data-geoecon-marker]");
           if(!button)return;
           event.preventDefault();
