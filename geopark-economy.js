@@ -47,7 +47,7 @@ const num=v=>v==null||v===""||!Number.isFinite(Number(v))?null:Number(v);
 const clean=v=>String(v==null?"":v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
 function km(aLat,aLon,bLat,bLon){const rad=x=>x*Math.PI/180,dLat=rad(bLat-aLat),dLon=rad(bLon-aLon),h=Math.sin(dLat/2)**2+Math.cos(rad(aLat))*Math.cos(rad(bLat))*Math.sin(dLon/2)**2;return 6371*2*Math.asin(Math.sqrt(h));}
 function distanceLabel(d){return d==null?"—":d<1?Math.round(d*1000)+" m":d.toFixed(1)+" km";}
-function compactUSD(v){return v==null?"Tidak tersedia":new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:1}).format(v);}
+function compactUSD(v){return v==null?"Not available":new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:1}).format(v);}
 function setStatus(message,tone="neutral"){
  const el=$("statusLine");el.textContent=message;el.className="status-line"+(tone==="error"?" error":tone==="success"?" success":"");
 }
@@ -148,7 +148,7 @@ function populateDestinationFilters(){
  const source=destinationSource(),categorySelect=$("designationFilter"),countrySelect=$("designationCountryFilter");
  const oldCategory=categorySelect.value,oldCountry=countrySelect.value;
  if(source==="unesco"){
-  categorySelect.innerHTML='<option value="all">Semua situs UNESCO</option><option value="world_heritage">World Heritage Site</option><option value="geopark">Global Geopark</option><option value="biosphere_reserve">Biosphere Reserve</option>';
+  categorySelect.innerHTML='<option value="all">All UNESCO sites</option><option value="world_heritage">World Heritage Site</option><option value="geopark">Global Geopark</option><option value="biosphere_reserve">Biosphere Reserve</option>';
  }else{
   const labels=destinationCategoryLabels(),available=[...new Set(state.tourismPlaces.map(site=>site.category).filter(Boolean))].sort((a,b)=>(labels[a]||a).localeCompare(labels[b]||b));
   const options=[["all","Semua destinasi wisata"],...available.map(value=>[value,labels[value]||value.replaceAll("_"," ")])];
@@ -158,7 +158,7 @@ function populateDestinationFilters(){
  else categorySelect.value="all";
  const items=currentDestinationItems();
  const countries=[...new Set(items.flatMap(siteCountryList).filter(name=>name&&name!=="Country not specified"))].sort((a,b)=>a.localeCompare(b));
- countrySelect.innerHTML='<option value="all">Semua negara</option>'+countries.map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join("");
+ countrySelect.innerHTML='<option value="all">All countries</option>'+countries.map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join("");
  if(countries.some(name=>clean(name)===clean(oldCountry)))countrySelect.value=countries.find(name=>clean(name)===clean(oldCountry));
  else countrySelect.value="all";
  const note=$("destinationSourceNote");
@@ -194,10 +194,10 @@ function renderDesignatedSiteOptions(open=true){
  list.hidden=!open;
  input.setAttribute("aria-expanded",open?"true":"false");
  list.querySelectorAll("[data-destination-id]").forEach(button=>button.addEventListener("click",()=>goToDesignatedSite(button.dataset.destinationId)));
- if(matches.length>shown.length)designatedSiteStatus("Menampilkan "+shown.length+" dari "+matches.length+" hasil. Tambahkan kata pencarian atau pilih negara.");
+ if(matches.length>shown.length)designatedSiteStatus("Showing "+shown.length+" of "+matches.length+" results. Tambahkan kata pencarian atau pilih negara.");
  else if(items.length)designatedSiteStatus(matches.length+" destinasi cocok · pilih salah satu untuk memindahkan pin.", "success");
- else if(source==="tourism")designatedSiteStatus("Katalog wisata tidak tersedia saat ini. Kolom Cari lokasi tetap dapat digunakan.","error");
- else designatedSiteStatus("Katalog UNESCO belum tersedia. Kolom Cari lokasi tetap dapat digunakan.","error");
+ else if(source==="tourism")designatedSiteStatus("Tourism catalogue is unavailable. You can still use location search.","error");
+ else designatedSiteStatus("UNESCO catalogue is unavailable. You can still use location search.","error");
 }
 function goToDesignatedSite(id){
  const site=currentDestinationItems().find(item=>item.id===id);if(!site)return;
@@ -214,7 +214,7 @@ async function ensureTourismPlaces(){
  if(state.tourismPlaces.length)return state.tourismPlaces;
  if(state.tourismPromise)return state.tourismPromise;
  state.tourismPromise=(async()=>{
-  designatedSiteStatus("Memuat katalog Tourism destinations…");
+  designatedSiteStatus("Loading tourism destination catalogue…");
   const cached=cacheRead("gpir:tourism-places:v1",DESIGNATED_CACHE_TTL);
   if(Array.isArray(cached)&&cached.length){
    state.tourismPlaces=cached;
@@ -250,7 +250,7 @@ async function ensureDesignatedSites(){
  if(state.designatedSites.length)return state.designatedSites;
  if(state.designatedPromise)return state.designatedPromise;
  state.designatedPromise=(async()=>{
-  designatedSiteStatus("Memuat katalog UNESCO…");
+  designatedSiteStatus("Loading UNESCO catalogue…");
   let items=[];
   const cached=cacheRead("gpir:designated-sites:v1",DESIGNATED_CACHE_TTL);
   if(Array.isArray(cached)&&cached.length)items=cached;
@@ -272,9 +272,9 @@ async function ensureDesignatedSites(){
   items.forEach(site=>{if(site&&site.id&&Number.isFinite(site.lat)&&Number.isFinite(site.lon))unique.set(site.id,site);});
   state.designatedSites=[...unique.values()].sort((a,b)=>a.country.localeCompare(b.country)||a.name.localeCompare(b.name));
   if(state.designatedSites.length){
-   designatedSiteStatus(state.designatedSites.length.toLocaleString()+" situs tersedia dari UNESCO DataHub. Filter menurut jenis situs dan negara, atau ketik nama.");
+   designatedSiteStatus(state.designatedSites.length.toLocaleString()+" situs tersedia of UNESCO DataHub. Filter menurut jenis situs dan negara, atau ketik nama.");
   }else{
-   designatedSiteStatus("Katalog situs UNESCO belum dapat dimuat. Pencarian lokasi biasa tetap tersedia.", "error");
+   designatedSiteStatus("The UNESCO site catalogue could not be loaded. Location search remains available.", "error");
   }
   return state.designatedSites;
  })();
@@ -289,7 +289,7 @@ async function ensureDestinationSource(){
   return currentDestinationItems();
  }catch(error){
   console.warn("Destination catalog load failed",error);
-  designatedSiteStatus("Katalog tidak dapat dimuat: "+error.message+". Gunakan Cari lokasi untuk mencari tempat.","error");
+  designatedSiteStatus("Catalogue could not be loaded: "+error.message+". Use location search to find a place.","error");
   return [];
  }
 }
@@ -306,7 +306,7 @@ function initDesignatedSitePicker(){
   const exact=matches.find(site=>clean(site.name)===query||clean(siteLabel(site))===query);
   if(exact){goToDesignatedSite(exact.id);return;}
   if(matches.length===1){goToDesignatedSite(matches[0].id);return;}
-  if(matches.length>1){renderDesignatedSiteOptions(true);designatedSiteStatus(matches.length+" hasil ditemukan. Pilih salah satu situs dalam daftar.");return;}
+  if(matches.length>1){renderDesignatedSiteOptions(true);designatedSiteStatus(matches.length+" results ditemukan. Pilih salah satu situs dalam daftar.");return;}
   if(query.length>=3){$("locationSearch").value=input.value;closeDesignatedSiteOptions();searchLocation();return;}
   renderDesignatedSiteOptions(true);
  });
@@ -319,7 +319,7 @@ function initDesignatedSitePicker(){
  ["designationFilter","designationCountryFilter"].forEach(id=>$(id).addEventListener("change",()=>renderDesignatedSiteOptions(!list.hidden)));
  document.addEventListener("click",event=>{if(!event.target.closest(".destination-combo"))closeDesignatedSiteOptions();});
  list.addEventListener("keydown",event=>{if(event.key==="Escape"){closeDesignatedSiteOptions();input.focus();}});
- ensureDestinationSource().then(()=>renderDesignatedSiteOptions(false)).catch(error=>{console.warn("Destination catalogue failed",error);designatedSiteStatus("Katalog tidak tersedia. Gunakan Cari lokasi untuk mencari nama tempat.","error");});
+ ensureDestinationSource().then(()=>renderDesignatedSiteOptions(false)).catch(error=>{console.warn("Destination catalogue failed",error);designatedSiteStatus("Catalogue unavailable. Use location search to find a place.","error");});
 }
 const UN_TOURISM_MANIFEST_URL=GPIR_BASE_URL+"data/un_tourism/manifest.json";
 const UN_TOURISM_SHEETS_URL=GPIR_BASE_URL+"data/un_tourism/sheets/";
@@ -376,10 +376,10 @@ async function loadUnTourismManifest(){
    dataSheets.find(item=>/inbound_arrivals.*02_Data/i.test(item.file))||
    dataSheets[0];
   if(preferred)select.value=preferred.file;
-  setUnTourismStatus("Manifest tersedia · "+dataSheets.length+" dataset resmi. Pilih satu dataset lalu klik Muat statistik.");
+  setUnTourismStatus("Manifest available · "+dataSheets.length+" official datasets available. Select a dataset and click Load statistics.");
  }catch(error){
-  select.innerHTML='<option value="">Dataset tidak tersedia</option>';select.disabled=true;
-  setUnTourismStatus("Gagal memuat manifest UN Tourism: "+error.message,"error");
+  select.innerHTML='<option value="">Dataset unavailable</option>';select.disabled=true;
+  setUnTourismStatus("Could not load UN Tourism manifest: "+error.message,"error");
  }
 }
 function normalizeUnTourismWorksheet(raw,item){
@@ -454,10 +454,10 @@ function populateUnTourismFilters(){
 async function loadUnTourismDataset(){
  const file=$("unTourismDatasetSelect").value;
  const dataset=state.unTourismDatasets.find(item=>item.file===file);
- if(!dataset){setUnTourismStatus("Pilih dataset UN Tourism terlebih dahulu.","error");return;}
- const button=$("unTourismLoadBtn");button.disabled=true;button.textContent="Memuat…";
+ if(!dataset){setUnTourismStatus("Select a UN Tourism dataset first.","error");return;}
+ const button=$("unTourismLoadBtn");button.disabled=true;button.textContent="Loading…";
  $("unTourismFilters").hidden=true;
- setUnTourismStatus("Mengunduh dan membaca "+statDatasetTitle(dataset)+"… File besar dapat memerlukan beberapa saat.");
+ setUnTourismStatus("Downloading and reading "+statDatasetTitle(dataset)+"… Large files may take a moment.");
  try{
   const response=await fetch(UN_TOURISM_SHEETS_URL+encodeURIComponent(dataset.file),{cache:"force-cache",headers:{Accept:"application/json"}});
   if(!response.ok)throw new Error("Dataset HTTP "+response.status);
@@ -466,11 +466,11 @@ async function loadUnTourismDataset(){
   state.unTourismDataset=dataset;state.unTourismRaw=raw;state.unTourismHeaders=parsed.headers;state.unTourismRecords=parsed.records;
   populateUnTourismFilters();
   const years=[...new Set(parsed.records.map(row=>row.year).filter(Number.isFinite))];
-  setUnTourismStatus("Dataset siap · "+parsed.records.length.toLocaleString("id-ID")+" observasi · "+new Set(parsed.records.map(row=>row.country)).size+" negara/area · tahun "+(years.length?Math.min(...years)+"–"+Math.max(...years):"tidak tersedia")+". Pilih indikator/tahun, lalu tampilkan di peta.","success");
+  setUnTourismStatus("Dataset ready · "+parsed.records.length.toLocaleString("id-ID")+" observations · "+new Set(parsed.records.map(row=>row.country)).size+" countries/areas · years "+(years.length?Math.min(...years)+"–"+Math.max(...years):"not available")+". Choose an indicator and year, then display it on the map.","success");
  }catch(error){
   state.unTourismDataset=null;state.unTourismRaw=null;state.unTourismHeaders=[];state.unTourismRecords=[];
-  setUnTourismStatus("Gagal memuat statistik: "+error.message,"error");
- }finally{button.disabled=false;button.textContent="Muat statistik";}
+  setUnTourismStatus("Could not load statistics: "+error.message,"error");
+ }finally{button.disabled=false;button.textContent="Load statistics";}
 }
 function mapCountryCoordinate(row,countries){
  const iso=String(row.countryCode||"").toUpperCase();
@@ -510,7 +510,7 @@ function renderUnTourismLayer(){
  const rows=state.unTourismRecords.filter(row=>row.indicator===indicator&&row.year===year&&row.value!=null&&(
   !breakdown||String(row.extras[breakdown.slice(0,breakdown.indexOf("::"))]??"")===breakdown.slice(breakdown.indexOf("::")+2)
  ));
- if(!rows.length){setUnTourismStatus("Tidak ada nilai untuk indikator dan tahun tersebut. Pilih filter lain.","error");return;}
+ if(!rows.length){setUnTourismStatus("No values are available for that indicator and year. Try another filter.","error");return;}
  const byCountry=new Map();
  rows.forEach(row=>{const key=clean(row.country);if(!byCountry.has(key))byCountry.set(key,[]);byCountry.get(key).push(row);});
  const uniqueRows=[],ambiguous=[];
@@ -525,7 +525,7 @@ function renderUnTourismLayer(){
   layer.clearLayers();
   if(state.map.hasLayer(layer))state.map.removeLayer(layer);
   if(!points.length){
-   setUnTourismStatus("Tidak ada titik negara yang cocok dengan nama pada dataset ini. Data statistik tidak dipetakan agar lokasi tidak ditebak.","error");
+   setUnTourismStatus("No country coordinates match this dataset. Statistics were not mapped rather than guessing locations.","error");
    return;
   }
   const maxValue=Math.max(...points.map(point=>Math.abs(point.row.value)),1);
@@ -548,13 +548,13 @@ function renderUnTourismLayer(){
   const note=ambiguous.length?(" "+ambiguous.length+" negara tidak ditampilkan karena memiliki beberapa baris kategori; pilih Klasifikasi untuk mempersempit."): "";
   const unmatched=uniqueRows.length-points.length;
   const unitNote=units.length===1?" Unit: "+units[0]+".":" Unit mengikuti baris sumber.";
-  setUnTourismStatus("Layer aktif · "+points.length+" marker negara untuk "+indicator+" ("+year+"). Ukuran marker menunjukkan nilai relatif dalam dataset terpilih; titik memakai koordinat referensi negara/ibu kota, bukan batas wilayah."+unitNote+note+(unmatched?" "+unmatched+" negara dilewati karena koordinat/nama tidak cocok.":""),"success");
- }).catch(error=>setUnTourismStatus("Gagal menyiapkan titik negara: "+error.message,"error"))
- .finally(()=>{showBtn.disabled=false;showBtn.textContent="Tampilkan statistik di peta";});
+  setUnTourismStatus("Layer active · "+points.length+" country markers for "+indicator+" ("+year+"). Marker size shows relative values in the selected dataset; points use country/capital reference coordinates, not territorial boundaries."+unitNote+note+(unmatched?" "+unmatched+" countries were skipped because coordinates/names did not match.":""),"success");
+ }).catch(error=>setUnTourismStatus("Could not prepare country points: "+error.message,"error"))
+ .finally(()=>{showBtn.disabled=false;showBtn.textContent="Show statistics on map";});
 }
 function clearUnTourismLayer(){
  if(state.unTourismLayer){state.unTourismLayer.clearLayers();if(state.map.hasLayer(state.unTourismLayer))state.map.removeLayer(state.unTourismLayer);}
- setUnTourismStatus("Layer UN Tourism disembunyikan. Pin analisis lokasi tidak berubah.");
+ setUnTourismStatus("UN Tourism layer hidden. The analysis pin is unchanged.");
 }
 function initUnTourismLayer(){
  state.unTourismLayer=L.layerGroup();
@@ -570,7 +570,7 @@ function initMap(){
  state.linkLayer=L.layerGroup().addTo(state.map);
  state.marketLayer=L.layerGroup().addTo(state.map);
  L.control.scale({imperial:false,position:"bottomleft"}).addTo(state.map);
- state.map.on("click",event=>{if(!state.siteContext)setOrigin(event.latlng,true,"Pin peta");});
+ state.map.on("click",event=>{setOrigin(event.latlng,true,state.siteContext?"Custom analysis point":"Map pin");});
  setTimeout(()=>state.map.invalidateSize(),150);
 }
 function setOrigin(latlng,analyze=true,label="Lokasi pin"){
@@ -578,13 +578,13 @@ function setOrigin(latlng,analyze=true,label="Lokasi pin"){
  if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat<-90||lat>90||lon<-180||lon>180)return;
  state.origin={lat,lon,label};
  if(!state.originMarker){
-  state.originMarker=L.marker([lat,lon],{icon:originIcon(),draggable:!state.siteContext,keyboard:true,title:state.siteContext?"Situs UNESCO terpilih":"Titik potensi — bisa diseret"}).addTo(state.map);
-  state.originMarker.bindTooltip(state.siteContext?"Koordinat situs UNESCO terpilih":"Titik potensi · seret untuk memindahkan",{direction:"top",offset:[0,-15]});
+  state.originMarker=L.marker([lat,lon],{icon:originIcon(),draggable:true,keyboard:true,title:state.siteContext?"Selected UNESCO site — draggable":"Potential location — draggable"}).addTo(state.map);
+  state.originMarker.bindTooltip(state.siteContext?"Selected UNESCO site · drag to explore nearby areas":"Potential location · drag to move",{direction:"top",offset:[0,-15]});
   state.originMarker.on("dragend",()=>{const p=state.originMarker.getLatLng();setOrigin(p,true,"Pin yang digeser");});
  }else state.originMarker.setLatLng([lat,lon]);
  $("mapSubtitle").textContent=label+" · "+lat.toFixed(4)+", "+lon.toFixed(4);
- $("overallStatus").textContent="Pin aktif · "+lat.toFixed(3)+", "+lon.toFixed(3);
- setOverall("Pin aktif · analisis titik","green");
+ $("overallStatus").textContent="Active pin · "+lat.toFixed(3)+", "+lon.toFixed(3);
+ setOverall("Active pin · analisis titik","green");
  if(analyze)analyzePoint();
 }
 function cacheRead(key,ttl){try{const o=JSON.parse(sessionStorage.getItem(key)||"null");if(o&&o.savedAt&&Date.now()-o.savedAt<ttl)return o.data;}catch(_){}return null;}
@@ -649,7 +649,7 @@ async function fetchNearby(lat,lon){
     const tags=el.tags||{},plat=num(el.lat!=null?el.lat:el.center&&el.center.lat),plon=num(el.lon!=null?el.lon:el.center&&el.center.lon);
     if(plat==null||plon==null)return;
     const distance=km(lat,lon,plat,plon);if(distance>5.01)return;
-    const id=el.type+"/"+el.id,name=tags.name||tags.brand||tags.operator||tags.craft||"Lokasi tanpa nama";
+    const id=el.type+"/"+el.id,name=tags.name||tags.brand||tags.operator||tags.craft||"Unnamed location";
     unique.set(id,{id,name,category:poiCategory(tags),lat:plat,lon:plon,distance,tags,source:"OpenStreetMap",url:tags.website||tags["contact:website"]||""});
    });
    const rows=[...unique.values()].sort((a,b)=>a.distance-b.distance);
@@ -785,7 +785,7 @@ function renderOpportunityCards(terms,tradeMatches){
  state.opportunities=scored;
  const display=filter==="auto"?scored.slice(0,5):scored;
  $("ideaSummary").textContent=display.length+" ide";
- if(!display.length){$("opportunityResults").innerHTML='<div class="empty">Tidak ada ide pada filter ini.</div>';return;}
+ if(!display.length){$("opportunityResults").innerHTML='<div class="empty">No opportunities match these filters.</div>';return;}
  $("opportunityResults").innerHTML=display.map((opp,i)=>{
   const s=opp._score;
   const reasons=[];
@@ -793,7 +793,7 @@ function renderOpportunityCards(terms,tradeMatches){
   if(s.tourism.length&&s.tourismPoints)reasons.push(s.tourism.length+" atraksi wisata dalam 5 km");
   if(s.localRelevant.length)reasons.push(s.localRelevant.length+" titik ekosistem lokal terkait");
   if(s.matchedTrade.length)reasons.push(s.matchedTrade.length+" sinyal impor produk");
-  const why=reasons.length?reasons.join(" · "):"Belum ada sinyal spesifik yang cocok; validasi lapangan tetap diperlukan.";
+  const why=reasons.length?reasons.join(" · "):"No specific matching signal was found; field validation is still required.";
   const tag=opp.business_type==="service"?"Jasa":opp.business_type==="grow"?"Budidaya":"Produk";
   return '<article class="potential-card"><div class="card-top"><h4>'+(i+1)+". "+esc(opp.title)+'</h4><span class="card-tag">'+esc(tag)+'</span></div><p>'+esc(opp.action_summary||opp.rationale||"Ide untuk diuji secara lokal.")+'</p><p class="card-meta">Kecocokan konteks: <b>'+s.score+'/100</b> · Modal indikatif '+esc(moneyIDR(opp.capital_min_idr))+'–'+esc(moneyIDR(opp.capital_max_idr))+'</p><p>'+esc(why)+'</p><div class="card-actions"><button type="button" data-select-opp="'+esc(opp.id)+'">Telusuri potensi</button><a class="btn" style="min-height:28px;padding:5px 7px;font-size:9px" href="./enterprise.html">Buka SME Finder ↗</a></div></article>';
  }).join("");
@@ -857,11 +857,11 @@ function drawLocalMap(terms){
 function renderLocalCards(){
  const locals=state.pois.filter(p=>p.category==="tourism"&&p.distance<5&&$("showTourism").checked||p.category!=="tourism"&&p.distance<=5&&$("showLocal").checked).sort((a,b)=>a.distance-b.distance).slice(0,12);
  $("localSummary").textContent=locals.length+" titik · radius 5 km";
- if(!locals.length){$("localResults").innerHTML='<div class="empty">Tidak ada titik yang cocok pada data peta untuk radius ini. Ini tidak membuktikan tidak ada usaha atau atraksi lain.</div>';return;}
+ if(!locals.length){$("localResults").innerHTML='<div class="empty">No mapped points match this radius. This does not prove that other businesses or attractions do not exist.</div>';return;}
  $("localResults").innerHTML=locals.map(p=>{
   const tag=p.category==="tourism"?"tourism":"local";
   const type=poiLabel(p.category);
-  return '<article class="potential-card"><div class="card-top"><h4>'+esc(p.name)+'</h4><span class="card-tag '+tag+'">'+esc(type)+'</span></div><p class="card-meta">'+distanceLabel(p.distance)+' dari pin · '+esc(p.source)+'</p><div class="card-actions"><button type="button" data-zoom-poi="'+esc(p.id)+'">Zoom to link</button>'+(p.url?'<a class="btn" style="min-height:28px;padding:5px 7px;font-size:9px" target="_blank" rel="noopener" href="'+esc(p.url)+'">Sumber ↗</a>':"")+'</div></article>';
+  return '<article class="potential-card"><div class="card-top"><h4>'+esc(p.name)+'</h4><span class="card-tag '+tag+'">'+esc(type)+'</span></div><p class="card-meta">'+distanceLabel(p.distance)+' of pin · '+esc(p.source)+'</p><div class="card-actions"><button type="button" data-zoom-poi="'+esc(p.id)+'">Zoom to link</button>'+(p.url?'<a class="btn" style="min-height:28px;padding:5px 7px;font-size:9px" target="_blank" rel="noopener" href="'+esc(p.url)+'">Sumber ↗</a>':"")+'</div></article>';
  }).join("");
  $("localResults").querySelectorAll("[data-zoom-poi]").forEach(btn=>btn.addEventListener("click",()=>zoomLocalPoi(btn.dataset.zoomPoi)));
 }
@@ -873,11 +873,11 @@ function zoomLocalPoi(id){
 function renderMarketCards(){
  const rows=state.marketSignals;
  $("marketSummary").textContent=rows.length+" negara / lokasi tujuan";
- if(!$("showInternational").checked){$("marketResults").innerHTML='<div class="empty">Layer internasional sedang dinonaktifkan.</div>';return;}
- if(!rows.length){$("marketResults").innerHTML='<div class="empty">Belum ada observasi impor yang cocok dalam snapshot GPIR untuk kata kunci ini. Data terbatas bukan bukti bahwa permintaan tidak ada. Untuk Belanda, cek lagi setelah feed Comtrade diperbarui dengan reporter NLD.</div>';return;}
+ if(!$("showInternational").checked){$("marketResults").innerHTML='<div class="empty">The international layer is disabled.</div>';return;}
+ if(!rows.length){$("marketResults").innerHTML='<div class="empty">No matching import observations were found in the current GPIR snapshot. Limited data does not prove that demand is absent. For the Netherlands, check again after the Comtrade feed is refreshed with NLD as reporter.</div>';return;}
  $("marketResults").innerHTML=rows.map((m,i)=>{
   const top=m.topSignal||{},growth=num(top.yoy_growth_pct),value=num(top.latest_import_usd);
-  const status=growth!=null&&growth>0?"Nilai impor naik "+growth.toFixed(1)+"% YoY":growth!=null&&growth<0?"Nilai impor turun "+Math.abs(growth).toFixed(1)+"% YoY":"Belum ada sinyal pertumbuhan YoY yang dapat dibaca";
+  const status=growth!=null&&growth>0?"Import value increased "+growth.toFixed(1)+"% YoY":growth!=null&&growth<0?"Import value decreased "+Math.abs(growth).toFixed(1)+"% YoY":"No readable year-on-year growth signal is available";
   return '<article class="potential-card"><div class="card-top"><h4>'+esc(m.name)+'</h4><span class="card-tag trade">'+esc(m.iso)+'</span></div><p><b>'+esc(top.product_name||"Produk cocok")+'</b></p><p class="card-meta">'+esc(status)+' · Tahun '+esc(top.latest_year||"—")+'</p><p>Nilai impor dilaporkan: <b>'+esc(compactUSD(value))+'</b>. Ini arus perdagangan nasional, bukan penjualan lokal atau purchase order.</p><p class="card-meta">'+m.signals.length+' observasi cocok · skor sinyal '+Math.round(m.score)+'</p><div class="card-actions"><button type="button" data-zoom-market="'+esc(m.iso)+'">Zoom to link ↗</button></div></article>';
  }).join("");
  $("marketResults").querySelectorAll("[data-zoom-market]").forEach(btn=>btn.addEventListener("click",()=>zoomMarket(btn.dataset.zoomMarket)));
@@ -900,11 +900,11 @@ function renderAll(terms,matchedRows){
  $("dataModePill").className="pill "+(state.dataStatus==="live"?"green":"gold");
 }
 async function analyzePoint(){
- if(!state.origin){setStatus("Klik peta dunia untuk menaruh pin, atau cari lokasi terlebih dahulu.");return;}
+ if(!state.origin){setStatus("Click the map to place a pin, or search for a location first.");return;}
  const seq=++state.analyzeSequence,origin=state.origin;
  const terms=buildSearchTerms();state.lastTerms=terms;
- $("analyzeBtn").disabled=true;$("analyzeBtn").textContent="Menganalisis…";
- setStatus("Mencari titik sekitar dalam 5 km serta memuat sinyal impor yang relevan…");
+ $("analyzeBtn").disabled=true;$("analyzeBtn").textContent="Analysing…";
+ setStatus("Searching for mapped features within 5 km and loading relevant import signals…");
  setOverall("Analisis berjalan","gold");
  const outcomes=await Promise.allSettled([fetchNearby(origin.lat,origin.lon),ensureTradeFeed(),ensureCountryContext()]);
  if(seq!==state.analyzeSequence)return;
@@ -918,36 +918,36 @@ async function analyzePoint(){
  const finalTerms=buildSearchTerms(),matchedRows=findTradeMatches(finalTerms);
  renderAll(finalTerms,matchedRows);
  const notes=[];
- notes.push(state.pois.length+" titik peta ditemukan dalam radius 5 km");
+ notes.push(state.pois.length+" mapped features found within a 5 km radius");
  notes.push(state.marketSignals.length+" pasar dengan sinyal cocok");
- if(outcomes[0].status==="rejected")notes.push("peta lokal tidak tersedia");
- if(outcomes[1].status==="rejected")notes.push("feed perdagangan tidak tersedia");
+ if(outcomes[0].status==="rejected")notes.push("peta lokal not available");
+ if(outcomes[1].status==="rejected")notes.push("feed perdagangan not available");
  if(!finalTerms.length)notes.push("isi sumber daya untuk menemukan sinyal produk");
- setStatus(notes.join(" · ")+". Periksa sumber dan validasi buyer sebelum investasi.",outcomes[0].status==="fulfilled"?"success":"error");
- setOverall(state.marketSignals.length?"Sinyal lokal & global ditemukan":"Peta dianalisis · sinyal pasar terbatas",state.marketSignals.length?"green":"gold");
+ setStatus(notes.join(" · ")+". Check sources and validate buyers before investing.",outcomes[0].status==="fulfilled"?"success":"error");
+ setOverall(state.marketSignals.length?"Local and global signals found":"Map analysed · limited market signals",state.marketSignals.length?"green":"gold");
  $("analyzeBtn").disabled=false;$("analyzeBtn").textContent="Analisis titik ↗";
 }
 async function searchLocation(){
  const query=$("locationSearch").value.trim();
- if(query.length<3){setStatus("Masukkan nama tempat yang lebih lengkap, lalu klik Cari lokasi.");return;}
- $("searchLocationBtn").disabled=true;setStatus("Mencari koordinat lokasi…");
+ if(query.length<3){setStatus("Enter a more specific place name, then click Search location.");return;}
+ $("searchLocationBtn").disabled=true;setStatus("Finding location coordinates…");
  try{
   const key="gpir:potential-geocode:"+clean(query);
   let result=cacheRead(key,30*24*60*60*1000);
   if(!result){
    const response=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(query),{headers:{Accept:"application/json"}});
    if(!response.ok)throw new Error("Nominatim HTTP "+response.status);
-   const results=await response.json();if(!results.length)throw new Error("Lokasi tidak ditemukan. Coba nama kecamatan/kabupaten dan negara.");
+   const results=await response.json();if(!results.length)throw new Error("Location not found. Try a district/municipality and country name.");
    result=results[0];cacheWrite(key,result);
   }
   setOrigin({lat:Number(result.lat),lng:Number(result.lon)},true,result.display_name||query);
   state.map.setView([Number(result.lat),Number(result.lon)],11);
- }catch(error){setStatus("Pencarian lokasi gagal: "+error.message,"error");}
+ }catch(error){setStatus("Location search failed: "+error.message,"error");}
  finally{$("searchLocationBtn").disabled=false;}
 }
 function useMyLocation(){
- if(!navigator.geolocation){setStatus("Browser tidak mendukung geolokasi; cari lokasi secara manual.");return;}
- $("myLocationBtn").disabled=true;setStatus("Meminta izin lokasi dari browser…");
+ if(!navigator.geolocation){setStatus("This browser does not support geolocation. Search manually.");return;}
+ $("myLocationBtn").disabled=true;setStatus("Meminta izin lokasi of browser…");
  navigator.geolocation.getCurrentPosition(p=>{
   $("myLocationBtn").disabled=false;
   const lat=p.coords.latitude,lon=p.coords.longitude;
@@ -956,7 +956,7 @@ function useMyLocation(){
   state.map.setView([lat,lon],12);
  },err=>{
   $("myLocationBtn").disabled=false;
-  setStatus(err.code===1?"Izin lokasi tidak diberikan. Cari tempat secara manual.":"Lokasi tidak tersedia. Cari tempat secara manual.","error");
+  setStatus(err.code===1?"Location permission was denied. Search for a place manually.":"Lokasi not available. Cari tempat secara manual.","error");
  },{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
 }
 function zoomLocal(){if(state.localBounds)state.map.fitBounds(state.localBounds,{padding:[40,40],maxZoom:14});else if(state.origin)state.map.setView([state.origin.lat,state.origin.lon],13);}
@@ -967,12 +967,12 @@ function clearOrigin(){
  state.origin=null;state.pois=[];state.marketSignals=[];state.opportunities=[];
  if(state.originMarker){state.map.removeLayer(state.originMarker);state.originMarker=null;}
  state.poiLayer.clearLayers();state.linkLayer.clearLayers();state.marketLayer.clearLayers();
- $("mapSubtitle").textContent="Peta dunia · belum ada titik aktif";
+ $("mapSubtitle").textContent="World map · no active location";
  $("tourismCount").textContent="—";$("localCount").textContent="—";$("marketCount").textContent="—";
  $("opportunityResults").innerHTML='<div class="empty">Letakkan pin lalu klik Analisis titik untuk melihat potensi.</div>';
  $("localResults").innerHTML='<div class="empty">Titik wisata, pasar, perajin, pemasok dan retail akan tampil di sini.</div>';
  $("marketResults").innerHTML='<div class="empty">Masukkan sumber daya atau pilih ide usaha untuk mencari kecocokan dengan data impor.</div>';
- $("dataModePill").textContent="BELUM DIPILIH";setStatus("Pin dihapus. Klik peta untuk memilih titik baru.");setOverall("Peta siap · letakkan pin","gray");
+ $("dataModePill").textContent="NOT SELECTED";setStatus("Pin cleared. Click the map to choose a new point.");setOverall("Peta siap · letakkan pin","gray");
  state.map.setView([18,10],2);
 }
 function refreshLayers(){
@@ -981,7 +981,7 @@ function refreshLayers(){
  renderAll(terms,matchedRows);
 }
 function populateCatalog(){
- $("opportunitySelect").innerHTML='<option value="auto">Otomatis dari sumber daya</option>'+state.catalog.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join("");
+ $("opportunitySelect").innerHTML='<option value="auto">Otomatis of sumber daya</option>'+state.catalog.map(o=>'<option value="'+esc(o.id)+'">'+esc(o.title)+'</option>').join("");
 }
 function readSiteContext(){
  const params=new URLSearchParams(window.location.search);
@@ -998,11 +998,7 @@ function applySiteContextUi(){
  $("pageSubtitle").textContent=site.name+(site.country?" · "+site.country:"")+" · selected source coordinates";
  $("heroEyebrow").textContent=site.siteType.toUpperCase()+" · LOCAL ECONOMY";
  $("heroTitle").textContent="Explore the local economy around "+site.name+".";
- $("heroDescription").textContent="This analysis is pinned to the selected UNESCO site. Explore nearby mapped places, services and optional global market signals without choosing another location.";
- const locationField=$("locationSearch").closest(".field");if(locationField)locationField.hidden=true;
- const searchButtons=$("searchLocationBtn").parentElement;if(searchButtons)searchButtons.hidden=true;
- const picker=$("tourism-picker-section");if(picker)picker.hidden=true;
- $("clearPointBtn").hidden=true;
+ $("heroDescription").textContent="The map starts at the selected UNESCO site. You can still search for another location, click the map or drag the pin to analyse a different area.";
  const firstHeading=document.querySelector(".sidebar-section .side-heading h3");
  if(firstHeading)firstHeading.textContent="01 · Economy & market filters";
 }
@@ -1010,7 +1006,7 @@ async function init(){
  if(!window.L){setStatus("Pustaka peta gagal dimuat. Coba muat ulang halaman.","error");return;}
  state.siteContext=readSiteContext();
  initMap();
- if(!state.siteContext){initDesignatedSitePicker();initUnTourismLayer();}
+ initDesignatedSitePicker();initUnTourismLayer();
  $("locationSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchLocation();}});
  $("searchLocationBtn").addEventListener("click",searchLocation);
  $("myLocationBtn").addEventListener("click",useMyLocation);
@@ -1035,9 +1031,10 @@ async function init(){
   if(resource)$("resourceInput").value=resource;
   setOrigin({lat:state.siteContext.lat,lng:state.siteContext.lon},false,state.siteContext.name);
   state.map.setView([state.siteContext.lat,state.siteContext.lon],12);
+  $("locationSearch").value=state.siteContext.name+(state.siteContext.country?", "+state.siteContext.country:"");
   analyzePoint();
  }else if(catalogLoaded){
-  setStatus("Peta siap. Klik peta untuk drop pin atau pilih contoh singkong/kerajinan; data global dimuat saat titik dianalisis.","success");
+  setStatus("Map ready. Click to place a pin or choose a sample resource; global data loads when you analyse a location.","success");
  }
 }
 
