@@ -918,9 +918,16 @@
         if(!usable.length)return null;
         return {indicator:indicator,year:String(usable[0].date||""),value:Number(usable[0].value),country:usable[0].country&&usable[0].country.value,source:"World Bank / FAO AQUASTAT"};
       }
+      function formatWaterStress(value){
+        return Number(value).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2});
+      }
+      function formatFreshwaterPerCapita(value){
+        return Math.round(Number(value)).toLocaleString("id-ID",{maximumFractionDigits:0});
+      }
       function waterMetric(title,item,unit,description){
         if(!item)return '<div class="climate-metric"><span>'+esc(title)+'</span><strong>—</strong><small>No usable country-year value supplied</small></div>';
-        return '<div class="climate-metric"><span>'+esc(title)+'</span><strong>'+esc(number(item.value))+' '+esc(unit)+'</strong><small>'+esc((item.year?"Latest available year: "+item.year+". ":"")+description)+'</small></div>';
+        const display=unit==="%"?formatWaterStress(item.value):formatFreshwaterPerCapita(item.value);
+        return '<div class="climate-metric"><span>'+esc(title)+'</span><strong>'+esc(display)+' '+esc(unit)+'</strong><small>'+esc((item.year?"Latest available year: "+item.year+". ":"")+description)+'</small></div>';
       }
       async function loadWaterSecurity(point){
         $("water-security-status").textContent="Resolving a single country and retrieving the latest available freshwater indicators…";
@@ -941,9 +948,9 @@
           state.waterContext.waterIndicators={point:point,countryCode:code,waterStress:stress,resourcesPerCapita:resources,available:!!(stress||resources),retrievedAt:new Date().toISOString()};
           if(!stress&&!resources)throw new Error("World Bank returned no non-null annual values for these indicators.");
           $("water-security-results").innerHTML='<div class="climate-grid">'+
-            waterMetric("Water stress",stress,"%","Freshwater withdrawals as a proportion of available resources; not a local measurement.")+
-            waterMetric("Renewable freshwater per capita",resources,"m³/person/year","Internal renewable freshwater resources per capita; national annual estimate.")+'</div>'+
-            '<div class="api-status">Country: '+esc((stress&&stress.country)||(resources&&resources.country)||point.country||code)+' ('+esc(code)+') · Source: World Bank Indicators API; freshwater indicator source is FAO AQUASTAT. Missing data are not zero.</div>';
+            waterMetric("Water stress",stress,"%","National indicator: freshwater withdrawals relative to available resources. Not a site measurement.")+
+            waterMetric("Renewable freshwater per capita",resources,"m³/person/year","National annual estimate of internal renewable freshwater resources per person; not a site measurement.")+'</div>'+
+            '<div class="api-status">Country: '+esc((stress&&stress.country)||(resources&&resources.country)||point.country||code)+' ('+esc(code)+') · Source: World Bank Indicators API; freshwater indicator source is FAO AQUASTAT. National-scale data; each value carries its own latest reported year. Missing data are not zero.</div>';
           $("water-security-status").textContent="Country-level indicators loaded where values are available.";
         }catch(error){
           state.waterContext.waterIndicators={point:point,available:false,reason:error.message};
@@ -985,33 +992,51 @@
         }
         const params=new URLSearchParams({
           latitude:String(point.lat),longitude:String(point.lon),
-          daily:"river_discharge,river_discharge_mean,river_discharge_max",
+          daily:"river_discharge,river_discharge_mean",
           past_days:"7",forecast_days:"30",timezone:"GMT",cell_selection:"land"
         });
         try{
           const payload=await apiJSON(FLOOD_API+"?"+params.toString(),null,1800000);
           const daily=payload.daily||{};
           const times=Array.isArray(daily.time)?daily.time:[];
-          const raw=Array.isArray(daily.river_discharge)&&daily.river_discharge.some(v=>v!==null)?daily.river_discharge:(daily.river_discharge_mean||[]);
-          const values=raw.map(v=>v===null||v===undefined?null:Number(v));
-          const available=values.filter(v=>v!==null&&Number.isFinite(v)&&v>=0);
-          if(!times.length||available.length<2)throw new Error("The model returned insufficient river-grid values for this coordinate.");
+          const base=Array.isArray(daily.river_discharge)?daily.river_discharge:[];
+          const ensembleMean=Array.isArray(daily.river_discharge_mean)?daily.river_discharge_mean:[];
+          const asValue=value=>(value===null||value===undefined||value===""||!Number.isFinite(Number(value)))?null:Number(value);
+          const historicalValues=times.map((_,i)=>asValue(base[i]));
+          const meanValues=times.map((_,i)=>asValue(ensembleMean[i]));
           const today=new Date().toISOString().slice(0,10);
           let latestPast=null,forecastPeak=null;
           times.forEach((date,i)=>{
-            const val=values[i];
-            if(val===null||!Number.isFinite(val))return;
-            if(date<=today)latestPast={date:date,value:val};
-            if(date>=today&&(!forecastPeak||val>forecastPeak.value))forecastPeak={date:date,value:val};
+            const historical=historicalValues[i];
+            if(date<=today&&historical!==null&&historical>=0)latestPast={date:date,value:historical};
+            const mean=meanValues[i];
+            if(date>today&&mean!==null&&mean>=0&&(!forecastPeak||mean>forecastPeak.value)){
+              forecastPeak={date:date,value:mean};
+            }
           });
-          const units=(payload.daily_units&&payload.daily_units.river_discharge)||(payload.daily_units&&payload.daily_units.river_discharge_mean)||"m³/s";
-          state.waterContext.flood={point:point,available:true,times:times,values:values,units:units,latestPast:latestPast,forecastPeak:forecastPeak,source:"Open-Meteo Flood API / GloFAS",retrievedAt:new Date().toISOString(),gridResolution:"about 5 km"};
+          // Use the regular daily model series for past/current dates and ensemble mean
+          // for future dates, so the chart and the forecast headline have explicit semantics.
+          const plotValues=times.map((date,i)=>{
+            if(date<today)return historicalValues[i];
+            if(date===today)return historicalValues[i]!==null?historicalValues[i]:meanValues[i];
+            return meanValues[i];
+          });
+          const usable=plotValues.filter(v=>v!==null&&Number.isFinite(v)&&v>=0);
+          if(!times.length||usable.length<2)throw new Error("The model returned insufficient river-grid values for this coordinate.");
+          const units=(payload.daily_units&&payload.daily_units.river_discharge_mean)||(payload.daily_units&&payload.daily_units.river_discharge)||"m³/s";
+          state.waterContext.flood={
+            point:point,available:true,times:times,values:plotValues,units:units,
+            historicalValues:historicalValues,ensembleMeanValues:meanValues,
+            latestPast:latestPast,forecastPeak:forecastPeak,
+            forecastSeries:"river_discharge_mean",source:"Open-Meteo Flood API / GloFAS",
+            retrievedAt:new Date().toISOString(),gridResolution:"about 5 km"
+          };
           $("hydrology-results").innerHTML='<div class="climate-grid">'+
-            '<div class="climate-metric"><span>Latest model value</span><strong>'+esc(latestPast?number(latestPast.value):"—")+' '+esc(units)+'</strong><small>'+esc(latestPast?latestPast.date:"No recent value returned")+'</small></div>'+
-            '<div class="climate-metric"><span>30-day forecast peak</span><strong>'+esc(forecastPeak?number(forecastPeak.value):"—")+' '+esc(units)+'</strong><small>'+esc(forecastPeak?forecastPeak.date:"No forecast value returned")+'</small></div>'+
+            '<div class="climate-metric"><span>Latest model value</span><strong>'+esc(latestPast?number(latestPast.value):"—")+' '+esc(units)+'</strong><small>'+esc(latestPast?latestPast.date:"No recent historical value returned")+'</small></div>'+
+            '<div class="climate-metric"><span>Peak ensemble-mean discharge (30 days)</span><strong>'+esc(forecastPeak?number(forecastPeak.value):"—")+' '+esc(units)+'</strong><small>'+esc(forecastPeak?forecastPeak.date:"No ensemble-mean forecast value returned")+'</small></div>'+
             '<div class="climate-metric"><span>Grid / resolution</span><strong>~5 km</strong><small>Nearest modeled river cell; river identity not guaranteed.</small></div></div>'+
-            renderDischargeChart(times,values)+
-            '<div class="api-status">Daily modeled discharge · '+esc(times[0])+' to '+esc(times[times.length-1])+' · Source: <a href="https://open-meteo.com/en/docs/flood-api" target="_blank" rel="noopener noreferrer">Open-Meteo Flood API / GloFAS</a>. This is not an official warning and should not be used alone for emergency decisions.</div>';
+            renderDischargeChart(times,plotValues)+
+            '<div class="api-status">Daily modeled discharge · '+esc(times[0])+' to '+esc(times[times.length-1])+'. Past/current values use <code>river_discharge</code>; the forecast headline uses <code>river_discharge_mean</code> (ensemble mean) and its highest daily value over the next 30 days. Source: <a href="https://open-meteo.com/en/docs/flood-api" target="_blank" rel="noopener noreferrer">Open-Meteo Flood API / GloFAS</a>. Attribution: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Weather data by Open-Meteo.com</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Adapted by this dashboard. Free API access is for non-commercial use; see <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">provider terms</a> for commercial API access. Not an official warning; do not use alone for emergency decisions.</div>';
           $("hydrology-status").textContent="Modeled river-discharge context loaded. Verify the river cell and compare with local hydrological sources.";
         }catch(error){
           state.waterContext.flood={point:point,available:false,reason:error.message};
@@ -1683,13 +1708,13 @@
         lines.push("","## 6. Hydrology, water security and climate","");
         const flood=state.waterContext.flood;
         if(flood&&flood.available){
-          lines.push("- **Modeled river discharge:** latest returned value "+(flood.latestPast?number(flood.latestPast.value)+" "+briefText(flood.units)+" on "+flood.latestPast.date:"not available")+"; highest value on current/future series "+(flood.forecastPeak?number(flood.forecastPeak.value)+" "+briefText(flood.units)+" on "+flood.forecastPeak.date:"not available")+".");
-          lines.push("- **Source:** "+markdownLink("Open-Meteo Flood API / GloFAS","https://open-meteo.com/en/docs/flood-api")+". Approximately 5 km grid; nearest cell may not be the river of interest. Not an official warning.");
+          lines.push("- **Modeled river discharge:** latest historical/current value "+(flood.latestPast?number(flood.latestPast.value)+" "+briefText(flood.units)+" on "+flood.latestPast.date:"not available")+"; peak ensemble-mean forecast over the next 30 days "+(flood.forecastPeak?number(flood.forecastPeak.value)+" "+briefText(flood.units)+" on "+flood.forecastPeak.date:"not available")+". The forecast peak is calculated from `river_discharge_mean`, not the ensemble maximum.");
+          lines.push("- **Source and attribution:** "+markdownLink("Open-Meteo Flood API / GloFAS","https://open-meteo.com/en/docs/flood-api")+"; "+markdownLink("Weather data by Open-Meteo.com","https://open-meteo.com/")+"; "+markdownLink("CC BY 4.0","https://creativecommons.org/licenses/by/4.0/")+". Approx. 5 km grid; dashboard-derived daily series/peak. Free API access is for non-commercial use; check "+markdownLink("provider terms","https://open-meteo.com/en/terms")+" for commercial API access. Not an official warning.");
         }else lines.push("- **Modeled river discharge:** "+(flood?("unavailable — "+briefText(flood.reason||"no usable data")):"not queried in this session")+".");
         const wi=state.waterContext.waterIndicators;
         if(wi&&wi.available){
-          lines.push("- **Country-level water stress:** "+(wi.waterStress?number(wi.waterStress.value)+"% (year "+wi.waterStress.year+")":"not available")+".");
-          lines.push("- **Renewable internal freshwater resources per capita:** "+(wi.resourcesPerCapita?number(wi.resourcesPerCapita.value)+" m³/person/year (year "+wi.resourcesPerCapita.year+")":"not available")+".");
+          lines.push("- **Country-level water stress:** "+(wi.waterStress?formatWaterStress(wi.waterStress.value)+"% (year "+wi.waterStress.year+")":"not available")+".");
+          lines.push("- **Renewable internal freshwater resources per capita:** "+(wi.resourcesPerCapita?formatFreshwaterPerCapita(wi.resourcesPerCapita.value)+" m³/person/year (year "+wi.resourcesPerCapita.year+")":"not available")+".");
           lines.push("- **Source:** "+markdownLink("World Bank Indicators API / FAO AQUASTAT","https://api.worldbank.org/")+". National indicators, not site measurements; indicator years can differ.");
         }else lines.push("- **Country indicators:** "+(wi?("unavailable — "+briefText(wi.reason||"country/value not resolved")):"not queried in this session")+".");
         const climate=state.waterContext.climate;
