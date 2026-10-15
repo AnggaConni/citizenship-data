@@ -187,7 +187,8 @@
 
         <section class="panel" id="climate-panel" aria-labelledby="climate-title">
           <div class="panel-head"><div><h2 id="climate-title">Hydrology, water security & climate</h2><p>Combine modeled river discharge at the selected point, country-level freshwater indicators, and meteorological context. These are complementary evidence layers—not a flood warning.</p></div><span class="source-count">3 SOURCES</span></div>
-          <div id="hydrology-status" class="api-status" role="status" aria-live="polite">Select a map location, then choose Water & climate to load river discharge context.</div>
+          <div id="hydrology-status" class="api-status" role="status" aria-live="polite">Select a mapped location, then load the three evidence layers below.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 10px"><button type="button" class="secondary-btn" id="load-water-panel" disabled><i class="fa-solid fa-water"></i> Load data for selected location</button><span class="research-note" style="margin:0">Modeled discharge, national indicators and gridded climate.</span></div>
           <div id="hydrology-results"></div>
           <div class="source-warning">Open-Meteo Flood API uses modeled GloFAS discharge at a roughly 5 km grid. The nearest river cell may not correspond to the river of interest. Do not interpret this as an official warning or site-specific forecast.</div>
           <div style="border-top:1px solid #e6ede3;margin-top:12px;padding-top:12px"><div class="panel-head" style="margin-bottom:7px"><div><h2 style="font-size:12px">Country water-security indicators</h2><p>World Bank indicators sourced from FAO AQUASTAT, where available.</p></div><span class="source-count">WORLD BANK</span></div><div id="water-security-status" class="api-status" role="status" aria-live="polite">Country-level results load when a selected location can be matched reliably to one country.</div><div id="water-security-results"></div></div>
@@ -502,6 +503,7 @@
         detail.innerHTML='<div class="selected-kicker">'+esc(item.kind)+'</div><h3>'+esc(item.name)+'</h3><div class="selected-meta">'+esc(meta)+'</div>'+(item.description?'<div class="selected-detail">'+esc(item.description.slice(0,700))+'</div>':'<div class="selected-detail">The source did not provide an additional description in this response.</div>')+'<div class="selected-links"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>';
         $("research-from-location").disabled=false;
         $("run-climate").disabled=false;
+        $("load-water-panel").disabled=false;
         let query="";
         if(item.type==="mab")query="Scientific evidence for biosphere reserves, landscape approaches, climate resilience, biodiversity conservation and sustainable livelihoods in "+(item.country||"Asia and the Pacific");
         else if(item.type==="geopark")query="Research on geopark conservation, geoeducation, geotourism and sustainable development for local communities in "+(item.country||"Asia and the Pacific");
@@ -884,6 +886,8 @@
         const candidate=String(point.countryCode||"").toUpperCase().trim();
         if(/^[A-Z]{2}$/.test(candidate)&&candidate!=="XX"&&candidate!=="ZZ")return candidate;
         const raw=String(point.country||"").trim();
+        const rawCode=raw.toUpperCase();
+        if(/^[A-Z]{2}$/.test(rawCode)&&rawCode!=="XX"&&rawCode!=="ZZ")return rawCode;
         if(!raw||/[;,|/]/.test(raw)||/\b(and|multiple|various)\b/i.test(raw))return "";
         const queryName=normalizedCountryName(raw);
         if(!queryName)return "";
@@ -1028,16 +1032,19 @@
         if(!state.selected){$("hydrology-status").textContent="Select a mapped location first.";return;}
         const point=state.selected;
         state.waterBusy=true;
-        const button=$("run-climate");button.disabled=true;
-        button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Loading water data…';
+        const buttons=[$("run-climate"),$("load-water-panel")];
+        buttons.forEach(button=>{button.disabled=true;button.setAttribute("aria-busy","true");button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Loading…';});
         state.waterContext={point:point};
         try{
           await Promise.allSettled([loadRiverDischarge(point),loadWaterSecurity(point),loadClimate(point)]);
           $("climate-panel").scrollIntoView({behavior:"smooth",block:"nearest"});
         }finally{
           state.waterBusy=false;
-          button.disabled=!state.selected;
-          button.innerHTML='<i class="fa-solid fa-water"></i> Water & climate';
+          buttons.forEach(button=>{
+            button.disabled=!state.selected;
+            button.removeAttribute("aria-busy");
+            button.innerHTML=button.id==="load-water-panel"?'<i class="fa-solid fa-water"></i> Load data for selected location':'<i class="fa-solid fa-water"></i> Water & climate';
+          });
         }
       }
       function briefText(value){
@@ -1876,6 +1883,7 @@
         document.querySelectorAll("[data-query]").forEach(button=>button.addEventListener("click",()=>{$("research-query").value=button.getAttribute("data-query");runResearch();}));
         $("research-from-location").addEventListener("click",()=>{if(!state.selected)return;$("research").scrollIntoView({behavior:"smooth",block:"start"});runResearch();});
         $("run-climate").addEventListener("click",loadWaterAndClimate);
+        $("load-water-panel").addEventListener("click",loadWaterAndClimate);
         $("build-brief").addEventListener("click",generateEvidenceBrief);
         $("download-brief").addEventListener("click",downloadEvidenceBrief);
         $("print-brief").addEventListener("click",printEvidenceBrief);
