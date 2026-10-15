@@ -382,8 +382,18 @@
       }
       function recordFields(row){
         if(!row || typeof row!=="object") return {};
-        if(row.fields && typeof row.fields==="object") return row.fields;
-        if(row.record && row.record.fields && typeof row.record.fields==="object") return row.record.fields;
+        // DataHub/API responses may expose coordinates and metadata either directly
+        // on the record or inside fields/record.fields. Preserve both layers so
+        // geometry is not lost when nested fields exist.
+        if(row.record && row.record.fields && typeof row.record.fields==="object"){
+          return Object.assign({},row,row.record,row.record.fields);
+        }
+        if(row.fields && typeof row.fields==="object"){
+          return Object.assign({},row,row.fields);
+        }
+        if(row.record && typeof row.record==="object"){
+          return Object.assign({},row,row.record);
+        }
         return row;
       }
       function getFirst(obj, keys){
@@ -393,27 +403,60 @@
         }
         return "";
       }
-      function parseCoordinates(props){
-        let raw = getFirst(props,["coordinates","geo_point_2d","geopoint","geo_point","location"]);
-        if(!raw && props.geometry && props.geometry.coordinates) raw = props.geometry.coordinates;
+      function parseCoordinateCandidate(value,geoJsonHint){
+        if(value===undefined||value===null||value==="")return null;
+        let raw=value;
         if(typeof raw==="string"){
-          const s=raw.trim();
-          try{raw=JSON.parse(s);}catch(e){
-            const nums=s.match(/-?\d+(?:\.\d+)?/g);
-            if(nums && nums.length>=2){
-              if(/POINT/i.test(s)) raw={lon:Number(nums[0]),lat:Number(nums[1])};
+          const source=raw.trim();
+          if(!source)return null;
+          try{raw=JSON.parse(source);}catch(e){
+            const nums=source.match(/-?\d+(?:\.\d+)?/g);
+            if(nums&&nums.length>=2){
+              if(/POINT\s*\(/i.test(source))raw={lon:Number(nums[0]),lat:Number(nums[1])};
               else raw={lat:Number(nums[0]),lon:Number(nums[1])};
-            }
+            }else return null;
           }
         }
         let lat,lon;
-        if(Array.isArray(raw) && raw.length>=2){lat=Number(raw[0]);lon=Number(raw[1]);}
-        else if(raw && typeof raw==="object"){
-          if(Array.isArray(raw.coordinates) && raw.coordinates.length>=2){lon=Number(raw.coordinates[0]);lat=Number(raw.coordinates[1]);}
-          else {lat=Number(getFirst(raw,["lat","latitude"]));lon=Number(getFirst(raw,["lon","lng","longitude"]));}
-        }
+        if(Array.isArray(raw)){
+          if(raw.length<2)return null;
+          // UNESCO's MAB "coordinates" field is a geo-point stored as [lat, lon].
+          // A geometry / GeoJSON Point follows GeoJSON order [lon, lat].
+          if(geoJsonHint){lon=Number(raw[0]);lat=Number(raw[1]);}
+          else{lat=Number(raw[0]);lon=Number(raw[1]);}
+        }else if(raw&&typeof raw==="object"){
+          if(Array.isArray(raw.coordinates)&&raw.coordinates.length>=2){
+            lon=Number(raw.coordinates[0]);lat=Number(raw.coordinates[1]);
+          }else{
+            const latRaw=getFirst(raw,["lat","latitude","y"]);
+            const lonRaw=getFirst(raw,["lon","lng","longitude","x"]);
+            if(latRaw===""||lonRaw==="")return null;
+            lat=Number(latRaw);lon=Number(lonRaw);
+          }
+        }else return null;
         if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
         return {lat:lat,lon:lon};
+      }
+      function parseCoordinates(props){
+        if(!props||typeof props!=="object")return null;
+        const candidates=[
+          {value:props.coordinates,geoJsonHint:false},
+          {value:props.geo_point_2d,geoJsonHint:false},
+          {value:props.geopoint,geoJsonHint:false},
+          {value:props.geo_point,geoJsonHint:false},
+          {value:props.location,geoJsonHint:false},
+          {value:props.geometry,geoJsonHint:true},
+          {value:props.geojson,geoJsonHint:true}
+        ];
+        for(const candidate of candidates){
+          const point=parseCoordinateCandidate(candidate.value,candidate.geoJsonHint);
+          if(point)return point;
+        }
+        if(props.geometry&&props.geometry.coordinates){
+          const point=parseCoordinateCandidate(props.geometry.coordinates,true);
+          if(point)return point;
+        }
+        return null;
       }
       function normalize(type,row){
         const p=recordFields(row);
@@ -516,7 +559,6 @@
         detail.innerHTML='<div class="selected-kicker">'+esc(item.kind)+'</div><h3>'+esc(item.name)+'</h3><div class="selected-meta">'+esc(meta)+'</div>'+(item.description?'<div class="selected-detail">'+esc(item.description.slice(0,700))+'</div>':'<div class="selected-detail">The source did not provide an additional description in this response.</div>')+'<div class="selected-links"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>';
         $("research-from-location").disabled=false;
         $("run-climate").disabled=false;
-        $("load-water-panel").disabled=false;
         let query="";
         if(item.type==="mab")query="Scientific evidence for biosphere reserves, landscape approaches, climate resilience, biodiversity conservation and sustainable livelihoods in "+(item.country||"Asia and the Pacific");
         else if(item.type==="geopark")query="Research on geopark conservation, geoeducation, geotourism and sustainable development for local communities in "+(item.country||"Asia and the Pacific");
@@ -530,17 +572,28 @@
         const cfg=DATASETS[type];
         try{
           const result=await fetchDataset(cfg.id,cfg.max);
-          const normalized=result.rows.map(row=>normalize(type,row)).filter(Boolean);
+          if(result.total>0&&result.rows.length===0){
+            throw new Error("UNESCO DataHub reports "+number(result.total)+" source records, but this API response contained no records. Retry the layer or check DataHub availability.");
+          }
+          let skippedCoordinates=0;
+          const normalized=result.rows.map(row=>{
+            const item=normalize(type,row);
+            if(!item)skippedCoordinates++;
+            return item;
+          }).filter(Boolean);
+          if(result.rows.length>0&&normalized.length===0){
+            throw new Error("Received "+number(result.rows.length)+" record(s), but none had coordinates the map could parse. The source schema or coordinate payload may have changed.");
+          }
           state.records[type]=normalized;
           renderLayer(type);
-          const label=cfg.name+": "+number(normalized.length)+" mapped point(s)";
           $("count-"+type).title=result.limited?"A limited subset was fetched from the source dataset.":"Loaded source records.";
           if(result.limited)$("count-"+type).textContent=number(normalized.length)+"+";
-          return {type:type,count:normalized.length,sourceTotal:result.total,limited:result.limited,ok:true};
+          return {type:type,count:normalized.length,sourceTotal:result.total,limited:result.limited,skippedCoordinates:skippedCoordinates,ok:true};
         }catch(error){
           state.records[type]=[];
           renderLayer(type);
           $("count-"+type).textContent="Error";
+          $("count-"+type).title=error.message;
           return {type:type,count:0,ok:false,error:error.message};
         }
       }
@@ -1804,6 +1857,11 @@
         setMapStatus("Refreshing layers…");
         setDatasetStatus("Fetching three public UNESCO DataHub layers. OBIS observations are loaded separately on demand.");
         $("reload-data").disabled=true;
+        ["mab","geopark","marine"].forEach(type=>{
+          $("count-"+type).textContent="…";
+          $("stat-"+type).textContent="…";
+          $("count-"+type).removeAttribute("title");
+        });
         const results=await Promise.all(["mab","geopark","marine"].map(loadLayer));
         const ok=results.filter(r=>r.ok);
         const points=results.reduce((sum,r)=>sum+r.count,0);
