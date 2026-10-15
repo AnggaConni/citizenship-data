@@ -142,6 +142,7 @@
           <div class="data-field"><label for="sdg-country">Reporting country / area</label><select id="sdg-country" class="data-select"><option value="360">Indonesia (M49 360)</option></select></div>
           <div class="data-field"><label for="sdg-series">Official indicator series</label><select id="sdg-series" class="data-select" disabled><option value="">Load metadata to choose a series…</option></select></div>
         </div>
+        <div id="sdg-series-detail" class="api-status">The selected indicator's definition, series metadata and reporting dimensions will appear here when available.</div>
         <div class="data-actions"><button type="button" class="primary-btn" id="load-sdg-observations" disabled><i class="fa-solid fa-chart-line"></i> Load reported values</button><button type="button" class="secondary-btn" id="export-sdg-csv" disabled><i class="fa-solid fa-download"></i> Export indicator CSV</button><a class="secondary-btn" href="https://unstats.un.org/sdgs/dataportal/database" target="_blank" rel="noopener noreferrer">Official SDG database ↗</a></div>
         <div id="sdg-observations-status" class="api-status" role="status" aria-live="polite">Choose an indicator series and country after metadata loads. An empty result is not proof that no relevant activity exists.</div>
         <div id="sdg-observations-table" class="data-table-wrap"></div>
@@ -1201,6 +1202,14 @@
           return "";
         }
         if(typeof value!=="object")return "";
+        const objectId=String(value.id||value.name||value.dimension||"");
+        if(/unit|measure/i.test(objectId)&&Array.isArray(value.codes)){
+          const preferred=value.codes.find(item=>item&&(item.description||item.label))||value.codes[0];
+          if(preferred){
+            const label=String(preferred.description||preferred.label||preferred.code||"").trim();
+            if(label)return label;
+          }
+        }
         for(const [key,child] of Object.entries(value)){
           if(/unit|measure/i.test(key)){
             if(typeof child==="string"||typeof child==="number"){
@@ -1208,7 +1217,7 @@
               if(text)return text;
             }
             if(child&&typeof child==="object"){
-              const inner=String(child.description||child.name||child.value||child.label||"").trim();
+              const inner=String(child.description||child.name||child.value||child.label||child.code||"").trim();
               if(inner)return inner;
             }
           }
@@ -1222,6 +1231,22 @@
       function selectedSDGSeries(){
         const key=$("sdg-series").value;
         return state.sdgSeries.find(item=>item.optionKey===key)||null;
+      }
+      function renderSDGSeriesDetail(){
+        const item=selectedSDGSeries();
+        const target=$("sdg-series-detail");
+        if(!item){
+          target.textContent="The selected indicator's definition, series metadata and reporting dimensions will appear here when available.";
+          return;
+        }
+        const parts=[
+          "Indicator "+item.indicatorCode+": "+item.indicatorTitle,
+          "Series code: "+item.code,
+          "Series description: "+(item.description||"Not supplied by metadata"),
+          item.goalCode?"Goal: "+item.goalCode:"",
+          item.targetCode?"Target: "+item.targetCode:""
+        ].filter(Boolean);
+        target.textContent=parts.join(" · ")+" . The official observation response may provide unit/dimension metadata; if it does not, the table will say so explicitly.";
       }
       async function loadSDGObservations(){
         const series=selectedSDGSeries();
@@ -1444,7 +1469,7 @@
         if(!rows.length)return;
         downloadCSV("fao-fishstat-"+$("fishstat-country").value+"-"+$("fishstat-source").value.toLowerCase().replace(/[^a-z0-9]+/g,"-")+".csv",
           ["country_code","country_name","un_code","year","production_source","value","unit","component_rows","source_flags","source_url"],
-          rows.map(row=>[row.countryCode,row.countryName,row.unCode,row.year,row.source,row.value,row.unit,row.componentCount,Array.isArray(row.sourceFlags)?row.sourceFlags.join("; "):"",row.sourceUrl]));
+          rows.map(row=>[row.countryCode,row.countryName,row.unCode,row.year,row.source,row.value,row.unit,row.componentCount,Array.isArray(row.sourceFlags)?row.sourceFlags.join("; "):"",row.sourceUrl||(state.fishstatDataset&&state.fishstatDataset.metadata&&state.fishstatDataset.metadata.sourceUrl)||""]));
       }
       function isHttpUrl(value){
         try{const url=new URL(String(value||""));return url.protocol==="http:"||url.protocol==="https:";}catch(e){return false;}
@@ -1808,6 +1833,7 @@
           $("sdg-observations-table").innerHTML="";
           $("export-sdg-csv").disabled=true;
           $("load-sdg-observations").disabled=!state.sdgSelectedSeries;
+          renderSDGSeriesDetail();
           $("sdg-observations-status").textContent=state.sdgSelectedSeries?"Selected "+state.sdgSelectedSeries.indicatorCode+" / "+state.sdgSelectedSeries.code+". Load reported observations to continue.":"Choose an indicator series.";
         });
         $("sdg-country").addEventListener("change",()=>{
