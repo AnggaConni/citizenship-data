@@ -812,8 +812,7 @@
         radius.bindTooltip("5 km search radius · not an official geopark boundary").addTo(state.geoeconPoiLayer);
         L.circleMarker([item.lat,item.lon],{radius:10,color:"#fff",weight:3,fillColor:"#8b6fe8",fillOpacity:1})
           .bindPopup('<strong>'+esc(item.name)+'</strong><br>Selected UNESCO Global Geopark').addTo(state.geoeconPoiLayer);
-        const bounds=L.latLngBounds([[item.lat,item.lon]]);
-        bounds.extend(radius.getBounds());
+        const bounds=radius.getBounds();
         places.slice(0,350).forEach(poi=>{
           const marker=geoeconPoiIcon(poi.category);
           marker.geoeconPoiId=poi.id;
