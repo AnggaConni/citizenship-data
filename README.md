@@ -42,9 +42,25 @@ The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interf
 
 ### 4. Regional Science Observatory
 
-A Leaflet-based science mapping page that connects three datasets from UNESCO DataHub—Man and the Biosphere reserves (`mab001`), Global Geoparks (`eg0001`), and Marine Biodiversity by Ocean Area (`ioc001`)—with scientific works discovered through OpenAlex semantic search. Users can toggle map layers, inspect available source metadata, and search by research question or challenge.
+A Leaflet-based science mapping and recommendation page. It combines public location datasets with research discovery, project search, organization lookup, marine occurrence mapping, and climate context.
 
-The page retrieves records from public APIs when opened. Coordinates are source points or representative locations, not official boundaries. The interface intentionally omits IUCN-derived threatened-species fields from the marine indicator dataset; publication relevance is a retrieval signal, not an assessment of study quality or a systematic review. Source records, publication metadata, and map tiles retain their own licences and attribution requirements.
+**Location and environmental sources**
+- **UNESCO DataHub MAB (`mab001`):** biosphere reserve source records and coordinates.
+- **UNESCO Global Geoparks (`eg0001`):** geopark records and available coordinates.
+- **UNESCO Marine Biodiversity by Ocean Area (`ioc001`):** source-provided area-level indicators. IUCN-derived threatened-species fields are intentionally not displayed.
+- **OBIS API:** optional aggregated marine occurrence points, loaded only when the user enables the map layer. Aggregated cells must not be interpreted as individual observations or full catalogue coverage.
+- **NASA POWER monthly API:** optional 2021–2025 meteorological context for a selected map coordinate (temperature, precipitation rate and relative humidity, where valid values are returned). These are gridded estimates, not field measurements, river discharge data or forecasts.
+
+**Scientific discovery and collaboration sources**
+- **OpenAlex:** semantic search for publications based on the meaning of a question.
+- **Crossref:** bibliographic metadata and DOI records.
+- **Semantic Scholar:** relevance-ranked paper search, available citation metadata, abstracts and open-access links where supplied. An API key is optional and, if provided, is stored in that browser's local storage only. It is not committed to the repository.
+- **OpenAIRE Graph v3:** research outputs/publications and, in the collaboration finder, project records, research datasets/software and organizations.
+- **ROR API v2:** research organization registry search and organization identifiers.
+
+The research recommender queries OpenAlex, Crossref, Semantic Scholar and OpenAIRE in parallel, then groups duplicate results by DOI or normalized title where possible. The project/network panel searches OpenAIRE projects and datasets/software or organizations, paired with ROR when searching institutions. API services have independent availability, rate limits, data coverage and schemas; errors from one provider should not remove successful results from others. Browser requests may still be restricted by network or cross-origin policies.
+
+Coordinates are source points or representative locations, not official boundaries. The observatory provides research discovery, not a systematic review, quality appraisal, scientific consensus, proof of causality, or an automated policy recommendation. Check each original record, methods, licence, and context before relying on it. Source records, article metadata, and map tiles retain their own licences and attribution requirements.
 
 Open the [Regional Science Observatory](./regional-science.html).
 
