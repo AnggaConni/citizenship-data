@@ -63,7 +63,7 @@
       <div class="stat"><span class="stat-label">Biosphere reserves</span><strong id="stat-mab">—</strong><small>Mapped source coordinates</small></div>
       <div class="stat"><span class="stat-label">Global geoparks</span><strong id="stat-geopark">—</strong><small>Mapped source coordinates</small></div>
       <div class="stat"><span class="stat-label">Marine areas</span><strong id="stat-marine">—</strong><small>Areas with usable coordinates</small></div>
-      <div class="stat"><span class="stat-label">OBIS map cells</span><strong id="stat-obis">—</strong><small>Aggregated marine occurrence points</small></div>
+      <div class="stat"><span class="stat-label">OBIS points</span><strong id="stat-obis">—</strong><small>Recent mappable marine occurrences / cells</small></div>
       <div class="stat"><span class="stat-label">Research results</span><strong id="stat-research">0</strong><small>Unique works across providers</small></div>
     </section>
 
@@ -89,7 +89,7 @@
             <label class="layer-row"><input type="checkbox" id="toggle-mab" checked><span class="layer-swatch" style="background:#2e8b5b"></span><span class="layer-copy"><strong>Biosphere reserves</strong><small>Conservation, sustainability and research areas · UNESCO MAB</small></span><span class="source-count" id="count-mab">…</span></label>
             <label class="layer-row"><input type="checkbox" id="toggle-geopark" checked><span class="layer-swatch" style="background:#8b6fe8"></span><span class="layer-copy"><strong>Global geoparks</strong><small>Geoconservation, education and sustainable local development</small></span><span class="source-count" id="count-geopark">…</span></label>
             <label class="layer-row"><input type="checkbox" id="toggle-marine" checked><span class="layer-swatch" style="background:#168db5"></span><span class="layer-copy"><strong>Marine biodiversity indicators</strong><small>UNESCO DataHub · area-level summary points</small></span><span class="source-count" id="count-marine">…</span></label>
-            <label class="layer-row"><input type="checkbox" id="toggle-obis"><span class="layer-swatch" style="background:#e38b40"></span><span class="layer-copy"><strong>OBIS marine observations</strong><small>Global aggregated occurrence cells · loaded on demand</small></span><span class="source-count" id="count-obis">Off</span></label>
+            <label class="layer-row"><input type="checkbox" id="toggle-obis"><span class="layer-swatch" style="background:#e38b40"></span><span class="layer-copy"><strong>OBIS marine observations</strong><small>Asia-Pacific observations and aggregated cells · loaded on demand</small></span><span class="source-count" id="count-obis">Off</span></label>
           </div>
           <div class="layer-loading" id="data-status" aria-live="polite">Loading publicly available source records. Network access and source availability can affect results.</div>
         </section>
@@ -250,7 +250,8 @@
         if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
         const count=Number(getFirst(props,["count","occurrenceCount","occurrence_count","records","n","value"])||0);
         const name=String(getFirst(props,["scientificName","scientific_name","species","name","taxon"])||"Marine occurrence cell");
-        return {type:"obis",kind:"OBIS aggregated marine occurrence",name:name,country:String(getFirst(props,["country","countryCode","country_code"])||""),lat:lat,lon:lon,description:count?number(count)+" occurrence record(s) aggregated at this map cell.":"Aggregated marine occurrence point; record count was not supplied in this response.",source:"https://obis.org/",meta:"Ocean Biodiversity Information System · aggregated points",id:String(getFirst(props,["id","occurrenceID","occurrence_id","geohash"])||name+"|"+lat+"|"+lon),count:count};
+        const isAggregate=row.type==="Feature"||count>0;
+        return {type:"obis",kind:isAggregate?"OBIS aggregated marine occurrence cell":"OBIS marine occurrence record",name:name,country:String(getFirst(props,["country","countryCode","country_code"])||""),lat:lat,lon:lon,description:count?number(count)+" occurrence record(s) aggregated at this map cell.":(isAggregate?"Aggregated marine occurrence point; record count was not supplied in this response.":"Marine occurrence record; inspect the source for event date, dataset and identification details."),source:"https://obis.org/",meta:isAggregate?"Ocean Biodiversity Information System · aggregated points":"Ocean Biodiversity Information System · occurrence record",id:String(getFirst(props,["id","occurrenceID","occurrence_id","geohash"])||name+"|"+lat+"|"+lon),count:count};
       }
       async function fetchDataset(dataset,maxRecords){
         let offset=0,total=Infinity,all=[];
@@ -648,10 +649,13 @@
       async function loadObisLayer(){
         if(state.obisLoaded){renderLayer("obis");return;}
         $("count-obis").textContent="Loading…";
-        setDatasetStatus("Loading aggregated marine occurrence points from OBIS on demand.");
+        setDatasetStatus("Loading recent Asia-Pacific marine occurrence points from OBIS on demand.");
+        const region="POLYGON((60 -55,180 -55,180 55,60 55,60 -55))";
+        const regionParams=new URLSearchParams({size:"500",startdate:"2020-01-01",enddate:"2025-12-31",geometry:region});
+        const occurrenceParams=new URLSearchParams({size:"250",startdate:"2020-01-01",enddate:"2025-12-31",geometry:region,fields:"id,scientificName,eventDate,decimalLatitude,decimalLongitude,datasetName,scientificNameID"});
         const urls=[
-          OBIS+"/occurrence/points?size=500",
-          OBIS+"/occurrence?size=200&hasCoordinate=true&startdate=2020-01-01"
+          OBIS+"/occurrence/points?"+regionParams.toString(),
+          OBIS+"/occurrence?"+occurrenceParams.toString()
         ];
         let lastError=null;
         for(const url of urls){
@@ -668,7 +672,7 @@
             renderLayer("obis");
             $("count-obis").textContent=number(state.records.obis.length);
             $("count-obis").title="Aggregated points from OBIS; this is not the full occurrence catalogue.";
-            setDatasetStatus("OBIS loaded "+number(state.records.obis.length)+" mappable point(s). These may be aggregated occurrence cells, not individual animal or plant observations.");
+            setDatasetStatus("OBIS loaded "+number(state.records.obis.length)+" mappable Asia-Pacific point(s). Depending on endpoint, points may be aggregated cells or individual records; this is not the full catalogue.");
             $("stat-obis").textContent=number(state.records.obis.length);
             return;
           }catch(error){lastError=error;}
