@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#071a16">
-  <meta name="description" content="Free-to-access independent data explorers for curated citizenship knowledge and biodiversity. Read the software licence and third-party data disclaimer before reuse.">
-  <title>Open Data Explorers | Curated Knowledge & Living Biodiversity</title>
+  <meta name="description" content="Independent open data explorers for curated country knowledge, biodiversity, biosphere reserves, geoparks, marine science, and scientific research discovery.">
+  <title>Open Data Explorers | Curated Knowledge, Biodiversity & Science</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,12 +65,13 @@
     .section-kicker{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#7bbd91}
     .section-head h2{font:800 22px Manrope,sans-serif;letter-spacing:-.035em;margin:7px 0 0}
     .section-head p{font-size:12px;line-height:1.6;color:#a9c2b3;margin:6px 0 0}
-    .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
     .project-card{min-width:0;position:relative;display:flex;flex-direction:column;padding:26px;border-radius:22px;border:1px solid rgba(226,245,231,.15);background:linear-gradient(145deg,rgba(25,58,44,.94),rgba(12,35,27,.97));color:#eff8f0;text-decoration:none;overflow:hidden;isolation:isolate;transition:transform .22s,border-color .22s,box-shadow .22s}
     .project-card:before{content:"";position:absolute;width:250px;height:250px;right:-115px;top:-120px;border-radius:50%;filter:blur(1px);opacity:.26;z-index:-1;transition:transform .3s}
     .project-card.citizenship:before{background:radial-gradient(circle,#62b9ff,transparent 68%)}
     .project-card.biodiversity:before{background:radial-gradient(circle,#56e0a0,transparent 68%)}
     .project-card.biodiversity-atlas:before{background:radial-gradient(circle,#a78bfa,transparent 68%)}
+    .project-card.science-observatory:before{background:radial-gradient(circle,#4ddac5,transparent 68%)}
     .project-card:hover{transform:translateY(-4px);border-color:rgba(177,233,190,.42);box-shadow:0 20px 50px rgba(0,0,0,.18)}
     .project-card:hover:before{transform:scale(1.15)}
     .card-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -80,6 +81,9 @@
     .biodiversity-atlas .card-icon{background:rgba(167,139,250,.12);border:1px solid rgba(196,181,253,.22);color:#c4b5fd}
     .biodiversity-atlas .tag .tiny-dot{background:#c4b5fd}
     .biodiversity-atlas .card-action>span:first-child{color:#c4b5fd}
+    .science-observatory .card-icon{background:rgba(77,218,197,.12);border:1px solid rgba(77,218,197,.22);color:#72ead7}
+    .science-observatory .tag .tiny-dot{background:#72ead7}
+    .science-observatory .card-action>span:first-child{color:#72ead7}
     .tag{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(219,242,225,.16);background:rgba(255,255,255,.04);border-radius:999px;padding:7px 9px;color:#d1e5d7;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
     .tag .tiny-dot{width:6px;height:6px;border-radius:50%;background:#8ce1ab}
     .project-card h3{font:800 23px Manrope,sans-serif;letter-spacing:-.04em;margin:24px 0 8px}
@@ -208,7 +212,7 @@
       <header class="nav">
         <a class="brand" href="./index.html" aria-label="Open Data Explorers home">
           <span class="brand-symbol"><i class="fa-solid fa-compass" aria-hidden="true"></i></span>
-          <span><span class="brand-name">Open Data Explorers</span><span class="brand-sub">Curated data · Live explorer · Biodiversity atlas</span></span>
+          <span><span class="brand-name">Open Data Explorers</span><span class="brand-sub">Curated data · Live explorer · Biodiversity atlas · Science observatory</span></span>
         </a>
         <div class="nav-right">
           <span class="nav-label"><span class="pulse"></span> Built for transparent exploration</span>
@@ -220,7 +224,7 @@
       <section class="hero">
         <div class="eyebrow"><i class="fa-solid fa-compass" aria-hidden="true"></i> Discover what the data can — and cannot — tell us</div>
         <h1>Explore data.<br><span class="accent">Understand its origins.</span></h1>
-        <p>Open Data Explorers brings together three distinct experiences: manually curated citizenship knowledge, a live biodiversity explorer that fetches public records as you scan, and a Biodiversity Atlas that lets you browse published country-level occurrence records directly on an interactive map.</p>
+        <p>Open Data Explorers brings together four independent experiences: manually curated citizenship knowledge, a live biodiversity explorer, a published Biodiversity Atlas, and a Regional Science Observatory linking environmental locations with scientific research recommendations.</p>
         <div class="hero-bottom">
           <span class="hero-chip"><i class="fa-solid fa-user-check"></i> Human-curated knowledge</span>
           <span class="hero-chip"><i class="fa-solid fa-tower-broadcast"></i> Live public data APIs</span>
@@ -294,6 +298,19 @@
               <li><i class="fa-solid fa-check"></i> Record-density and source layers</li>
             </ul>
             <div class="card-action"><span>Explore Indonesia records</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
+          </a>
+          <a class="project-card science-observatory" href="./regional-science.html" aria-label="Open Regional Science Observatory">
+            <div class="card-top"><span class="card-icon"><i class="fa-solid fa-compass-drafting" aria-hidden="true"></i></span><span class="tag"><span class="tiny-dot"></span> Science data · Research intelligence</span></div>
+            <h3>Regional Science Observatory</h3>
+            <p class="card-intro">Explore biosphere reserves, global geoparks, and marine biodiversity areas on one interactive Leaflet map. Then discover scientific works related to a location, research question, or sustainable-development challenge.</p>
+            <div class="identity"><div class="identity-label">What it connects</div><strong>Regional evidence map + scientific recommendations</strong><p>Combines public location records from UNESCO DataHub with semantic research discovery through OpenAlex. Mapped coordinates are source points or representative locations, not official boundaries; publication matches require human review.</p></div>
+            <ul class="feature-list">
+              <li><i class="fa-solid fa-check"></i> Biosphere and geopark layers</li>
+              <li><i class="fa-solid fa-check"></i> Marine biodiversity indicators</li>
+              <li><i class="fa-solid fa-check"></i> OpenAlex semantic search</li>
+              <li><i class="fa-solid fa-check"></i> Source-linked publications</li>
+            </ul>
+            <div class="card-action"><span>Explore science observatory</span><span class="arrow"><i class="fa-solid fa-arrow-right"></i></span></div>
           </a>
         </div>
       </section>
