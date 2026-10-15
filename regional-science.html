@@ -391,20 +391,36 @@
         return Object.assign({source:source,sources:[source]},values||{});
       }
       function normalizeOpenAlex(work){
-        const authors=(work.authorships||[]).slice(0,4).map(a=>a.author&&a.author.display_name).filter(Boolean).join(", ");
+        const authorships=work.authorships||[];
+        const authors=authorships.slice(0,4).map(a=>a.author&&a.author.display_name).filter(Boolean).join(", ");
+        const authorRelations=authorships.slice(0,8).map(a=>a.author?{name:a.author.display_name||"Author",url:a.author.id||"",type:"author",source:"OpenAlex"}:null).filter(a=>a&&a.name);
+        const institutionRelations=[];
+        authorships.forEach(a=>(a.institutions||[]).forEach(inst=>{
+          const name=inst.display_name||inst.name;
+          const url=inst.ror||inst.id||"";
+          if(name&&!institutionRelations.some(x=>x.name===name))institutionRelations.push({name:name,url:url,type:"institution",source:"OpenAlex"});
+        }));
         const doi=work.doi||"";
-        return sourceWork("OpenAlex",{title:plain(work.title)||"Untitled work",year:work.publication_year||"",authors:authors,doi:doi,url:doi?("https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,"")):(work.id||"https://openalex.org/"),citations:work.cited_by_count,openAccess:!!(work.open_access&&work.open_access.is_oa),score:work.relevance_score,abstract:"",type:work.type||"Research work"});
+        return sourceWork("OpenAlex",{title:plain(work.title)||"Untitled work",year:work.publication_year||"",authors:authors,doi:doi,url:doi?("https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,"")):(work.id||"https://openalex.org/"),citations:work.cited_by_count,openAccess:!!(work.open_access&&work.open_access.is_oa),score:work.relevance_score,abstract:"",type:work.type||"Research work",relationships:{authors:authorRelations,institutions:institutionRelations,projects:[]}});
       }
       function normalizeCrossref(work){
         const date=(work.published&&work.published["date-parts"]&&work.published["date-parts"][0])||[];
-        const authors=(work.author||[]).slice(0,4).map(a=>[a.given,a.family].filter(Boolean).join(" ")).filter(Boolean).join(", ");
+        const authorsRaw=work.author||[];
+        const authors=authorsRaw.slice(0,4).map(a=>[a.given,a.family].filter(Boolean).join(" ")).filter(Boolean).join(", ");
+        const affiliations=[];
+        authorsRaw.forEach(a=>(a.affiliation||[]).forEach(aff=>{
+          const name=plain(aff.name||aff);
+          if(name&&!affiliations.some(x=>x.name===name))affiliations.push({name:name,url:"",type:"institution",source:"Crossref"});
+        }));
         const doi=work.DOI||"";
-        return sourceWork("Crossref",{title:plain(work.title&&work.title[0])||"Untitled work",year:date[0]||"",authors:authors,doi:doi,url:work.URL||(doi?"https://doi.org/"+doi:"https://search.crossref.org/"),citations:work["is-referenced-by-count"],openAccess:null,score:null,type:plain(work.type)||"Publication",venue:plain(work["container-title"]&&work["container-title"][0])});
+        return sourceWork("Crossref",{title:plain(work.title&&work.title[0])||"Untitled work",year:date[0]||"",authors:authors,doi:doi,url:work.URL||(doi?"https://doi.org/"+doi:"https://search.crossref.org/"),citations:work["is-referenced-by-count"],openAccess:null,score:null,type:plain(work.type)||"Publication",venue:plain(work["container-title"]&&work["container-title"][0]),relationships:{authors:[],institutions:affiliations,projects:[]}});
       }
       function normalizeSemanticScholar(work){
         const doi=work.externalIds&&work.externalIds.DOI||"";
         const pdf=work.openAccessPdf&&work.openAccessPdf.url;
-        return sourceWork("Semantic Scholar",{title:plain(work.title)||"Untitled work",year:work.year||"",authors:(work.authors||[]).slice(0,4).map(a=>a.name).filter(Boolean).join(", "),doi:doi,url:pdf||work.url||(doi?"https://doi.org/"+doi:"https://www.semanticscholar.org/"),citations:work.citationCount,openAccess:!!(work.isOpenAccess||pdf),score:null,type:plain(work.publicationVenue&&work.publicationVenue.name)||"Paper",abstract:work.abstract||""});
+        const authorsRaw=work.authors||[];
+        const authorRelations=authorsRaw.slice(0,8).map(a=>({name:a.name||"Author",url:a.authorId?"https://www.semanticscholar.org/author/"+encodeURIComponent(a.authorId):"",type:"author",source:"Semantic Scholar"}));
+        return sourceWork("Semantic Scholar",{title:plain(work.title)||"Untitled work",year:work.year||"",authors:authorsRaw.slice(0,4).map(a=>a.name).filter(Boolean).join(", "),doi:doi,url:pdf||work.url||(doi?"https://doi.org/"+doi:"https://www.semanticscholar.org/"),citations:work.citationCount,openAccess:!!(work.isOpenAccess||pdf),score:null,type:plain(work.publicationVenue&&work.publicationVenue.name)||"Paper",abstract:work.abstract||"",relationships:{authors:authorRelations,institutions:[],projects:[]}});
       }
       function normalizeOpenAIREProduct(product){
         const title=plain(product.mainTitle||product.title||product.name||product.titles)||"Untitled research output";
@@ -420,9 +436,16 @@
         const id=plain(product.id);
         const url=product.webUrl||product.landingPage||product.url||(doi?"https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,""):(id?OPENAIRE+"/research-products/"+encodeURIComponent(id):"https://explore.openaire.eu/"));
         const access=plain(product.accessRightLabel||product.bestAccessRight||"").toLowerCase();
-        return sourceWork("OpenAIRE",{title:title,year:date,authors:authors,doi:doi,url:url,citations:product.citationCount||product.citationsCount,openAccess:access.includes("open"),score:product.score,type:plain(product.type)||"Research output",abstract:plain(product.description||product.abstract||product.summary)});
+        const orgs=product.organizations&&(product.organizations.organization||product.organizations);
+        const organizationRows=Array.isArray(orgs)?orgs:(orgs?[orgs]:[]);
+        const institutions=organizationRows.map(org=>({name:plain(org.legalName||org.name||org),url:plain(org.rorId||org.ror||org.id),type:"institution",source:"OpenAIRE"})).filter(o=>o.name);
+        const projectRows=Array.isArray(product.projects)?product.projects:(product.projects?[product.projects]:[]);
+        const projects=projectRows.map(project=>({name:plain(project.name||project.title||project),url:plain(project.webUrl||project.url||project.id),type:"project",source:"OpenAIRE"})).filter(p=>p.name);
+        const authorRows=Array.isArray(authorsValue)?authorsValue:(authorsValue?[authorsValue]:[]);
+        const authorRelations=authorRows.map(author=>({name:plain(author.fullName||author.name||author),url:plain(author.orcid||author.id),type:"author",source:"OpenAIRE"})).filter(a=>a.name);
+        return sourceWork("OpenAIRE",{title:title,year:date,authors:authors,doi:doi,url:url,citations:product.citationCount||product.citationsCount,openAccess:access.includes("open"),score:product.score,type:plain(product.type)||"Research output",abstract:plain(product.description||product.abstract||product.summary),relationships:{authors:authorRelations,institutions:institutions,projects:projects}});
       }
-      function canonicalDoi(doi){
+            function canonicalDoi(doi){
         return String(doi||"").trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i,"").replace(/^doi:\s*/i,"").toLowerCase();
       }
       function mergeWorks(groups){
@@ -431,7 +454,15 @@
           if(!item||!item.title||item.title==="Untitled work")return;
           const doi=canonicalDoi(item.doi);
           const key=doi?"doi:"+doi:"title:"+String(item.title).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-          if(!merged.has(key)){merged.set(key,Object.assign({},item,{sources:(item.sources||[item.source]).filter(Boolean)}));return;}
+          if(!merged.has(key)){
+            const relationships=item.relationships||{authors:[],institutions:[],projects:[]};
+            merged.set(key,Object.assign({},item,{sources:(item.sources||[item.source]).filter(Boolean),relationships:{
+              authors:(relationships.authors||[]).slice(),
+              institutions:(relationships.institutions||[]).slice(),
+              projects:(relationships.projects||[]).slice()
+            }}));
+            return;
+          }
           const existing=merged.get(key);
           if(!existing.authors&&item.authors)existing.authors=item.authors;
           if(!existing.year&&item.year)existing.year=item.year;
@@ -440,6 +471,14 @@
           if(existing.openAccess==null&&item.openAccess!=null)existing.openAccess=item.openAccess;
           if((Number(item.citations)||0)>(Number(existing.citations)||0))existing.citations=item.citations;
           (item.sources||[item.source]).forEach(src=>{if(src&&!existing.sources.includes(src))existing.sources.push(src);});
+          const existingRelations=existing.relationships||(existing.relationships={authors:[],institutions:[],projects:[]});
+          const newRelations=item.relationships||{};
+          ["authors","institutions","projects"].forEach(kind=>{
+            (newRelations[kind]||[]).forEach(rel=>{
+              const relationKey=String(rel.name||"").toLowerCase();
+              if(relationKey&&!existingRelations[kind].some(old=>String(old.name||"").toLowerCase()===relationKey))existingRelations[kind].push(rel);
+            });
+          });
         }));
         return Array.from(merged.values());
       }
@@ -452,7 +491,18 @@
         const description=work.abstract?'<div class="research-reason">'+esc(String(work.abstract).slice(0,420))+(String(work.abstract).length>420?"…":"")+'</div>':"";
         const score=Number(work.score);
         const why=Number.isFinite(score)?'<div class="research-reason">OpenAlex semantic relevance score: '+esc(score.toFixed(3))+'; this is a retrieval signal, not a quality rating.</div>':"";
-        return '<article class="research-card"><h3><a href="'+link+'" target="_blank" rel="noopener noreferrer">'+esc(work.title)+'</a></h3><div class="research-meta">'+esc(info)+'</div><div class="research-meta">'+esc(metrics)+'</div>'+why+description+'<div class="research-badges">'+badges+'</div></article>';
+        const rel=work.relationships||{};
+        function renderRelationGroup(label,items){
+          const cleaned=(items||[]).filter(x=>x&&x.name).slice(0,4);
+          if(!cleaned.length)return "";
+          return '<div class="research-rel-row"><strong>'+esc(label)+':</strong> '+cleaned.map(x=>{
+            const name=esc(x.name);
+            return x.url?'<a href="'+safeUrl(x.url)+'" target="_blank" rel="noopener noreferrer">'+name+'</a>':name;
+          }).join(" · ")+'</div>';
+        }
+        const relationHtml=(rel.authors||[]).length|| (rel.institutions||[]).length || (rel.projects||[]).length
+          ?'<div class="research-relations">'+renderRelationGroup("Linked authors",rel.authors)+renderRelationGroup("Institutions",rel.institutions)+renderRelationGroup("Projects",rel.projects)+'</div>':"";
+        return '<article class="research-card"><h3><a href="'+link+'" target="_blank" rel="noopener noreferrer">'+esc(work.title)+'</a></h3><div class="research-meta">'+esc(info)+'</div><div class="research-meta">'+esc(metrics)+'</div>'+why+description+relationHtml+'<div class="research-badges">'+badges+'</div></article>';
       }
       async function fetchOpenAlexWorks(query){
         const params=new URLSearchParams();
