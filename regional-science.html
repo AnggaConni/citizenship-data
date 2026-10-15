@@ -157,12 +157,19 @@
       "use strict";
       const DATAHUB = "https://data.unesco.org/api/explore/v2.1/catalog/datasets/";
       const OPENALEX = "https://api.openalex.org/works";
+      const OPENAIRE = "https://api.openaire.eu/graph/v3";
+      const SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper/search";
+      const CROSSREF = "https://api.crossref.org/works";
+      const ROR = "https://api.ror.org/v2/organizations";
+      const OBIS = "https://api.obis.org/v3";
+      const NASA_POWER = "https://power.larc.nasa.gov/api/temporal/monthly/point";
       const DATASETS = {
         mab:{id:"mab001",name:"Biosphere reserve",color:"#2e8b5b",max:1500},
         geopark:{id:"eg0001",name:"Global geopark",color:"#8b6fe8",max:600},
-        marine:{id:"ioc001",name:"Marine biodiversity area",color:"#168db5",max:1200}
+        marine:{id:"ioc001",name:"Marine biodiversity area",color:"#168db5",max:1200},
+        obis:{id:"obis",name:"OBIS marine occurrence",color:"#e38b40",max:500}
       };
-      const state = {map:null,records:{mab:[],geopark:[],marine:[]},layers:{},selected:null,researchResults:[],busy:false};
+      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,researchResults:[],busy:false,networkBusy:false,climateBusy:false,obisLoaded:false,apiCache:new Map()};
       const $ = id => document.getElementById(id);
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
@@ -228,6 +235,21 @@
         if(firstYear||lastYear)detail.push("record years "+String(firstYear||"unknown")+"–"+String(lastYear||"unknown"));
         return {type:type,kind:"Marine biodiversity area",name:String(name),country:String(getFirst(p,["country_title_en","country","country_name"])||""),lat:point.lat,lon:point.lon,description:detail.join(" · "),source:String(getFirst(p,["source_url","url"])||"https://data.unesco.org/explore/dataset/ioc001/"),meta:"OBIS-based marine indicators · "+areaType,id:String(getFirst(p,["area_id","uuid","recordid"])||name),species:species,observations:observations};
       }
+      function normalizeObisRow(row){
+        if(!row || typeof row!=="object")return null;
+        const props=row.properties&&typeof row.properties==="object"?row.properties:recordFields(row);
+        let lat=null,lon=null;
+        if(row.geometry&&Array.isArray(row.geometry.coordinates)&&row.geometry.coordinates.length>=2){
+          lon=Number(row.geometry.coordinates[0]);lat=Number(row.geometry.coordinates[1]);
+        }else{
+          lat=Number(getFirst(props,["decimalLatitude","decimal_latitude","latitude","lat"]));
+          lon=Number(getFirst(props,["decimalLongitude","decimal_longitude","longitude","lon","lng"]));
+        }
+        if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
+        const count=Number(getFirst(props,["count","occurrenceCount","occurrence_count","records","n","value"])||0);
+        const name=String(getFirst(props,["scientificName","scientific_name","species","name","taxon"])||"Marine occurrence cell");
+        return {type:"obis",kind:"OBIS aggregated marine occurrence",name:name,country:String(getFirst(props,["country","countryCode","country_code"])||""),lat:lat,lon:lon,description:count?number(count)+" occurrence record(s) aggregated at this map cell.":"Aggregated marine occurrence point; record count was not supplied in this response.",source:"https://obis.org/",meta:"Ocean Biodiversity Information System · aggregated points",id:String(getFirst(props,["id","occurrenceID","occurrence_id","geohash"])||name+"|"+lat+"|"+lon),count:count};
+      }
       async function fetchDataset(dataset,maxRecords){
         let offset=0,total=Infinity,all=[];
         while(offset<total && offset<maxRecords){
@@ -274,8 +296,9 @@
       function fitLoadedPoints(){
         const points=[];
         Object.keys(state.records).forEach(type=>{
-          if(!$("toggle-"+type).checked)return;
-          state.records[type].forEach(item=>points.push([item.lat,item.lon]));
+          const toggle=$("toggle-"+type);
+          if(toggle && !toggle.checked)return;
+          (state.records[type]||[]).forEach(item=>points.push([item.lat,item.lon]));
         });
         if(points.length)state.map.fitBounds(L.latLngBounds(points),{padding:[30,30],maxZoom:6});
         else state.map.setView([15,100],3);
@@ -287,11 +310,14 @@
         const meta=[item.country||"Country not specified",item.lat.toFixed(4)+", "+item.lon.toFixed(4),item.meta].filter(Boolean).join(" · ");
         detail.innerHTML='<div class="selected-kicker">'+esc(item.kind)+'</div><h3>'+esc(item.name)+'</h3><div class="selected-meta">'+esc(meta)+'</div>'+(item.description?'<div class="selected-detail">'+esc(item.description.slice(0,700))+'</div>':'<div class="selected-detail">The source did not provide an additional description in this response.</div>')+'<div class="selected-links"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>';
         $("research-from-location").disabled=false;
+        $("run-climate").disabled=false;
         let query="";
         if(item.type==="mab")query="Scientific evidence for biosphere reserves, landscape approaches, climate resilience, biodiversity conservation and sustainable livelihoods in "+(item.country||"Asia and the Pacific");
         else if(item.type==="geopark")query="Research on geopark conservation, geoeducation, geotourism and sustainable development for local communities in "+(item.country||"Asia and the Pacific");
+        else if(item.type==="obis")query="Marine biodiversity research, ocean observation, taxonomy, ecosystem monitoring and data gaps near "+(item.country||"the selected marine observation location")+"; coordinates "+item.lat.toFixed(3)+", "+item.lon.toFixed(3);
         else query="Scientific research on marine biodiversity monitoring, ocean observation, ecosystem management and sustainable seafood security for "+(item.country||"the Asia-Pacific region");
         $("research-query").value=query;
+        $("network-query").value=(item.country?item.country+" ":"")+"research projects and institutions for "+item.kind.toLowerCase()+" "+item.name;
       }
       async function loadLayer(type){
         const cfg=DATASETS[type];
@@ -311,25 +337,138 @@
           return {type:type,count:0,ok:false,error:error.message};
         }
       }
-      function researchAuthors(work){
-        const names=(work.authorships||[]).slice(0,3).map(a=>a.author&&a.author.display_name).filter(Boolean);
-        return names.join(", ")+(Array.isArray(work.authorships)&&work.authorships.length>3?" et al.":"");
+      function plain(value){
+        if(value==null)return "";
+        if(typeof value==="string"||typeof value==="number")return String(value);
+        if(Array.isArray(value))return value.map(plain).filter(Boolean).join(", ");
+        if(typeof value==="object"){
+          for(const key of ["value","fullName","display_name","name","title","label","givenName","familyName"]){
+            if(value[key]!=null && value[key]!=="")return plain(value[key]);
+          }
+        }
+        return "";
       }
-      function workUrl(work){
-        if(work.doi)return "https://doi.org/"+String(work.doi).replace(/^https?:\/\/doi.org\//i,"");
-        return work.id||"https://openalex.org/";
+      async function apiJSON(url,options,ttlMs){
+        const ttl=Number(ttlMs)||900000;
+        const cached=state.apiCache.get(url);
+        if(cached&&Date.now()-cached.when<ttl)return cached.data;
+        const controller=new AbortController();
+        const timer=setTimeout(()=>controller.abort(),18000);
+        try{
+          const req=Object.assign({method:"GET",mode:"cors",credentials:"omit",signal:controller.signal,headers:{"Accept":"application/json"}},options||{});
+          req.headers=Object.assign({"Accept":"application/json"},(options&&options.headers)||{});
+          const response=await fetch(url,req);
+          if(!response.ok)throw new Error("HTTP "+response.status);
+          const data=await response.json();
+          state.apiCache.set(url,{when:Date.now(),data:data});
+          return data;
+        }catch(error){
+          if(error&&error.name==="AbortError")throw new Error("Request timed out after 18 seconds");
+          throw error;
+        }finally{clearTimeout(timer);}
       }
-      function renderWork(work){
-        const title=work.title||"Untitled work";
-        const year=work.publication_year||"Year not supplied";
-        const authors=researchAuthors(work)||"Author metadata unavailable";
-        const doi=work.doi?"DOI linked":"OpenAlex record";
-        const oa=work.open_access&&work.open_access.is_oa?"Open access listed":"Access status not confirmed";
-        const location=work.primary_location&&work.primary_location.source&&work.primary_location.source.display_name;
-        const badges='<span class="mini-badge">'+esc(oa)+'</span><span class="mini-badge neutral">'+esc(doi)+'</span>'+(work.cited_by_count!=null?'<span class="mini-badge neutral">'+number(work.cited_by_count)+' citations</span>':"");
-        const score=Number(work.relevance_score);
-        const reason=Number.isFinite(score)?"Returned by semantic similarity search; source relevance score "+score.toFixed(3)+".":"Returned by OpenAlex semantic similarity search.";
-        return '<article class="research-card"><h3><a href="'+safeUrl(workUrl(work))+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a></h3><div class="research-meta">'+esc([year,authors,location].filter(Boolean).join(" · "))+'</div><div class="research-reason">'+esc(reason)+'</div><div class="research-badges">'+badges+'</div></article>';
+      function providerPills(targetId,items){
+        const target=$(targetId);
+        if(!target)return;
+        target.innerHTML=items.map(item=>'<div class="provider-pill '+esc(item.status||"")+'"><span class="dot"></span><span><strong>'+esc(item.name)+'</strong>'+esc(item.detail||"")+'</span></div>').join("");
+      }
+      function sourceWork(source,values){
+        return Object.assign({source:source,sources:[source]},values||{});
+      }
+      function normalizeOpenAlex(work){
+        const authors=(work.authorships||[]).slice(0,4).map(a=>a.author&&a.author.display_name).filter(Boolean).join(", ");
+        const doi=work.doi||"";
+        return sourceWork("OpenAlex",{title:plain(work.title)||"Untitled work",year:work.publication_year||"",authors:authors,doi:doi,url:doi?("https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,"")):(work.id||"https://openalex.org/"),citations:work.cited_by_count,openAccess:!!(work.open_access&&work.open_access.is_oa),score:work.relevance_score,abstract:"",type:work.type||"Research work"});
+      }
+      function normalizeCrossref(work){
+        const date=(work.published&&work.published["date-parts"]&&work.published["date-parts"][0])||[];
+        const authors=(work.author||[]).slice(0,4).map(a=>[a.given,a.family].filter(Boolean).join(" ")).filter(Boolean).join(", ");
+        const doi=work.DOI||"";
+        return sourceWork("Crossref",{title:plain(work.title&&work.title[0])||"Untitled work",year:date[0]||"",authors:authors,doi:doi,url:work.URL||(doi?"https://doi.org/"+doi:"https://search.crossref.org/"),citations:work["is-referenced-by-count"],openAccess:null,score:null,type:plain(work.type)||"Publication",venue:plain(work["container-title"]&&work["container-title"][0])});
+      }
+      function normalizeSemanticScholar(work){
+        const doi=work.externalIds&&work.externalIds.DOI||"";
+        const pdf=work.openAccessPdf&&work.openAccessPdf.url;
+        return sourceWork("Semantic Scholar",{title:plain(work.title)||"Untitled work",year:work.year||"",authors:(work.authors||[]).slice(0,4).map(a=>a.name).filter(Boolean).join(", "),doi:doi,url:pdf||work.url||(doi?"https://doi.org/"+doi:"https://www.semanticscholar.org/"),citations:work.citationCount,openAccess:!!(work.isOpenAccess||pdf),score:null,type:plain(work.publicationVenue&&work.publicationVenue.name)||"Paper",abstract:work.abstract||""});
+      }
+      function normalizeOpenAIREProduct(product){
+        const title=plain(product.mainTitle||product.title||product.name||product.titles)||"Untitled research output";
+        const date=plain(product.publicationDate||product.date||product.publicationYear);
+        const authorsValue=product.authors&&(product.authors.author||product.authors.person||product.authors);
+        const authors=Array.isArray(authorsValue)?authorsValue.slice(0,4).map(a=>plain(a.fullName||a.name||a.author||a)).filter(Boolean).join(", "):plain(authorsValue);
+        const pidList=Array.isArray(product.pids)?product.pids:[];
+        let doi=product.doi||"";
+        if(!doi){
+          const candidate=pidList.find(p=>String(p.scheme||p.type||"").toLowerCase().includes("doi"));
+          if(candidate)doi=plain(candidate.value||candidate.identifier||candidate);
+        }
+        const id=plain(product.id);
+        const url=product.webUrl||product.landingPage||product.url||(doi?"https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,""):(id?OPENAIRE+"/research-products/"+encodeURIComponent(id):"https://explore.openaire.eu/"));
+        const access=plain(product.accessRightLabel||product.bestAccessRight||"").toLowerCase();
+        return sourceWork("OpenAIRE",{title:title,year:date,authors:authors,doi:doi,url:url,citations:product.citationCount||product.citationsCount,openAccess:access.includes("open"),score:product.score,type:plain(product.type)||"Research output",abstract:plain(product.description||product.abstract||product.summary)});
+      }
+      function canonicalDoi(doi){
+        return String(doi||"").trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i,"").replace(/^doi:\s*/i,"").toLowerCase();
+      }
+      function mergeWorks(groups){
+        const merged=new Map();
+        groups.forEach(group=>(group||[]).forEach(item=>{
+          if(!item||!item.title||item.title==="Untitled work")return;
+          const doi=canonicalDoi(item.doi);
+          const key=doi?"doi:"+doi:"title:"+String(item.title).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+          if(!merged.has(key)){merged.set(key,Object.assign({},item,{sources:(item.sources||[item.source]).filter(Boolean)}));return;}
+          const existing=merged.get(key);
+          if(!existing.authors&&item.authors)existing.authors=item.authors;
+          if(!existing.year&&item.year)existing.year=item.year;
+          if(!existing.doi&&item.doi)existing.doi=item.doi;
+          if(!existing.abstract&&item.abstract)existing.abstract=item.abstract;
+          if(existing.openAccess==null&&item.openAccess!=null)existing.openAccess=item.openAccess;
+          if((Number(item.citations)||0)>(Number(existing.citations)||0))existing.citations=item.citations;
+          (item.sources||[item.source]).forEach(src=>{if(src&&!existing.sources.includes(src))existing.sources.push(src);});
+        }));
+        return Array.from(merged.values());
+      }
+      function renderResearchResult(work){
+        const link=safeUrl(work.url||(work.doi?"https://doi.org/"+work.doi:"https://openalex.org/"));
+        const badges=(work.sources||[work.source]).map(source=>'<span class="mini-badge">'+esc(source)+'</span>').join("");
+        const access=work.openAccess===true?"Open access listed":(work.openAccess===false?"Access may be restricted":"Access status not supplied");
+        const info=[work.year||"Year not supplied",work.authors||"Author metadata unavailable",work.venue||""].filter(Boolean).join(" · ");
+        const metrics=[work.citations!=null&&work.citations!==""?number(work.citations)+" citations":null,access].filter(Boolean).join(" · ");
+        const description=work.abstract?'<div class="research-reason">'+esc(String(work.abstract).slice(0,420))+(String(work.abstract).length>420?"…":"")+'</div>':"";
+        const score=Number(work.score);
+        const why=Number.isFinite(score)?'<div class="research-reason">OpenAlex semantic relevance score: '+esc(score.toFixed(3))+'; this is a retrieval signal, not a quality rating.</div>':"";
+        return '<article class="research-card"><h3><a href="'+link+'" target="_blank" rel="noopener noreferrer">'+esc(work.title)+'</a></h3><div class="research-meta">'+esc(info)+'</div><div class="research-meta">'+esc(metrics)+'</div>'+why+description+'<div class="research-badges">'+badges+'</div></article>';
+      }
+      async function fetchOpenAlexWorks(query){
+        const params=new URLSearchParams();
+        params.set("search.semantic",query.slice(0,2000));
+        params.set("per_page","10");
+        params.set("select","id,doi,title,publication_year,relevance_score,cited_by_count,authorships,open_access,primary_location,type");
+        const data=await apiJSON(OPENALEX+"?"+params.toString());
+        return (data.results||[]).map(normalizeOpenAlex);
+      }
+      async function fetchCrossrefWorks(query){
+        const params=new URLSearchParams({"query.bibliographic":query.slice(0,400),rows:"8",select:"DOI,title,author,published,URL,type,container-title,is-referenced-by-count"});
+        const data=await apiJSON(CROSSREF+"?"+params.toString());
+        const items=data.message&&Array.isArray(data.message.items)?data.message.items:[];
+        return items.map(normalizeCrossref);
+      }
+      async function fetchSemanticScholarWorks(query){
+        const params=new URLSearchParams({query:query.slice(0,500),limit:"8",fields:"title,year,authors,citationCount,url,abstract,openAccessPdf,externalIds,publicationVenue,isOpenAccess"});
+        const key=localStorage.getItem("regionalScienceSemanticScholarKey")||"";
+        const options={};
+        if(key)options.headers={"x-api-key":key,"Accept":"application/json"};
+        const data=await apiJSON(SEMANTIC_SCHOLAR+"?"+params.toString(),options);
+        return (data.data||[]).map(normalizeSemanticScholar);
+      }
+      async function fetchOpenAIREWorks(query){
+        const params=new URLSearchParams({search:query.slice(0,500),type:"publication",pageSize:"8",sortBy:"relevance DESC"});
+        const data=await apiJSON(OPENAIRE+"/research-products?"+params.toString());
+        return (data.results||[]).map(normalizeOpenAIREProduct);
+      }
+      function setResearchLoading(){
+        const names=["OpenAlex","Crossref","Semantic Scholar","OpenAIRE Graph"];
+        providerPills("research-provider-status",names.map(name=>({name:name,status:"loading",detail:"Requesting"})));
       }
       async function runResearch(){
         if(state.busy)return;
@@ -338,37 +477,50 @@
         state.busy=true;
         const button=$("run-research");
         button.disabled=true;
-        button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Searching OpenAlex…';
+        button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Searching 4 sources…';
         $("research-status").className="alert info";
-        $("research-status").textContent="Finding conceptually related scientific works. This may take a few seconds.";
+        $("research-status").textContent="Searching OpenAlex semantic search, Crossref, Semantic Scholar and OpenAIRE in parallel. Slow or unavailable sources will not block the others.";
         $("research-results").innerHTML="";
+        setResearchLoading();
+        const providers=[
+          {name:"OpenAlex",run:()=>fetchOpenAlexWorks(query)},
+          {name:"Crossref",run:()=>fetchCrossrefWorks(query)},
+          {name:"Semantic Scholar",run:()=>fetchSemanticScholarWorks(query)},
+          {name:"OpenAIRE Graph",run:()=>fetchOpenAIREWorks(query)}
+        ];
         try{
-          const params=new URLSearchParams();
-          params.set("search.semantic",query.slice(0,2000));
-          params.set("per_page","10");
-          params.set("select","id,doi,title,publication_year,relevance_score,cited_by_count,authorships,open_access,primary_location,type");
-          const response=await fetch(OPENALEX+"?"+params.toString(),{headers:{"Accept":"application/json"}});
-          if(response.status===429)throw new Error("OpenAlex is rate-limiting requests. Wait a moment before retrying.");
-          if(!response.ok)throw new Error("OpenAlex HTTP "+response.status);
-          const payload=await response.json();
-          const results=Array.isArray(payload.results)?payload.results:[];
-          state.researchResults=results;
-          $("stat-research").textContent=number(results.length);
-          if(results.length){
-            $("research-results").innerHTML=results.map(renderWork).join("");
+          const settled=await Promise.allSettled(providers.map(p=>p.run()));
+          const good=[],groups=[];
+          settled.forEach((result,i)=>{
+            if(result.status==="fulfilled"){
+              const items=result.value||[];
+              good.push({name:providers[i].name,status:"ok",detail:items.length+" result(s)"});
+              groups.push(items);
+            }else{
+              good.push({name:providers[i].name,status:"error",detail:String(result.reason&&result.reason.message||"Unavailable").slice(0,80)});
+              groups.push([]);
+            }
+          });
+          providerPills("research-provider-status",good);
+          const merged=mergeWorks(groups);
+          state.researchResults=merged;
+          $("stat-research").textContent=number(merged.length);
+          $("research-results").innerHTML=merged.map(renderResearchResult).join("");
+          const successCount=settled.filter(x=>x.status==="fulfilled").length;
+          if(merged.length){
             $("research-status").className="alert info";
-            $("research-status").textContent="Found "+number(results.length)+" semantically related work(s). The list reflects relevance to this query—not an assessment of study quality or a systematic review.";
+            $("research-status").textContent="Combined "+number(merged.length)+" unique research work(s) from "+successCount+" of 4 providers; duplicate DOI/title matches are grouped. This is discovery support, not a systematic review or scientific quality assessment.";
           }else{
-            $("research-status").className="alert info";
-            $("research-status").textContent="No works were returned for this query. Try a broader question or different terminology.";
+            $("research-status").className=successCount?"alert info":"alert error";
+            $("research-status").textContent=successCount?"The connected providers returned no works for this query. Try a shorter or broader search question.":"All research providers failed. Check your connection or try again later; each provider status above has details.";
           }
         }catch(error){
           $("research-status").className="alert error";
-          $("research-status").textContent="Could not retrieve recommendations: "+error.message+". Check your connection and try again.";
+          $("research-status").textContent="Could not complete research discovery: "+error.message;
         }finally{
           state.busy=false;
           button.disabled=false;
-          button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles"></i> Recommend research';
+          button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles"></i> Search all research sources';
         }
       }
       function clearResearch(){
@@ -376,11 +528,158 @@
         $("research-results").innerHTML="";
         $("stat-research").textContent="0";
         $("research-status").className="alert info";
-        $("research-status").textContent="Results cleared. Enter a research question and run the search when ready.";
+        $("research-status").textContent="Results cleared. Enter a research question and search again when ready.";
+        providerPills("research-provider-status",[]);
+      }
+      function openAIRERecordTitle(row){
+        return plain(row.mainTitle||row.title||row.name||row.projectTitle||row.acronym)||"Research record";
+      }
+      function networkCard(title,link,meta,description,source){
+        const href=safeUrl(link);
+        return '<article class="network-card"><h3><a href="'+href+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a></h3><div class="network-meta">'+esc([meta,source].filter(Boolean).join(" · "))+'</div>'+(description?'<div class="network-desc">'+esc(String(description).slice(0,330))+'</div>':"")+'</article>';
+      }
+      function normalizeOpenAIREProject(row){
+        const title=openAIRERecordTitle(row);
+        const id=plain(row.id);
+        const start=plain(row.startDate||row.startYear||row.startDateText);
+        const end=plain(row.endDate||row.endYear||row.endDateText);
+        const funding=plain(row.fundingShortName||row.funder||row.funding||row.fundingProgram);
+        const orgs=row.organizations&&(row.organizations.organization||row.organizations);
+        const orgText=Array.isArray(orgs)?orgs.slice(0,2).map(o=>plain(o.legalName||o.name||o)).filter(Boolean).join(", "):plain(orgs);
+        const url=row.webUrl||row.url||(id?OPENAIRE+"/projects/"+encodeURIComponent(id):"https://explore.openaire.eu/");
+        return {title:title,url:url,meta:[start||"Start year not supplied",end?"End "+end:"",funding,orgText].filter(Boolean).join(" · "),description:plain(row.description||row.objective||row.summary),source:"OpenAIRE project"};
+      }
+      function normalizeOpenAIREOrganization(row){
+        const title=plain(row.legalName||row.name||row.mainTitle||row.shortName)||"Research organization";
+        const id=plain(row.id);
+        const url=row.webUrl||row.url||(id?OPENAIRE+"/organizations/"+encodeURIComponent(id):"https://graph.openaire.eu/");
+        return {title:title,url:url,meta:[plain(row.countryCode||row.country||row.countryName),plain(row.type||row.organizationType)].filter(Boolean).join(" · "),description:plain(row.website||row.description),source:"OpenAIRE organization"};
+      }
+      function normalizeOpenAIREAsset(row){
+        const work=normalizeOpenAIREProduct(row);
+        return {title:work.title,url:work.url,meta:[work.year,work.type,work.authors].filter(Boolean).join(" · "),description:work.abstract,source:"OpenAIRE research output"};
+      }
+      function normalizeROR(row){
+        const names=Array.isArray(row.names)?row.names:[];
+        const preferred=names.find(n=>(n.types||[]).includes("ror_display"))||names.find(n=>(n.types||[]).includes("label"))||names[0];
+        const title=plain(preferred&&preferred.value)||"Research organization";
+        const country=row.locations&&row.locations[0]&&row.locations[0].geonames_details&&row.locations[0].geonames_details.country_name;
+        const types=(row.types||[]).join(", ");
+        const link=row.id||"https://ror.org/";
+        return {title:title,url:link,meta:[country,types,row.status].filter(Boolean).join(" · "),description:(row.links||[]).slice(0,2).map(l=>l.value).filter(Boolean).join(" · "),source:"ROR registry"};
+      }
+      function openAIREUrl(endpoint,query,extra){
+        const params=new URLSearchParams(Object.assign({search:query.slice(0,180),pageSize:"6",sortBy:"relevance DESC"},extra||{}));
+        return OPENAIRE+"/"+endpoint+"?"+params.toString();
+      }
+      async function performNetworkSearch(mode){
+        if(state.networkBusy)return;
+        const query=$("network-query").value.trim();
+        if(query.length<2){$("network-status").textContent="Enter at least two characters to search projects, datasets or organizations.";return;}
+        state.networkBusy=true;
+        $("run-projects").disabled=true;$("run-organizations").disabled=true;
+        $("network-status").textContent=mode==="projects"?"Searching projects and research datasets/software…":"Searching research organizations…";
+        $("network-results").innerHTML="";
+        const tasks=mode==="projects"?[
+          {name:"OpenAIRE projects",run:async()=>{const data=await apiJSON(openAIREUrl("projects",query));return (data.results||[]).map(normalizeOpenAIREProject);}},
+          {name:"OpenAIRE datasets/software",run:async()=>{const data=await apiJSON(openAIREUrl("research-products",query,{type:'("dataset" OR "software")'}));return (data.results||[]).map(normalizeOpenAIREAsset);}}
+        ]:[
+          {name:"OpenAIRE organizations",run:async()=>{const data=await apiJSON(openAIREUrl("organizations",query));return (data.results||[]).map(normalizeOpenAIREOrganization);}},
+          {name:"ROR registry",run:async()=>{const params=new URLSearchParams({query:query.slice(0,180)});const data=await apiJSON(ROR+"?"+params.toString());return (data.items||[]).map(normalizeROR);}}
+        ];
+        try{
+          const settled=await Promise.allSettled(tasks.map(t=>t.run()));
+          const pills=[],resultsHtml=[];
+          settled.forEach((result,i)=>{
+            if(result.status==="fulfilled"){
+              const list=result.value||[];
+              pills.push({name:tasks[i].name,status:"ok",detail:list.length+" result(s)"});
+              resultsHtml.push('<div><h3 style="font:800 10px Manrope,sans-serif;color:#527357;margin:2px 0 7px">'+esc(tasks[i].name)+'</h3>'+ (list.length?list.map(x=>networkCard(x.title,x.url,x.meta,x.description,x.source)).join(""):'<div class="api-status">No results for this query.</div>')+'</div>');
+            }else{
+              pills.push({name:tasks[i].name,status:"error",detail:String(result.reason&&result.reason.message||"Unavailable").slice(0,80)});
+              resultsHtml.push('<div><h3 style="font:800 10px Manrope,sans-serif;color:#527357;margin:2px 0 7px">'+esc(tasks[i].name)+'</h3><div class="api-status">This source is temporarily unavailable: '+esc(result.reason&&result.reason.message||"Request failed")+'</div></div>');
+            }
+          });
+          providerPills("network-provider-status",pills);
+          $("network-results").innerHTML=resultsHtml.join("");
+          $("network-status").textContent="Search completed. Each result retains its source; provider errors do not remove results from other sources.";
+        }finally{
+          state.networkBusy=false;$("run-projects").disabled=false;$("run-organizations").disabled=false;
+        }
+      }
+      function averageValues(obj){
+        if(!obj||typeof obj!=="object")return null;
+        const values=Object.values(obj).map(Number).filter(v=>Number.isFinite(v)&&v>-900);
+        if(!values.length)return null;
+        return {mean:values.reduce((a,b)=>a+b,0)/values.length,min:Math.min(...values),max:Math.max(...values),n:values.length};
+      }
+      function climateMetric(label,stats,unit,detail){
+        if(!stats)return '<div class="climate-metric"><span>'+esc(label)+'</span><strong>—</strong><small>No usable values supplied</small></div>';
+        return '<div class="climate-metric"><span>'+esc(label)+'</span><strong>'+esc(stats.mean.toFixed(1))+' '+esc(unit)+'</strong><small>'+esc(detail||("Mean of "+stats.n+" monthly value(s)"))+'</small></div>';
+      }
+      async function loadClimate(){
+        if(state.climateBusy)return;
+        if(!state.selected){$("climate-status").textContent="Select a mapped point first.";return;}
+        const point=state.selected;
+        state.climateBusy=true;
+        const button=$("run-climate");button.disabled=true;
+        $("climate-status").textContent="Requesting NASA POWER monthly data for "+point.lat.toFixed(3)+", "+point.lon.toFixed(3)+"…";
+        $("climate-results").innerHTML="";
+        const params=new URLSearchParams({parameters:"T2M,PRECTOTCORR,RH2M",community:"AG",longitude:String(point.lon),latitude:String(point.lat),start:"202101",end:"202512",format:"JSON","time-standard":"UTC"});
+        try{
+          const data=await apiJSON(NASA_POWER+"?"+params.toString(),null,43200000);
+          const values=data.properties&&data.properties.parameter||{};
+          const temp=averageValues(values.T2M),precip=averageValues(values.PRECTOTCORR),humidity=averageValues(values.RH2M);
+          if(!temp&&!precip&&!humidity)throw new Error("NASA POWER returned no usable monthly parameter values for this coordinate.");
+          $("climate-results").innerHTML='<div class="climate-grid">'+climateMetric("Mean air temperature",temp,"°C","2021–2025 monthly mean")+
+            climateMetric("Precipitation rate",precip,"mm/day","Mean monthly value; not a rainfall total")+
+            climateMetric("Relative humidity",humidity,"%","2021–2025 monthly mean")+'</div>'+
+            '<div class="api-status">Coordinate: '+esc(point.lat.toFixed(4)+", "+point.lon.toFixed(4))+' · Period: Jan 2021–Dec 2025 · Source: NASA POWER meteorological parameters. Averages are calculated from valid monthly values returned by the API.</div>';
+          $("climate-status").textContent="Climate context loaded for "+point.name+".";
+          $("climate-panel").scrollIntoView({behavior:"smooth",block:"nearest"});
+        }catch(error){
+          $("climate-status").textContent="Could not load climate data: "+error.message+". The map and research tools remain available.";
+        }finally{
+          state.climateBusy=false;button.disabled=!state.selected;
+        }
+      }
+      async function loadObisLayer(){
+        if(state.obisLoaded){renderLayer("obis");return;}
+        $("count-obis").textContent="Loading…";
+        setDatasetStatus("Loading aggregated marine occurrence points from OBIS on demand.");
+        const urls=[
+          OBIS+"/occurrence/points?size=500",
+          OBIS+"/occurrence?size=200&hasCoordinate=true&startdate=2020-01-01"
+        ];
+        let lastError=null;
+        for(const url of urls){
+          try{
+            const data=await apiJSON(url,null,1800000);
+            let rows=[];
+            if(data&&Array.isArray(data.features))rows=data.features;
+            else if(data&&Array.isArray(data.results))rows=data.results;
+            else if(data&&data.data&&Array.isArray(data.data.features))rows=data.data.features;
+            const normalized=rows.map(normalizeObisRow).filter(Boolean);
+            if(!normalized.length)throw new Error("No mappable coordinate records in this response");
+            state.records.obis=normalized.slice(0,500);
+            state.obisLoaded=true;
+            renderLayer("obis");
+            $("count-obis").textContent=number(state.records.obis.length);
+            $("count-obis").title="Aggregated points from OBIS; this is not the full occurrence catalogue.";
+            setDatasetStatus("OBIS loaded "+number(state.records.obis.length)+" mappable point(s). These may be aggregated occurrence cells, not individual animal or plant observations.");
+            $("stat-obis").textContent=number(state.records.obis.length);
+            return;
+          }catch(error){lastError=error;}
+        }
+        state.records.obis=[];
+        renderLayer("obis");
+        $("count-obis").textContent="Unavailable";
+        $("stat-obis").textContent="—";
+        setDatasetStatus("OBIS layer could not load: "+String(lastError&&lastError.message||"API unavailable")+". The other map layers remain available.");
       }
       async function refreshData(){
         setMapStatus("Refreshing layers…");
-        setDatasetStatus("Fetching source records from three public UNESCO DataHub datasets. Some sources may respond more slowly than others.");
+        setDatasetStatus("Fetching three public UNESCO DataHub layers. OBIS observations are loaded separately on demand.");
         $("reload-data").disabled=true;
         const results=await Promise.all(["mab","geopark","marine"].map(loadLayer));
         const ok=results.filter(r=>r.ok);
@@ -392,7 +691,7 @@
         if(failed.length){
           setDatasetStatus(failed.map(r=>DATASETS[r.type].name+": "+r.error).join(" · ")+(ok.length?" Other layers remain available.":""));
         }else{
-          setDatasetStatus(number(points)+" map point(s) loaded across "+ok.length+" source layer(s). "+(limited?"At least one dataset may be capped by this interface's retrieval limit. ":"")+"Use the original dataset for authoritative context.");
+          setDatasetStatus(number(points)+" map point(s) loaded across "+ok.length+" UNESCO DataHub layer(s). "+(limited?"At least one dataset may be capped by this interface's retrieval limit. ":"")+"OBIS loads only when selected. Source coordinates are not official boundaries.");
         }
         $("reload-data").disabled=false;
       }
@@ -401,7 +700,11 @@
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'}).addTo(state.map);
         Object.keys(DATASETS).forEach(type=>{
           state.layers[type]=L.layerGroup();
-          $("toggle-"+type).addEventListener("change",()=>renderLayer(type));
+          const toggle=$("toggle-"+type);
+          toggle.addEventListener("change",()=>{
+            if(type==="obis"&&toggle.checked){loadObisLayer();return;}
+            renderLayer(type);
+          });
         });
         $("zoom-region").addEventListener("click",()=>state.map.setView([15,105],3));
         $("fit-points").addEventListener("click",fitLoadedPoints);
@@ -411,8 +714,36 @@
         $("research-query").addEventListener("keydown",event=>{if((event.ctrlKey||event.metaKey)&&event.key==="Enter")runResearch();});
         document.querySelectorAll("[data-query]").forEach(button=>button.addEventListener("click",()=>{$("research-query").value=button.getAttribute("data-query");runResearch();}));
         $("research-from-location").addEventListener("click",()=>{if(!state.selected)return;$("research").scrollIntoView({behavior:"smooth",block:"start"});runResearch();});
+        $("run-climate").addEventListener("click",loadClimate);
+        $("run-projects").addEventListener("click",()=>performNetworkSearch("projects"));
+        $("run-organizations").addEventListener("click",()=>performNetworkSearch("organizations"));
+        $("save-s2-key").addEventListener("click",()=>{
+          const key=$("s2-key-input").value.trim();
+          if(key){localStorage.setItem("regionalScienceSemanticScholarKey",key);$("s2-key-status").textContent="API key saved in this browser only. It is not stored in the repository.";}
+          else{$("s2-key-status").textContent="Enter a key first, or use Remove to clear the locally saved key.";}
+          state.apiCache.clear();
+        });
+        $("clear-s2-key").addEventListener("click",()=>{
+          localStorage.removeItem("regionalScienceSemanticScholarKey");
+          $("s2-key-input").value="";
+          $("s2-key-status").textContent="Stored key removed. Anonymous requests will be used.";
+          state.apiCache.clear();
+        });
+        const savedKey=localStorage.getItem("regionalScienceSemanticScholarKey")||"";
+        if(savedKey){$("s2-key-input").value=savedKey;$("s2-key-status").textContent="An API key is saved in this browser.";}
         window.addEventListener("resize",()=>state.map.invalidateSize());
         refreshData();
+        providerPills("research-provider-status",[
+          {name:"OpenAlex",status:"",detail:"Semantic research search"},
+          {name:"Crossref",status:"",detail:"Publication metadata"},
+          {name:"Semantic Scholar",status:"",detail:"Papers and citations"},
+          {name:"OpenAIRE Graph",status:"",detail:"Research graph"}
+        ]);
+        providerPills("network-provider-status",[
+          {name:"OpenAIRE projects",status:"",detail:"Search on demand"},
+          {name:"OpenAIRE outputs",status:"",detail:"Datasets and software"},
+          {name:"ROR registry",status:"",detail:"Research organizations"}
+        ]);
       }
       document.addEventListener("DOMContentLoaded",init);
     })();
