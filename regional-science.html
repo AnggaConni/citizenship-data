@@ -1390,7 +1390,7 @@
         $("fishstat-status").textContent="Loaded release "+String(metadata.release||"unspecified")+", "+number(metadata.recordCount||allRows.length)+" country-year-source rows for "+number(metadata.countries||0)+" countries; years "+String(metadata.startYear||"unknown")+"–"+String(endYear)+".";
         if(!rows.length){
           $("fishstat-summary").innerHTML="";
-          $("fishstat-chart").innerHTML='<div class="data-empty">No rows are available for this country and production source in the published series. Try the other source or check FAO's original collection.</div>';
+          $("fishstat-chart").innerHTML='<div class="data-empty">No rows are available for this country and production source in the published series. Try the other source or check FAO&#39;s original collection.</div>';
           $("fishstat-table-container").innerHTML="";
           return;
         }
