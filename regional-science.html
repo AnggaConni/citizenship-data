@@ -500,12 +500,27 @@
       }
       async function fetchDataset(dataset,maxRecords){
         let offset=0,total=Infinity,all=[];
+        const selectByDataset={
+          mab001:"coordinates,title_en,iso2,country_title_en,introduction_en,mab_id,uuid,website,url"
+        };
         while(offset<total && offset<maxRecords){
           const limit=Math.min(100,maxRecords-offset);
-          const url=DATAHUB+encodeURIComponent(dataset)+"/records?limit="+limit+"&offset="+offset;
-          const response=await fetch(url,{headers:{"Accept":"application/json"}});
-          if(!response.ok)throw new Error("DataHub HTTP "+response.status);
-          const payload=await response.json();
+          const params=new URLSearchParams({lang:"en",limit:String(limit),offset:String(offset)});
+          if(selectByDataset[dataset])params.set("select",selectByDataset[dataset]);
+          // Keep each page bounded: a slow response must not leave every counter at
+          // "…" and the whole map stuck on "Refreshing layers…".
+          const controller=new AbortController();
+          const timer=setTimeout(()=>controller.abort(),12000);
+          let response,payload;
+          try{
+            const url=DATAHUB+encodeURIComponent(dataset)+"/records/?"+params.toString();
+            response=await fetch(url,{headers:{"Accept":"application/json"},signal:controller.signal,mode:"cors",credentials:"omit"});
+            if(!response.ok)throw new Error("DataHub HTTP "+response.status+" for "+dataset+" (offset "+offset+")");
+            payload=await response.json();
+          }catch(error){
+            if(error&&error.name==="AbortError")throw new Error("UNESCO DataHub request timed out after 12 seconds for "+dataset+" (offset "+offset+"). Retry the layer or check source availability.");
+            throw error;
+          }finally{clearTimeout(timer);}
           const page=Array.isArray(payload.results)?payload.results:[];
           const count=payload.total_count ?? payload.nhits ?? (payload.pagination && payload.pagination.total_count) ?? page.length;
           total=Number(count)||0;
@@ -570,6 +585,7 @@
       }
       async function loadLayer(type){
         const cfg=DATASETS[type];
+        setDatasetStatus("Loading "+cfg.name+" from UNESCO DataHub…");
         try{
           const result=await fetchDataset(cfg.id,cfg.max);
           if(result.total>0&&result.rows.length===0){
@@ -586,7 +602,7 @@
           }
           state.records[type]=normalized;
           renderLayer(type);
-          $("count-"+type).title=result.limited?"A limited subset was fetched from the source dataset.":"Loaded source records.";
+          $("count-"+type).title=result.limited?"A limited subset was fetched from the source dataset.":"Loaded "+number(result.total)+" source record(s); "+number(normalized.length)+" mapped point(s).";
           if(result.limited)$("count-"+type).textContent=number(normalized.length)+"+";
           return {type:type,count:normalized.length,sourceTotal:result.total,limited:result.limited,skippedCoordinates:skippedCoordinates,ok:true};
         }catch(error){
