@@ -725,19 +725,36 @@
         return "Unnamed mapped place";
       }
       
-      function geoeconOsmQuery(lat,lon){
-        const around="around:5000,"+Number(lat).toFixed(5)+","+Number(lon).toFixed(5);
-        // Query lebih ringkas & cepat agar server Overpass tidak timeout / drop koneksi
-        return '[out:json][timeout:20];('+
-          'nwr('+around+')["tourism"];'+
-          'nwr('+around+')["historic"];'+
-          'nwr('+around+')["shop"];'+
-          'nwr('+around+')["craft"];'+
-          'nwr('+around+')["amenity"~"marketplace|restaurant|cafe|fast_food|food_court|bakery|ice_cream|hotel|guest_house|hostel|car_repair|tailor|community_centre|clinic|bank|fuel"];'+
-          'nwr('+around+')["natural"~"beach|waterfall|hot_spring|cave_entrance"];'+
-          'nwr('+around+')["leisure"~"park|garden|nature_reserve"];'+
-          'nwr('+around+')["office"~"company|commercial|wholesale"];'+
-          ');out center tags qt 350;';
+      function geoeconOsmQuery(lat,lon,radius=5000,mode="full"){
+        const around="around:"+Math.max(500,Number(radius)||5000)+","+Number(lat).toFixed(5)+","+Number(lon).toFixed(5);
+        // Query only named places, avoiding unlabelled mapped polygons that inflate Overpass workloads.
+        const groups=mode==="essential"
+          ? [
+              'nwr('+around+')["name"]["tourism"~"attraction|museum|viewpoint|hotel|guest_house|hostel|camp_site"];',
+              'nwr('+around+')["name"]["shop"];',
+              'nwr('+around+')["name"]["amenity"~"restaurant|cafe|marketplace|fast_food|bakery|fuel"];'
+            ]
+          : mode==="core"
+          ? [
+              'nwr('+around+')["name"]["tourism"];',
+              'nwr('+around+')["name"]["historic"];',
+              'nwr('+around+')["name"]["shop"];',
+              'nwr('+around+')["name"]["craft"];',
+              'nwr('+around+')["name"]["amenity"~"marketplace|restaurant|cafe|fast_food|food_court|bakery|ice_cream|hotel|guest_house|hostel|car_repair|tailor|community_centre|clinic|bank|fuel"];',
+              'nwr('+around+')["name"]["natural"~"beach|waterfall|hot_spring|cave_entrance"];',
+              'nwr('+around+')["name"]["leisure"~"park|garden|nature_reserve"];'
+            ]
+          : [
+              'nwr('+around+')["name"]["tourism"~"attraction|museum|gallery|viewpoint|theme_park|zoo|aquarium|artwork|picnic_site|hotel|guest_house|hostel|camp_site"];',
+              'nwr('+around+')["name"]["historic"~"monument|memorial|ruins|castle|archaeological_site|wayside_shrine"];',
+              'nwr('+around+')["name"]["shop"];',
+              'nwr('+around+')["name"]["craft"];',
+              'nwr('+around+')["name"]["amenity"~"marketplace|restaurant|cafe|fast_food|food_court|bakery|ice_cream|hotel|guest_house|hostel|car_repair|tailor|community_centre|clinic|bank|fuel"];',
+              'nwr('+around+')["name"]["natural"~"beach|waterfall|hot_spring|cave_entrance"];',
+              'nwr('+around+')["name"]["leisure"~"park|garden|nature_reserve"];',
+              'nwr('+around+')["name"]["office"~"company|commercial|wholesale"];'
+            ];
+        return '[out:json][timeout:12];('+groups.join("")+');out center tags;';
       }
 
       function normalizeGeoeconPoi(element,item){
@@ -776,41 +793,44 @@
 async function requestGeoeconPois(item,requestId){
         const cacheKey=geoeconPoiCacheKey(item),cached=readGeoeconPoiCache(cacheKey);
         if(cached)return cached;
-        const query=geoeconOsmQuery(item.lat,item.lon);
-        const endpoints=[
-          "https://overpass-api.de/api/interpreter",
-          "https://overpass.private.coffee/api/interpreter",
-          "https://overpass.kumi.systems/api/interpreter",
-          "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+        const attempts=[
+          {endpoint:"https://overpass-api.de/api/interpreter",radius:5000,mode:"full",label:"5 km full search"},
+          {endpoint:"https://overpass.kumi.systems/api/interpreter",radius:5000,mode:"core",label:"5 km core search"},
+          {endpoint:"https://overpass.private.coffee/api/interpreter",radius:2500,mode:"essential",label:"2.5 km essential-place fallback"},
+          {endpoint:"https://maps.mail.ru/osm/tools/overpass/api/interpreter",radius:1500,mode:"essential",label:"1.5 km nearby-place fallback"}
         ];
-        let lastError=null;
-        for(const endpoint of endpoints){
+        let errors=[];
+        for(const attempt of attempts){
           if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
+          const query=geoeconOsmQuery(item.lat,item.lon,attempt.radius,attempt.mode);
           const controller=new AbortController();
-          const timer=setTimeout(()=>{try{controller.abort();}catch(_){}},22000);
+          let timer=null;
           try{
-            let response;
-            try{
-              // Coba dengan POST terlebih dahulu (paling aman untuk Overpass API)
-              response=await fetch(endpoint,{
-                method:"POST",
-                headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
-                body:"data="+encodeURIComponent(query),
-                signal:controller.signal,
-                mode:"cors"
-              });
-            }catch(_postErr){
-              // Fallback ke GET jika jaringan memblokir POST
-              response=await fetch(endpoint+"?data="+encodeURIComponent(query),{
-                method:"GET",
-                headers:{"Accept":"application/json"},
-                signal:controller.signal,
-                mode:"cors"
-              });
-            }
-            if(!response.ok)throw new Error("Overpass HTTP "+response.status);
-            const payload=await response.json();
-            if(!payload||!Array.isArray(payload.elements))throw new Error("Unexpected Overpass response");
+            const fetchPromise=(async()=>{
+              let response;
+              try{
+                response=await fetch(attempt.endpoint+"?data="+encodeURIComponent(query),{
+                  method:"GET",headers:{Accept:"application/json"},signal:controller.signal,cache:"no-store",mode:"cors",credentials:"omit"
+                });
+              }catch(getError){
+                if(controller.signal.aborted)throw getError;
+                response=await fetch(attempt.endpoint,{
+                  method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
+                  body:"data="+encodeURIComponent(query),signal:controller.signal,cache:"no-store",mode:"cors",credentials:"omit"
+                });
+              }
+              if(!response.ok)throw new Error("HTTP "+response.status+" at "+new URL(attempt.endpoint).host);
+              const payload=await response.json();
+              if(!payload||!Array.isArray(payload.elements))throw new Error("Unexpected response from "+new URL(attempt.endpoint).host);
+              return payload;
+            })();
+            const timeoutPromise=new Promise((_,reject)=>{
+              timer=setTimeout(()=>{
+                try{controller.abort();}catch(_){}
+                reject(new Error(attempt.label+" timed out after 10 seconds"));
+              },10000);
+            });
+            const payload=await Promise.race([fetchPromise,timeoutPromise]);
             if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
             const unique=new Map();
             (payload.elements||[]).forEach(element=>{
@@ -822,14 +842,16 @@ async function requestGeoeconPois(item,requestId){
               return Number(aUnnamed)-Number(bUnnamed)||a.distance-b.distance||a.name.localeCompare(b.name);
             });
             writeGeoeconPoiCache(cacheKey,places);
-            return places;
+            return {places:places,queryRadiusKm:attempt.radius/1000,strategy:attempt.label,endpoint:new URL(attempt.endpoint).host};
           }catch(error){
-            lastError=error;
+            if(requestId!==state.geoeconPoiRequestId)throw error;
+            errors.push((error&&error.message)||String(error));
           }finally{
-            clearTimeout(timer);
+            if(timer)clearTimeout(timer);
+            try{controller.abort();}catch(_){}
           }
         }
-        throw lastError||new Error("All public Overpass endpoints failed.");
+        throw new Error("All nearby-place searches failed: "+errors.join(" · "));
       }
 
       function geoeconPoiIcon(category,selected=false){
@@ -948,11 +970,17 @@ async function requestGeoeconPois(item,requestId){
         if(forceRefresh){
           try{sessionStorage.removeItem(geoeconPoiCacheKey(item));}catch(_){}
         }
-        const watchdog=setTimeout(()=>{if(requestId===state.geoeconPoiRequestId&&$("geoecon-local-status").textContent.startsWith("Searching OpenStreetMap")){$("geoecon-local-status").className="geoecon-status error";$("geoecon-local-status").textContent="Local place search exceeded its 30-second safety limit. Click Refresh places to retry; the map remains available."; $("geoecon-local-list").innerHTML='<div class="geoecon-status error">The place service did not complete the request. Retry once the public map service is responsive.</div>';}},30000);
+        const watchdog=setTimeout(()=>{if(requestId===state.geoeconPoiRequestId&&$("geoecon-local-status").textContent.startsWith("Searching OpenStreetMap")){$("geoecon-local-status").className="geoecon-status error";$("geoecon-local-status").textContent="Local place search exceeded its 42-second safety limit. Click Refresh places to retry; the map remains available."; $("geoecon-local-list").innerHTML='<div class="geoecon-status error">The place service did not complete the request. Retry once the public map service is responsive.</div>';}},42000);
         try{
-          const places=await requestGeoeconPois(item,requestId);
+          const result=await requestGeoeconPois(item,requestId);
           if(requestId!==state.geoeconPoiRequestId)return;
-          renderGeoeconPoiResults(places,requestId);
+          renderGeoeconPoiResults(result.places,requestId);
+          const status=$("geoecon-local-status");
+          if(status&&result.queryRadiusKm<5&&result.places.length){
+            status.textContent="Found "+result.places.length+" mapped places within "+result.queryRadiusKm+" km using fallback search ("+result.endpoint+"). The full 5 km query timed out; click Refresh places later to retry full coverage.";
+          }else if(status&&result.places.length){
+            status.textContent="Found "+result.places.length+" mapped places within 5 km ("+result.endpoint+"). "+result.strategy+".";
+          }
         }catch(error){
           if(requestId!==state.geoeconPoiRequestId)return;
           console.error("Nearby places query failed",error);
