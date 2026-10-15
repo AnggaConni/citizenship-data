@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Test FishStat processing helpers
-        run: python -m unittest tests.test_fishstat_production -v
+        run: python -m unittest discover -s tests -p 'test_fishstat_production.py' -v
       - name: Download the official FAO release and build a compact static series
         run: python scripts/build_fishstat_production.py --output data/fishstat-production.json --start-year 2000
       - name: Validate generated output and commit updates
