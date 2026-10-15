@@ -1280,6 +1280,7 @@
             value:String(row.value),
             unit:findUnitLabel(row.dimensions,0)||findUnitLabel(row.attributes,0)||"Not supplied in response",
             source:String(row.source||"UNSD SDG API response did not provide a source name"),
+            dimensions:(row.dimensions&&typeof row.dimensions==="object"?JSON.stringify(row.dimensions):"").slice(0,1500),
             footnotes:Array.isArray(row.footnotes)?row.footnotes.map(String):[],
             record:row
           })).sort((a,b)=>String(b.year).localeCompare(String(a.year)));
@@ -1307,8 +1308,8 @@
           target.innerHTML='<div class="data-empty">No observation rows are loaded for the current selection.</div>';
           return;
         }
-        const rows=state.sdgObservations.map(item=>'<tr><td>'+esc(item.year||"Not supplied")+'</td><td>'+esc(item.value)+'</td><td>'+esc(item.unit)+'</td><td>'+esc(item.source)+'</td><td>'+esc(item.footnotes.join("; ")||"None supplied")+'</td></tr>').join("");
-        target.innerHTML='<table class="data-table"><thead><tr><th>Year / period</th><th>Value</th><th>Unit</th><th>Source reported</th><th>Footnotes</th></tr></thead><tbody>'+rows+'</tbody></table>';
+        const rows=state.sdgObservations.map(item=>'<tr><td>'+esc(item.year||"Not supplied")+'</td><td>'+esc(item.value)+'</td><td>'+esc(item.unit)+'</td><td>'+esc(item.dimensions||"No dimension metadata supplied")+'</td><td>'+esc(item.source)+'</td><td>'+esc(item.footnotes.join("; ")||"None supplied")+'</td></tr>').join("");
+        target.innerHTML='<table class="data-table"><thead><tr><th>Year / period</th><th>Value</th><th>Unit</th><th>Dimensions / disaggregation</th><th>Source reported</th><th>Footnotes</th></tr></thead><tbody>'+rows+'</tbody></table>';
       }
       function csvCell(value){
         const text=String(value==null?"":value);
@@ -1325,8 +1326,8 @@
       function exportSDGObservations(){
         if(!state.sdgObservations.length)return;
         downloadCSV("unsd-sdg-"+state.sdgObservations[0].indicatorCode+"-"+$("sdg-country").value+".csv",
-          ["country_code","country_name","indicator_code","series_code","year","value","unit","source","footnotes"],
-          state.sdgObservations.map(row=>[row.countryCode,row.countryName,row.indicatorCode,row.seriesCode,row.year,row.value,row.unit,row.source,row.footnotes.join("; ")]));
+          ["country_code","country_name","indicator_code","series_code","year","value","unit","dimensions_or_disaggregation","source","footnotes"],
+          state.sdgObservations.map(row=>[row.countryCode,row.countryName,row.indicatorCode,row.seriesCode,row.year,row.value,row.unit,row.dimensions,row.source,row.footnotes.join("; ")]));
       }
             function handleThemeAction(action){
         if(action==="research"){
@@ -1615,7 +1616,7 @@
           if(state.sdgGoals.length)lines.push("- **Goal metadata:** "+state.sdgGoals.map(goal=>"SDG "+briefText(goal.code||goal.goal)+" — "+briefText(goal.title||goal.description||"Goal title not supplied")).join("; ")+".");
           if(state.sdgSelectedSeries)lines.push("- **Selected official series:** "+briefText(state.sdgSelectedSeries.indicatorCode)+" — "+briefText(state.sdgSelectedSeries.indicatorTitle)+"; series code "+briefText(state.sdgSelectedSeries.code)+"; reporting area "+briefText(state.sdgCountryName||"not selected")+".");
           if(state.sdgObservationFetched&&state.sdgObservations.length){
-            state.sdgObservations.slice(0,30).forEach(row=>lines.push("- "+briefText(row.year||"Period not supplied")+": "+briefText(row.value)+" "+briefText(row.unit||"unit not supplied")+"; source: "+briefText(row.source)+ (row.footnotes.length?"; footnote: "+briefText(row.footnotes.join("; ")).slice(0,260):"")+"."));
+            state.sdgObservations.slice(0,30).forEach(row=>lines.push("- "+briefText(row.year||"Period not supplied")+": "+briefText(row.value)+" "+briefText(row.unit||"unit not supplied")+"; dimensions/disaggregation: "+briefText(row.dimensions||"not supplied").slice(0,260)+"; source: "+briefText(row.source)+ (row.footnotes.length?"; footnote: "+briefText(row.footnotes.join("; ")).slice(0,260):"")+"."));
           }else lines.push("- **Indicator observations:** "+(state.sdgObservationFetched?"The API returned no rows for the current query. Check dimensions and the official database; an empty response is not proof that no data exist.":"No observation query completed in this session. Metadata alone are not indicator values."));
           lines.push("- **Original source:** "+markdownLink("UNSD SDG Global Database","https://unstats.un.org/sdgs/dataportal/database")+"; "+markdownLink("UNSD SDG API documentation","https://unstats.un.org/SDGAPI/swagger/")+". No synthetic SDG progress score is calculated.");
         }
