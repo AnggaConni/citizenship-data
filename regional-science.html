@@ -804,20 +804,20 @@
         const url=SEMANTIC_SCHOLAR+"?"+params.toString();
         const key=localStorage.getItem("regionalScienceSemanticScholarKey")||"";
         state.semanticScholarAuthFallback=false;
-        if(!key){
-          const data=await apiJSON(url);
-          return (data.data||[]).map(normalizeSemanticScholar);
-        }
+        const options=key?{headers:{"x-api-key":key,"Accept":"application/json"}}:undefined;
         try{
-          const data=await apiJSON(url,{headers:{"x-api-key":key,"Accept":"application/json"}});
+          const data=await apiJSON(url,options);
           return (data.data||[]).map(normalizeSemanticScholar);
         }catch(error){
-          // A custom x-api-key header can trigger a browser CORS preflight.
-          // If that preflight fails, retry once without the optional key.
+          // A saved x-api-key can trigger a CORS preflight, and anonymous requests
+          // can fail transiently. Retry network/CORS errors and invalid-key responses
+          // once without authentication before marking this provider unavailable.
           const message=String(error&&error.message||error);
-          if(!/failed to fetch|load failed|networkerror|network error/i.test(message))throw error;
+          const retryable=/failed to fetch|load failed|networkerror|network error|HTTP 401|HTTP 403|HTTP 5\d\d/i.test(message);
+          if(!retryable)throw error;
           state.apiCache.delete(url);
-          const data=await apiJSON(url,{headers:{"Accept":"application/json"}});
+          await sleep(350);
+          const data=await apiJSON(url,{headers:{"Accept":"application/json"}},1);
           state.semanticScholarAuthFallback=true;
           return (data.data||[]).map(normalizeSemanticScholar);
         }
