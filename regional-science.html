@@ -690,29 +690,27 @@
         const doi=plain(work.doi||"");
         const pmid=plain(work.pmid||"");
         const pmcid=plain(work.pmcid||"");
-        const url=doi
-          ? "https://doi.org/"+doi.replace(/^https?:
-        /
-        /doi.org
-        //i,"")
+        const cleanDoi=doi.replace(/^https?:\/\/doi\.org\//i,"");
+        const url=cleanDoi
+          ? "https://doi.org/"+cleanDoi
           : (pmid ? "https://europepmc.org/article/MED/"+encodeURIComponent(pmid)
             : (pmcid ? "https://europepmc.org/articles/"+encodeURIComponent(pmcid) : "https://europepmc.org/"));
         const authors=plain(work.authorString||"");
         const date=plain(work.firstPublicationDate||work.pubYear||"");
-        const year=(date.match(/
-        d{4}/)||[])[0]||"";
+        const year=(date.match(/\d{4}/)||[])[0]||"";
         const abstract=plain(work.abstractText||"");
         const open=work.isOpenAccess===true||String(work.isOpenAccess||"").toUpperCase()==="Y";
+        const publicationTypes=work.pubTypeList&&work.pubTypeList.pubType;
         return sourceWork("Europe PMC",{
           title:plain(work.title)||"Untitled research work",
           year:year,
           authors:authors,
-          doi:doi,
+          doi:cleanDoi,
           url:url,
           citations:work.citedByCount,
           openAccess:open,
           score:null,
-          type:plain(work.pubTypeList&&work.pubTypeList.pubType)||"Life-sciences publication",
+          type:plain(publicationTypes)||"Life-sciences publication",
           venue:plain(work.journalTitle||""),
           abstract:abstract,
           relationships:{authors:[],institutions:[],projects:[]}
@@ -840,13 +838,10 @@
         return items.map(normalizeCrossref);
       }
       function buildEuropePMCQuery(query){
-        const phrases=String(query||"").split(/[,;
-        n]+/)
+        const phrases=String(query||"").split(/[,;\n]+/)
           .map(part=>part.trim()
-            .replace(/^(?:and|or)
-        s+/i,"")
-            .replace(/^(?:scientific evidence for|evidence for|research on|publications about|research question:?
-        s*)/i,"")
+            .replace(/^(?:and|or)\s+/i,"")
+            .replace(/^(?:scientific evidence for|evidence for|research on|publications about|research question:?\s*)/i,"")
           )
           .filter(part=>part.length>=3)
           .filter((part,index,all)=>all.findIndex(other=>other.toLowerCase()===part.toLowerCase())===index)
@@ -2132,7 +2127,6 @@
         $("print-brief").addEventListener("click",printEvidenceBrief);
         $("run-projects").addEventListener("click",()=>performNetworkSearch("projects"));
         $("run-organizations").addEventListener("click",()=>performNetworkSearch("organizations"));
-        $("s2-key-status").textContent="Using the Cloudflare Worker proxy; no browser API key is required.";
         window.addEventListener("resize",()=>state.map.invalidateSize());
         refreshData();
         providerPills("research-provider-status",[
