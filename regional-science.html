@@ -724,14 +724,19 @@
         return "Unnamed mapped place";
       }
       function geoeconOsmQuery(lat,lon){
-        const around="around:"+GEOECON_RADIUS_METRES+","+lat+","+lon;
-        return '[out:json][timeout:8];('+
-          'nwr('+around+')["name"]["tourism"~"attraction|museum|gallery|viewpoint|hotel|guest_house|hostel|camp_site"];'+
-          'nwr('+around+')["name"]["historic"~"monument|memorial|ruins|castle|archaeological_site"];'+
-          'nwr('+around+')["name"]["shop"];'+
-          'nwr('+around+')["name"]["amenity"~"marketplace|restaurant|cafe|fast_food|food_court|bakery|ice_cream|pub|bar"];'+
-          'nwr('+around+')["name"]["craft"];'+
-          'nwr('+around+')["name"]["office"~"company|commercial|wholesale"];'+
+        const around="around:5000,"+lat+","+lon;
+        // Reuse the proven, broad GPIR query pattern: include tourism, services,
+        // shops, crafts, offices and suppliers; the client deduplicates by OSM id.
+        return '[out:json][timeout:20];('+
+          'nwr('+around+')["tourism"~"attraction|museum|gallery|viewpoint|theme_park|zoo|aquarium|artwork|picnic_site|hotel|guest_house|hostel|camp_site"];'+
+          'nwr('+around+')["historic"~"monument|memorial|ruins|castle|archaeological_site|wayside_shrine"];'+
+          'nwr('+around+')["natural"~"beach|waterfall|hot_spring|cave_entrance"];'+
+          'nwr('+around+')["leisure"~"park|garden"];'+
+          'nwr('+around+')["shop"];'+
+          'nwr('+around+')["amenity"~"marketplace|restaurant|cafe|fast_food|food_court|bakery|ice_cream|hotel|guest_house|hostel|car_repair|tailor|community_centre"];'+
+          'nwr('+around+')["craft"];'+
+          'nwr('+around+')["office"~"company|commercial|wholesale"];'+
+          'nwr('+around+')["landuse"~"farmland|orchard|plant_nursery|vineyard"];'+
           ');out center tags;';
       }
       function normalizeGeoeconPoi(element,item){
@@ -770,23 +775,31 @@
         const cacheKey=geoeconPoiCacheKey(item),cached=readGeoeconPoiCache(cacheKey);
         if(cached)return cached;
         const query=geoeconOsmQuery(item.lat,item.lon);
-        const endpoints=[
-          "https://overpass-api.de/api/interpreter",
-          "https://overpass.kumi.systems/api/interpreter"
-        ];
+        const endpoints=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
         let lastError=null;
         for(const endpoint of endpoints){
           if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
-          const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);
+          const controller=new AbortController();
+          let timer;
           try{
-            const response=await fetch(endpoint+"?data="+encodeURIComponent(query),{
-              method:"GET",headers:{Accept:"application/json"},signal:controller.signal,cache:"no-store"
+            const requestUrl=endpoint+"?data="+encodeURIComponent(query);
+            const fetchPromise=fetch(requestUrl,{method:"GET",headers:{Accept:"application/json"},signal:controller.signal,cache:"no-store"})
+              .then(async response=>{
+                if(!response.ok)throw new Error("Overpass HTTP "+response.status);
+                const payload=await response.json();
+                if(!payload||!Array.isArray(payload.elements))throw new Error("Overpass returned an unexpected response");
+                return payload;
+              });
+            const timeoutPromise=new Promise((_,reject)=>{
+              timer=setTimeout(()=>{
+                try{controller.abort();}catch(_){}
+                reject(new Error("Overpass did not respond within 12 seconds"));
+              },12000);
             });
-            if(!response.ok)throw new Error("Overpass HTTP "+response.status);
-            const payload=await response.json();
-            if(!payload||!Array.isArray(payload.elements))throw new Error("Overpass returned an unexpected response");
+            const payload=await Promise.race([fetchPromise,timeoutPromise]);
+            if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
             const unique=new Map();
-            payload.elements.forEach(element=>{
+            (payload.elements||[]).forEach(element=>{
               const poi=normalizeGeoeconPoi(element,item);
               if(poi)unique.set(poi.id,poi);
             });
@@ -797,10 +810,13 @@
             writeGeoeconPoiCache(cacheKey,places);
             return places;
           }catch(error){
-            lastError=error&&error.name==="AbortError"?new Error("Overpass timed out after 9 seconds"):error;
-          }finally{clearTimeout(timer);}
+            lastError=error;
+          }finally{
+            if(timer)clearTimeout(timer);
+            try{controller.abort();}catch(_){}
+          }
         }
-        throw lastError||new Error("All public Overpass endpoints are unavailable.");
+        throw lastError||new Error("All public Overpass endpoints failed.");
       }
       function geoeconPoiIcon(category,selected=false){
         const color=GEOECON_POI_COLORS[category]||GEOECON_POI_COLORS.other;
@@ -918,6 +934,7 @@
         if(forceRefresh){
           try{sessionStorage.removeItem(geoeconPoiCacheKey(item));}catch(_){}
         }
+        const watchdog=setTimeout(()=>{if(requestId===state.geoeconPoiRequestId&&$("geoecon-local-status").textContent.startsWith("Searching OpenStreetMap")){$("geoecon-local-status").className="geoecon-status error";$("geoecon-local-status").textContent="Local place search exceeded its 30-second safety limit. Click Refresh places to retry; the map remains available."; $("geoecon-local-list").innerHTML='<div class="geoecon-status error">The place service did not complete the request. Retry once the public map service is responsive.</div>';}},30000);
         try{
           const places=await requestGeoeconPois(item,requestId);
           if(requestId!==state.geoeconPoiRequestId)return;
@@ -929,7 +946,7 @@
           $("geoecon-local-status").textContent="Could not load nearby OpenStreetMap places: "+String(error.message||error)+". The geopark point and radius remain visible; try Refresh places later.";
           $("geoecon-local-list").innerHTML='<div class="geoecon-status error">Overpass may be busy or the location may have incomplete mapping. Refresh the search to retry another public endpoint.</div>';
           try{if(state.geoeconMap)drawGeoeconMap(item,[]);}catch(drawError){console.warn("Unable to redraw geopark marker after POI search failure",drawError);}
-        }
+        }finally{clearTimeout(watchdog);}
       }
       function geoeconCountryLabel(value){
         const raw=String(value||"").trim();
@@ -971,21 +988,23 @@
         try{
           if(!window.L)throw new Error("Leaflet did not load; refresh the page and try again.");
           state.geoeconMap=L.map("geoecon-map",{scrollWheelZoom:true,preferCanvas:true}).setView([item.lat,item.lon],12);
+          let tileCount=0,primaryFailed=false,fallbackAdded=false;
+          const fallbackTiles=L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:'&copy; OpenStreetMap contributors &copy; CARTO'});
           const primaryTiles=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'});
-          let fallbackAdded=false,tileErrors=0;
-          primaryTiles.on("tileerror",()=>{
-            tileErrors++;
-            if(tileErrors>=3&&!fallbackAdded&&state.geoeconMap){
-              fallbackAdded=true;
-              state.geoeconMap.removeLayer(primaryTiles);
-              L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:'&copy; OpenStreetMap contributors &copy; CARTO'}).addTo(state.geoeconMap);
-            }
-          });
+          const addFallback=()=>{
+            if(fallbackAdded||!state.geoeconMap)return;
+            fallbackAdded=true;
+            if(state.geoeconMap.hasLayer(primaryTiles))state.geoeconMap.removeLayer(primaryTiles);
+            fallbackTiles.addTo(state.geoeconMap);
+            state.geoeconMap.invalidateSize();
+          };
+          primaryTiles.on("tileload",()=>{tileCount++;});
+          primaryTiles.on("tileerror",()=>{primaryFailed=true;if(tileCount===0)addFallback();});
           primaryTiles.addTo(state.geoeconMap);
           state.geoeconPoiLayer=L.layerGroup().addTo(state.geoeconMap);
           drawGeoeconMap(item,[]);
           state.geoeconMap.invalidateSize();
-          setTimeout(()=>{if(state.geoeconMap)state.geoeconMap.invalidateSize();},250);
+          setTimeout(()=>{if(state.geoeconMap){state.geoeconMap.invalidateSize();if(tileCount===0||primaryFailed)addFallback();}},3500);
         }catch(error){
           console.error("Geopark local map initialization failed",error);
           if(state.geoeconMap){try{state.geoeconMap.remove();}catch(_){}state.geoeconMap=null;state.geoeconPoiLayer=null;}
