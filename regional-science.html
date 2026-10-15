@@ -792,7 +792,7 @@
 
 async function requestGeoeconPois(item,requestId){
         const cacheKey=geoeconPoiCacheKey(item),cached=readGeoeconPoiCache(cacheKey);
-        if(cached)return cached;
+        if(cached)return {places:cached,queryRadiusKm:5,strategy:"cached full-radius results",endpoint:"session cache"};
         const attempts=[
           {endpoint:"https://overpass-api.de/api/interpreter",radius:5000,mode:"full",label:"5 km full search"},
           {endpoint:"https://overpass.kumi.systems/api/interpreter",radius:5000,mode:"core",label:"5 km core search"},
@@ -841,7 +841,7 @@ async function requestGeoeconPois(item,requestId){
               const aUnnamed=a.name.indexOf("Unnamed ")===0,bUnnamed=b.name.indexOf("Unnamed ")===0;
               return Number(aUnnamed)-Number(bUnnamed)||a.distance-b.distance||a.name.localeCompare(b.name);
             });
-            writeGeoeconPoiCache(cacheKey,places);
+            if(attempt.radius===5000)writeGeoeconPoiCache(cacheKey,places);
             return {places:places,queryRadiusKm:attempt.radius/1000,strategy:attempt.label,endpoint:new URL(attempt.endpoint).host};
           }catch(error){
             if(requestId!==state.geoeconPoiRequestId)throw error;
@@ -858,12 +858,12 @@ async function requestGeoeconPois(item,requestId){
         const color=GEOECON_POI_COLORS[category]||GEOECON_POI_COLORS.other;
         return L.circleMarker([0,0],{radius:selected?9:6.5,color:"#fff",weight:selected?3:1.5,fillColor:color,fillOpacity:.96});
       }
-      function drawGeoeconMap(item,places=[]){
+      function drawGeoeconMap(item,places=[],searchRadiusKm=5){
         if(!state.geoeconMap)return;
         if(state.geoeconPoiLayer)state.geoeconPoiLayer.clearLayers();
         else state.geoeconPoiLayer=L.layerGroup().addTo(state.geoeconMap);
-        const radius=L.circle([item.lat,item.lon],{radius:GEOECON_RADIUS_METRES,color:"#8b6fe8",weight:1.5,dashArray:"5 6",fillColor:"#8b6fe8",fillOpacity:.045});
-        radius.bindTooltip("5 km search radius · not an official geopark boundary").addTo(state.geoeconPoiLayer);
+        const radius=L.circle([item.lat,item.lon],{radius:Math.max(0.5,Number(searchRadiusKm)||5)*1000,color:"#8b6fe8",weight:1.5,dashArray:"5 6",fillColor:"#8b6fe8",fillOpacity:.045});
+        radius.bindTooltip((Number(searchRadiusKm)||5)+" km search radius · not an official geopark boundary").addTo(state.geoeconPoiLayer);
         L.circleMarker([item.lat,item.lon],{radius:10,color:"#fff",weight:3,fillColor:"#8b6fe8",fillOpacity:1})
           .bindPopup('<strong>'+esc(item.name)+'</strong><br>'+esc(item.type==="mab"?"UNESCO Biosphere Reserve":"UNESCO Global Geopark")).addTo(state.geoeconPoiLayer);
         const bounds=radius.getBounds();
@@ -949,11 +949,11 @@ async function requestGeoeconPois(item,requestId){
           setTimeout(()=>{$("geoecon-poi-detail").scrollIntoView({behavior:"smooth",block:"nearest"});},60);
         }
       }
-      function renderGeoeconPoiResults(places,requestId){
+      function renderGeoeconPoiResults(places,requestId,searchRadiusKm=5){
         if(requestId!==state.geoeconPoiRequestId)return;
         state.geoeconPois=places;
         state.selectedGeoeconPoiId=null;
-        drawGeoeconMap(state.selectedGeopark,places);
+        drawGeoeconMap(state.selectedGeopark,places,searchRadiusKm);
         $("geoecon-local-status").className=places.length?"geoecon-status success":"geoecon-status";
         const namedCount=places.filter(place=>!/^Unnamed\b/i.test(place.name)).length;
         $("geoecon-local-status").textContent=places.length
@@ -974,7 +974,7 @@ async function requestGeoeconPois(item,requestId){
         try{
           const result=await requestGeoeconPois(item,requestId);
           if(requestId!==state.geoeconPoiRequestId)return;
-          renderGeoeconPoiResults(result.places,requestId);
+          renderGeoeconPoiResults(result.places,requestId,result.queryRadiusKm);
           const status=$("geoecon-local-status");
           if(status&&result.queryRadiusKm<5&&result.places.length){
             status.textContent="Found "+result.places.length+" mapped places within "+result.queryRadiusKm+" km using fallback search ("+result.endpoint+"). The full 5 km query timed out; click Refresh places later to retry full coverage.";
