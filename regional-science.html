@@ -44,6 +44,7 @@
         </a>
         <nav class="navlinks" aria-label="Page navigation">
           <a href="./index.html"><i class="fa-solid fa-arrow-left"></i> All experiences</a>
+          <a href="#workstreams"><i class="fa-solid fa-compass"></i> Workstreams</a>
           <a href="#research"><i class="fa-solid fa-book-open"></i> Research finder</a>
           <a href="#evidence-brief"><i class="fa-solid fa-file-lines"></i> Evidence brief</a>
           <a href="#sources"><i class="fa-solid fa-database"></i> Data sources</a>
@@ -1127,7 +1128,7 @@
         lines.push("","## 9. Source register","");
         lines.push("","### Selected workstream resources","");
         (activeTheme.sources||[]).forEach(source=>lines.push("- "+markdownLink(source.label,source.url)+" — "+briefText(source.note)));
-        if(state.sdgGoals.length)lines.push("- **SDG goal metadata returned:** "+state.sdgGoals.map(goal=>"SDG "+goal.code+" — "+briefText(goal.title)).join("; ")+". See the official UN database for indicator observations.");
+        if(state.selectedTheme==="governance"&&state.sdgGoals.length)lines.push("- **SDG goal metadata returned:** "+state.sdgGoals.map(goal=>"SDG "+goal.code+" — "+briefText(goal.title)).join("; ")+". See the official UN database for indicator observations.");
         lines.push("- "+markdownLink("UNESCO DataHub MAB","https://data.unesco.org/explore/dataset/mab001/information/")+" · "+markdownLink("Global Geoparks","https://data.unesco.org/explore/dataset/eg0001/")+" · "+markdownLink("Marine indicators","https://data.unesco.org/explore/dataset/ioc001/"));
         lines.push("- "+markdownLink("OpenAlex","https://openalex.org/")+" · "+markdownLink("Crossref","https://www.crossref.org/")+" · "+markdownLink("Semantic Scholar","https://www.semanticscholar.org/")+" · "+markdownLink("OpenAIRE Graph","https://graph.openaire.eu/"));
         lines.push("- "+markdownLink("ROR","https://ror.org/")+" · "+markdownLink("OBIS","https://obis.org/")+" · "+markdownLink("World Bank","https://api.worldbank.org/")+" · "+markdownLink("NASA POWER","https://power.larc.nasa.gov/"));
