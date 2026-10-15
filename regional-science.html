@@ -135,9 +135,12 @@
 
       <section class="panel" id="network-panel" aria-labelledby="network-title">
           <div class="panel-head"><div><h2 id="network-title">Projects, datasets & research institutions</h2><p>Discover related project records and organizations across OpenAIRE Graph and the ROR registry. ROR searches organization names and identifiers, so use an institution name or acronym for the best match.</p></div><span class="source-count">3 ENDPOINTS</span></div>
-          <label for="network-query" class="stat-label" style="display:block;margin-bottom:7px">Topic or institution name</label>
+          <label for="network-query" class="stat-label" style="display:block;margin-bottom:7px">Research topic (projects, datasets and software)</label>
           <input id="network-query" class="research-input" style="min-height:0;resize:vertical" maxlength="180" value="marine biodiversity and climate resilience" placeholder="e.g. water informatics, marine conservation, geoparks">
-          <div class="api-toolbar"><button type="button" class="primary-btn" id="run-projects"><i class="fa-solid fa-diagram-project"></i> Find projects & datasets</button><button type="button" class="secondary-btn" id="run-organizations"><i class="fa-solid fa-building-columns"></i> Find institutions</button></div>
+          <div class="api-toolbar"><button type="button" class="primary-btn" id="run-projects"><i class="fa-solid fa-diagram-project"></i> Find projects & datasets</button></div>
+          <label for="organization-query" class="stat-label" style="display:block;margin:13px 0 7px">Institution name or acronym (OpenAIRE + ROR)</label>
+          <input id="organization-query" class="research-input" style="min-height:0;resize:vertical" maxlength="180" placeholder="e.g. National Research and Innovation Agency, university name">
+          <div class="api-toolbar"><button type="button" class="secondary-btn" id="run-organizations"><i class="fa-solid fa-building-columns"></i> Find this institution</button></div>
           <div class="provider-status" id="network-provider-status" aria-label="Project and organization provider status"></div>
           <div id="network-status" class="api-status" role="status" aria-live="polite">Search a topic to discover OpenAIRE projects and research outputs, or search for institutions in OpenAIRE and ROR.</div>
           <div class="network-results" id="network-results"></div>
@@ -347,7 +350,8 @@
         else if(item.type==="obis")query="Marine biodiversity research, ocean observation, taxonomy, ecosystem monitoring and data gaps near "+(item.country||"the selected marine observation location")+"; coordinates "+item.lat.toFixed(3)+", "+item.lon.toFixed(3);
         else query="Scientific research on marine biodiversity monitoring, ocean observation, ecosystem management and sustainable seafood security for "+(item.country||"the Asia-Pacific region");
         $("research-query").value=query;
-        $("network-query").value=(item.country?item.country+" ":"")+"research projects and institutions for "+item.kind.toLowerCase()+" "+item.name;
+        $("network-query").value=(item.country?item.country+" ":"")+"research projects and datasets for "+item.kind.toLowerCase()+" "+item.name;
+        $("organization-query").value="";
       }
       async function loadLayer(type){
         const cfg=DATASETS[type];
@@ -654,8 +658,8 @@
       }
       async function performNetworkSearch(mode){
         if(state.networkBusy)return;
-        const query=$("network-query").value.trim();
-        if(query.length<2){$("network-status").textContent="Enter at least two characters to search projects, datasets or organizations.";return;}
+        const query=(mode==="organizations"?$("organization-query").value:$("network-query").value).trim();
+        if(query.length<2){$("network-status").textContent=mode==="organizations"?"Enter an institution name or acronym to search OpenAIRE and ROR.":"Enter at least two characters to search projects, datasets or software.";return;}
         state.networkBusy=true;
         $("run-projects").disabled=true;$("run-organizations").disabled=true;
         $("network-status").textContent=mode==="projects"?"Searching projects and research datasets/software…":"Searching research organizations…";
@@ -738,7 +742,7 @@
             return;
           }
           const settled=await Promise.allSettled([
-            fetchWorldBankIndicator(code,"ER.H2O.FWTL.ZS"),
+            fetchWorldBankIndicator(code,"ER.H2O.FWST.ZS"),
             fetchWorldBankIndicator(code,"ER.H2O.INTR.PC")
           ]);
           const stress=settled[0].status==="fulfilled"?settled[0].value:null;
@@ -748,7 +752,7 @@
           $("water-security-results").innerHTML='<div class="climate-grid">'+
             waterMetric("Water stress",stress,"%","Freshwater withdrawals as a proportion of available resources; not a local measurement.")+
             waterMetric("Renewable freshwater per capita",resources,"m³/person/year","Internal renewable freshwater resources per capita; national annual estimate.")+
-            waterMetric("Latest year",stress||resources,"","Indicator years may differ.")+'</div>'+
+            waterMetric("Indicator coverage",stress||resources,"","Latest available year is shown on each metric; years may differ.")+'</div>'+
             '<div class="api-status">Country: '+esc((stress&&stress.country)||(resources&&resources.country)||point.country||code)+' ('+esc(code)+') · Source: World Bank Indicators API; freshwater indicator source is FAO AQUASTAT. Missing data are not zero.</div>';
           $("water-security-status").textContent="Country-level indicators loaded where values are available.";
         }catch(error){
