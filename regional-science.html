@@ -112,7 +112,7 @@
         <div id="fishstat-summary" class="fishstat-summary"></div>
         <div id="fishstat-chart" class="fishstat-chart" role="img" aria-label="Annual capture fisheries or aquaculture production values"></div>
         <div id="fishstat-table-container" class="data-table-wrap"></div>
-        <p class="theme-caveat">Series unit: tonnes live weight. The national total is aggregated from source rows; if components carry different FAO flags, the table shows the union of those flags without claiming they apply to every component. Production volume is not consumption, household food security, fish-stock health, or proof of sustainable fishing.</p>
+        <p class="theme-caveat">Series unit: tonnes live weight. The national total is aggregated from source rows; if components carry different FAO flags, the table shows the union of those flags without claiming they apply to every component. Flag codes are displayed as supplied, not decoded by this app; consult FAO's release metadata for their meanings. Production volume is not consumption, household food security, fish-stock health, or proof of sustainable fishing.</p>
       </section>
 
       <section id="marine-tech-registry" class="workstream-data-panel" hidden aria-labelledby="tech-registry-title">
@@ -1608,7 +1608,7 @@
           const fishRows=fishStatSelectedRows();
           lines.push("- **FAO FishStat local series status:** "+(fishMeta.status==="ready"?("release "+briefText(fishMeta.release||"not supplied")+", "+number(fishMeta.recordCount||0)+" country-year-source rows, "+briefText(String(fishMeta.startYear||"unknown"))+"–"+briefText(String(fishMeta.endYear||"unknown"))+"."):briefText(fishMeta.message||"Published compact series has not yet been loaded or generated.")));
           lines.push("- **Selected series:** "+briefText($("fishstat-country").selectedOptions[0]?.textContent||"No country selected")+"; "+briefText($("fishstat-source").value)+"; "+number(fishRows.length)+" year rows loaded for this selection.");
-          lines.push("- **Unit and interpretation:** tonnes live weight. Capture/aquaculture production is not a direct measure of seafood consumption, household food security, stock abundance or sustainability.");
+          lines.push("- **Unit and interpretation:** tonnes live weight. Capture/aquaculture production is not a direct measure of seafood consumption, household food security, stock abundance or sustainability. FAO flag codes are listed verbatim, not interpreted by this app.");
           if(fishRows.length)fishRows.slice().reverse().slice(0,12).forEach(row=>lines.push("- "+briefText(String(row.year))+": "+number(row.value)+" "+briefText(row.unit||"unit not supplied")+"; source flags: "+briefText((row.sourceFlags||[]).join(", ")||"none supplied")+"."));
           lines.push("- **Sources:** "+markdownLink("FAO FishStat — Global Production","https://www.fao.org/fishery/en/collection/global_production")+"; "+markdownLink("OBIS","https://obis.org/")+". Species occurrence records and production totals are different evidence types.");
         }else if(state.selectedTheme==="governance"){
