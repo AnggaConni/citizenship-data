@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Economy Explorer | Regional Science Observatory</title>
+<meta name="description" content="Explore mapped local businesses, visitor services and global market signals around a selected UNESCO site.">
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://tile.openstreetmap.org">
+<link rel="preconnect" href="https://api.worldbank.org">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#f1f5f9;--paper:#fff;--ink:#16253b;--muted:#69788d;--line:#dce5ef;--navy:#0c2142;--blue:#2563eb;--teal:#0d9488;--pink:#db2777;--amber:#d97706;--violet:#7c3aed;--shadow:0 10px 36px #0c21420c}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}body{overflow-x:hidden}a{color:var(--blue)}button,input,select{font:inherit}button,.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:9px 12px;cursor:pointer;font-size:12px;font-weight:750;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px}button.primary,.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}button:disabled{opacity:.55;cursor:wait}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px clamp(14px,2vw,32px);background:linear-gradient(110deg,#0c2142,#123d66 65%,#087c78);color:#fff}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;border:1px solid #ffffff45;background:#ffffff12;font-size:21px}.eyebrow{font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:850;opacity:.75}.brand h1{margin:1px 0;font-size:21px;letter-spacing:-.035em;line-height:1.15}.brand p{margin:4px 0 0;color:#cbd9e8;font-size:11px}.top-actions{display:flex;gap:7px;flex-wrap:wrap}.topbar .btn{border-color:#ffffff4d;background:#ffffff10;color:#fff;min-height:35px}.page{max-width:1900px;padding:14px clamp(10px,1.4vw,24px) 28px;margin:auto}.hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 18px;margin-bottom:12px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(115deg,#fff,#f7fbff 58%,#effaf7);box-shadow:var(--shadow)}.hero-copy{min-width:0}.hero .eyebrow{color:#2462a8;opacity:1}.hero h2{margin:4px 0 4px;font-size:clamp(19px,2vw,27px);letter-spacing:-.04em;line-height:1.15}.hero p{margin:0;color:#526279;font-size:12px;max-width:780px}.hero-status{min-width:170px;text-align:right}.pill{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#eaf2ff;color:#245ba7;font-size:9px;font-weight:850;white-space:nowrap}.pill.green{background:#dcfce7;color:#166534}.pill.gold{background:#fef3c7;color:#92400e}.pill.gray{background:#e9eef5;color:#536174}.workspace{display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,1fr);gap:12px;align-items:stretch}.map-panel,.sidebar{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow);min-width:0}.map-panel{display:flex;flex-direction:column}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);min-height:52px}.panel-head h3{margin:0;font-size:12px}.panel-head p{margin:2px 0 0;color:var(--muted);font-size:10px}.map-title{display:flex;align-items:center;gap:10px}.world-icon{width:29px;height:29px;display:grid;place-items:center;border-radius:9px;background:#e6f7f5;color:#0f766e}.map-tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.map-tools button{min-height:31px;padding:6px 9px;font-size:10px}#potentialMap{height:clamp(520px,72vh,900px);width:100%;background:#e8eef4;z-index:1}.map-note{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding:9px 13px;color:var(--muted);font-size:10px}.legend{display:flex;align-items:center;gap:10px 13px;flex-wrap:wrap}.legend span{display:inline-flex;gap:5px;align-items:center}.legend i{width:16px;height:0;border-top:3px dashed var(--line-color);filter:drop-shadow(0 0 3px var(--line-color));display:inline-block}.origin-marker{display:grid;place-items:center;width:28px;height:28px;border:2px solid #fff;border-radius:50%;background:#ef4444;box-shadow:0 0 0 5px #ef44443b,0 0 22px #ef4444aa;color:#fff;font-size:12px;font-weight:900}.origin-marker:after{content:"";position:absolute;top:24px;left:9px;border-width:9px 4px 0;border-style:solid;border-color:#ef4444 transparent transparent}.potential-popup{font:12px/1.4 Inter,system-ui,sans-serif;min-width:130px}.potential-popup b{display:block;margin-bottom:3px}.potential-popup small{color:#62738a}.international-link{stroke-dasharray:5 11;animation:travelDash 1.1s linear infinite;filter:drop-shadow(0 0 3px #2563ebbb)}.tourism-link{stroke-dasharray:4 7;animation:travelDash 1.4s linear infinite;filter:drop-shadow(0 0 4px #db2777aa)}.local-link{stroke-dasharray:3 7;animation:travelDash 1.8s linear infinite;filter:drop-shadow(0 0 3px #0d9488aa)}@keyframes travelDash{to{stroke-dashoffset:-32}}@media(prefers-reduced-motion:reduce){.international-link,.tourism-link,.local-link{animation:none}}.sidebar{height:clamp(572px,calc(72vh + 52px),952px);overflow-y:auto;scrollbar-gutter:stable}.sidebar-section{padding:12px 13px;border-bottom:1px solid var(--line)}.sidebar-section:last-child{border-bottom:0}.side-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}.side-heading h3{margin:0;font-size:12px}.side-heading small{font-size:9px;color:var(--muted)}.field{min-width:0;margin-bottom:9px}.field:last-child{margin-bottom:0}.field label{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:850;margin-bottom:4px}.field input,.field select{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;color:var(--ink);font-size:12px;outline-color:#93c5fd}.two-fields{display:grid;grid-template-columns:1fr 1fr;gap:7px}.btn-row{display:flex;gap:6px;flex-wrap:wrap}.btn-row>*{flex:1}.field-help{font-size:9px;color:var(--muted);margin:5px 0 0}.check-list{display:grid;gap:7px}.check-item{display:flex;align-items:center;gap:7px;color:#3e4e64;font-size:11px}.check-item input{accent-color:var(--blue)}.status-line{font-size:10px;color:var(--muted);background:#f7f9fc;border:1px solid #e8edf4;padding:8px;border-radius:8px;margin-top:9px;overflow-wrap:anywhere}.status-line.error{color:#9f2d2d;background:#fff1f0;border-color:#fecaca}.status-line.success{color:#17664f;background:#e8f8ef;border-color:#bbebce}.mini-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:9px}.mini-stat{padding:8px 7px;border-radius:9px;background:#f5f8fc;border:1px solid #e8edf5;min-width:0}.mini-stat span{display:block;text-transform:uppercase;letter-spacing:.06em;font-size:8px;font-weight:850;color:var(--muted)}.mini-stat b{display:block;font-size:17px;line-height:1.3;margin-top:3px;overflow-wrap:anywhere}.mini-stat small{font-size:8px;color:var(--muted)}.cards{display:grid;gap:7px}.potential-card{border:1px solid var(--line);border-radius:10px;padding:9px;display:grid;gap:5px;background:#fff}.potential-card h4{font-size:11px;line-height:1.35;margin:0}.potential-card p{font-size:10px;line-height:1.4;color:#516078;margin:0;overflow-wrap:anywhere}.card-top{display:flex;align-items:start;justify-content:space-between;gap:6px}.card-tag{font-size:8px;letter-spacing:.04em;text-transform:uppercase;font-weight:900;background:#edf4ff;color:#245da7;padding:4px 6px;border-radius:99px;white-space:nowrap}.card-tag.tourism{background:#fce7f3;color:#9d174d}.card-tag.trade{background:#dbeafe;color:#1d4ed8}.card-tag.local{background:#d1fae5;color:#065f46}.card-meta{font-size:9px;color:var(--muted)}.card-actions{display:flex;gap:5px;flex-wrap:wrap}.card-actions button{min-height:28px;padding:5px 7px;font-size:9px}.empty{font-size:10px;color:var(--muted);padding:12px;border:1px dashed var(--line);border-radius:8px;text-align:center}.below-map{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.info-panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px}.info-panel h3{font-size:12px;margin:0 0 7px}.info-panel p,.info-panel li{font-size:10px;color:var(--muted);line-height:1.5}.info-panel p{margin:0}.info-panel ul{margin:6px 0 0;padding-left:17px}.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 2px 0;color:var(--muted);font-size:9px}.foot a{font-weight:750}@media(max-width:1000px){.workspace{grid-template-columns:minmax(0,1.8fr) minmax(270px,1fr)}#potentialMap{height:clamp(500px,66vh,800px)}.sidebar{height:calc(clamp(500px,66vh,800px) + 52px)}}@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column;padding:12px}.top-actions{width:100%}.top-actions .btn{flex:1}.page{padding:9px 8px 22px}.hero{align-items:flex-start;flex-direction:column;padding:13px}.hero-status{text-align:left;min-width:0}.workspace{grid-template-columns:1fr}.sidebar{height:auto;max-height:none;overflow:visible;display:grid;grid-template-columns:1fr 1fr;align-items:start}.sidebar-section{min-width:0}.sidebar-section:nth-child(odd){border-right:1px solid var(--line)}.sidebar-section:last-child{grid-column:1/-1}.map-tools .desktop-only{display:none}#potentialMap{height:62vh;min-height:390px;max-height:680px}.below-map{grid-template-columns:1fr}}@media(max-width:460px){.sidebar{grid-template-columns:1fr}.sidebar-section:nth-child(odd){border-right:0}.sidebar-section:last-child{grid-column:auto}.brand h1{font-size:19px}.two-fields{grid-template-columns:1fr 1fr}.map-tools button{font-size:9px;padding:5px 7px}}
+
+/* UN Tourism country-statistics map layer */
+.un-tourism-layer{margin:12px 0;padding:10px;background:linear-gradient(145deg,#f6faff,#f4f8ff);border:1px solid #d5e2f1;border-radius:11px}
+.un-tourism-layer summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font-size:11px;font-weight:850;color:#173b6b;list-style:none}
+.un-tourism-layer summary::-webkit-details-marker{display:none}
+.un-tourism-layer summary:after{content:"＋";font-size:15px;color:#245ba7}
+.un-tourism-layer[open] summary:after{content:"−"}
+.layer-scope{font-size:8px;text-transform:uppercase;letter-spacing:.06em;padding:4px 6px;border-radius:99px;background:#dbeafe;color:#1d4ed8}
+.un-tourism-layer .field{margin-top:9px}
+.un-tourism-layer .btn-row{margin-top:8px}
+.un-tourism-layer #unTourismShowBtn{width:100%;margin-top:2px}
+.un-tourism-layer .status-line{font-size:10px;line-height:1.45}
+/* Searchable UNESCO-designated destination picker. */
+.tourism-picker-section{margin:10px 0 13px;padding:10px;background:linear-gradient(145deg,#f8fbff,#f1fbf8);border:1px solid #d9e6f1;border-radius:11px}
+.tourism-picker-section>.field{margin-bottom:8px}
+.tourism-filter-row{gap:7px}
+.tourism-filter-row .field{margin-bottom:0}
+.destination-combo{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 37px;gap:5px}
+.destination-combo input{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:#fff;color:var(--ink);font-size:12px;outline-color:#93c5fd}
+.destination-combo>#toggleDesignatedSiteOptions{padding:5px;min-width:0;min-height:36px;font-size:16px}
+.destination-options{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:1400;max-height:250px;overflow:auto;border:1px solid #cbd8e8;border-radius:9px;background:#fff;box-shadow:0 12px 28px #10264a25}
+.destination-option{display:flex;width:100%;min-height:0;flex-direction:column;align-items:flex-start;gap:3px;border:0;border-bottom:1px solid #edf1f6;border-radius:0;padding:9px 10px;background:#fff;color:var(--ink);text-align:left;white-space:normal}
+.destination-option:last-child{border-bottom:0}
+.destination-option:hover,.destination-option:focus-visible{background:#eff6ff;outline:0}
+.destination-option-title{font-size:11px;font-weight:800;line-height:1.35}
+.destination-option-meta{font-size:9px;color:var(--muted);line-height:1.35}
+.destination-option-empty{padding:12px;color:var(--muted);font-size:10px;line-height:1.4}
+@media(max-width:460px){.tourism-picker-section{padding:8px}.tourism-filter-row{grid-template-columns:1fr 1fr;gap:6px}.destination-options{max-height:220px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="brand-icon">⌖</div><div><div class="eyebrow">REGIONAL SCIENCE · LOCAL ECONOMY</div><h1 id="pageTitle">Local Economy Explorer</h1><p id="pageSubtitle">Mapped businesses, visitor services and market signals around a UNESCO site.</p></div></div>
+  <div class="top-actions"><a class="btn" href="./regional-science.html">← Regional Science</a><a class="btn" href="https://anggaconni.github.io/GPIR/index.html" target="_blank" rel="noopener">Open GPIR ↗</a><a class="btn" href="https://github.com/AnggaConni/GPIR" target="_blank" rel="noopener">Engine source ↗</a></div>
+</header>
+<main class="page">
+  <section class="hero">
+    <div class="hero-copy"><div class="eyebrow" id="heroEyebrow">SELECTED UNESCO SITE · LOCAL ECONOMY</div><h2 id="heroTitle">Explore the economy around a selected UNESCO site.</h2><p id="heroDescription">The map starts from the selected site coordinates. Explore nearby visitor services, local businesses and optional international trade signals.</p></div>
+    <div class="hero-status"><span id="overallStatus" class="pill gray">Peta siap · letakkan pin</span><p style="font-size:9px;color:var(--muted);margin:6px 0 0">Garis menunjukkan hubungan data dan hipotesis peluang, bukan jaminan penjualan.</p></div>
+  </section>
+
+  <div class="workspace">
+    <section class="map-panel" aria-label="World potential map">
+      <div class="panel-head">
+        <div class="map-title"><span class="world-icon">◎</span><div><h3>World Potential Map</h3><p id="mapSubtitle">Peta dunia · belum ada titik aktif</p></div></div>
+        <div class="map-tools"><button id="zoomLocalBtn" type="button" class="desktop-only">Zoom local links</button><button id="zoomGlobalBtn" type="button" class="desktop-only">Zoom international</button><button id="resetMapBtn" type="button">World view</button></div>
+      </div>
+      <div id="potentialMap" role="application" aria-label="Peta dunia interaktif. Klik untuk menaruh pin; seret pin untuk memindahkannya."></div>
+      <div class="map-note">
+        <div class="legend"><span><i style="--line-color:#db2777"></i>Wisata ≤5 km</span><span><i style="--line-color:#0d9488"></i>Ekosistem lokal</span><span><i style="--line-color:#2563eb"></i>Sinyal pasar internasional</span></div>
+        <span id="mapAttribution">Peta © OpenStreetMap contributors</span>
+      </div>
+    </section>
+
+    <aside class="sidebar" aria-label="Potential filters and results">
+      <section class="sidebar-section">
+        <div class="side-heading"><h3>01 · Lokasi & filter</h3><span class="pill">PIN DRAGGABLE</span></div>
+        <div class="field"><label for="locationSearch">Cari lokasi</label><input id="locationSearch" type="search" placeholder="Contoh: Aceh, Indonesia" autocomplete="off"></div>
+        <div class="btn-row"><button id="searchLocationBtn" class="primary" type="button">Cari lokasi</button><button id="myLocationBtn" type="button">◎ Lokasi saya</button></div>
+<div class="tourism-picker-section" aria-label="Cari destinasi wisata dan situs UNESCO">
+          <div class="field">
+            <label for="destinationSourceFilter">Sumber destinasi</label>
+            <select id="destinationSourceFilter">
+              <option value="tourism">Tourism destinations</option>
+              <option value="unesco">UNESCO designated sites</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="designatedSiteSearch">Go to tourism / UNESCO site</label>
+            <div class="destination-combo">
+              <input id="designatedSiteSearch" type="search" placeholder="Ketik nama situs atau buka daftar…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="designatedSiteOptions" aria-expanded="false">
+              <button id="toggleDesignatedSiteOptions" type="button" aria-label="Tampilkan daftar destinasi" title="Browse designated sites">▾</button>
+              <div id="designatedSiteOptions" class="destination-options" role="listbox" aria-label="UNESCO designated destinations" hidden></div>
+            </div>
+            <p id="designatedSiteStatus" class="field-help" role="status" aria-live="polite">Cari atau pilih destinasi resmi. Memuat katalog UNESCO…</p>
+          </div>
+          <div class="two-fields tourism-filter-row">
+            <div class="field"><label for="designationFilter">Jenis destinasi</label><select id="designationFilter">
+              <option value="all">Semua destinasi</option>
+              <option value="world_heritage">World Heritage Site</option>
+              <option value="geopark">Global Geopark</option>
+              <option value="biosphere_reserve">Biosphere Reserve</option>
+            </select></div>
+            <div class="field"><label for="designationCountryFilter">Negara</label><select id="designationCountryFilter"><option value="all">Semua negara</option></select></div>
+          </div>
+          <p class="field-help">Pilih hasil untuk memindahkan pin langsung ke koordinat destinasi, lalu analisis peluang di sekitarnya.</p>
+          <p id="destinationSourceNote" class="field-help">Koordinat Tourism berasal dari katalog tempat/panduan wisata. <a href="https://www.untourism.int/tourism-statistics/tourism-statistics-database" target="_blank" rel="noopener noreferrer">UN Tourism Statistics ↗</a> menyediakan statistik negara/region, bukan koordinat atraksi.</p>
+        <details id="unTourismLayerPanel" class="un-tourism-layer">
+          <summary>UN Tourism statistics layer <span class="layer-scope">country-level</span></summary>
+          <p class="field-help">Tampilkan statistik resmi per negara pada peta. Ini bukan jumlah pengunjung di objek wisata tertentu.</p>
+          <div class="field">
+            <label for="unTourismDatasetSelect">Dataset / indikator utama</label>
+            <select id="unTourismDatasetSelect" disabled><option value="">Memuat daftar dataset…</option></select>
+          </div>
+          <div class="btn-row"><button id="unTourismLoadBtn" type="button">Muat statistik</button><button id="unTourismClearBtn" type="button">Hapus layer</button></div>
+          <div id="unTourismFilters" hidden>
+            <div class="field" style="margin-top:9px"><label for="unTourismIndicatorSelect">Indikator</label><select id="unTourismIndicatorSelect"></select></div>
+            <div class="two-fields">
+              <div class="field"><label for="unTourismYearSelect">Tahun</label><select id="unTourismYearSelect"></select></div>
+              <div class="field"><label for="unTourismBreakdownSelect">Klasifikasi (opsional)</label><select id="unTourismBreakdownSelect"><option value="">Tidak ada filter khusus</option></select></div>
+            </div>
+            <button id="unTourismShowBtn" class="primary" type="button">Tampilkan statistik di peta</button>
+          </div>
+          <div id="unTourismStatus" class="status-line" role="status" aria-live="polite">Pilih dataset lalu klik Muat statistik. Tabel besar tidak diunduh sebelum diminta.</div>
+        </details>
+        </div>
+        <div class="field" style="margin-top:9px"><label for="resourceInput">Potensi / sumber daya lokal</label><input id="resourceInput" type="text" placeholder="Contoh: singkong, kopi, bambu"></div>
+        <div class="btn-row" style="margin-bottom:9px"><button id="exampleCassavaBtn" type="button">Contoh: singkong</button><button id="exampleCraftBtn" type="button">Contoh: kerajinan</button></div>
+        <div class="field"><label for="opportunitySelect">Ide usaha yang ingin ditelusuri</label><select id="opportunitySelect"><option value="auto">Otomatis dari sumber daya</option></select></div>
+        <div class="field"><label for="marketSelect">Negara tujuan (opsional)</label><select id="marketSelect"><option value="all">Semua pasar yang memiliki data</option><option value="NLD">Belanda (NLD)</option><option value="DEU">Jerman (DEU)</option><option value="USA">Amerika Serikat (USA)</option><option value="GBR">Britania Raya (GBR)</option><option value="JPN">Jepang (JPN)</option><option value="ARE">Uni Emirat Arab (ARE)</option></select><p class="field-help">Hanya pasar dengan observasi perdagangan yang cocok yang akan mendapatkan garis.</p></div>
+        <div class="check-list">
+          <label class="check-item"><input id="showTourism" type="checkbox" checked> Atraksi wisata dalam 5 km</label>
+          <label class="check-item"><input id="showLocal" type="checkbox" checked> Pasar, pemasok, retail, usaha sekitar</label>
+          <label class="check-item"><input id="showInternational" type="checkbox" checked> Sinyal impor internasional</label>
+        </div>
+        <div class="btn-row" style="margin-top:10px"><button id="analyzeBtn" type="button" class="primary">Analisis titik ↗</button><button id="clearPointBtn" type="button">Hapus pin</button></div>
+        <div id="statusLine" class="status-line" role="status" aria-live="polite">Klik peta dunia untuk menaruh pin. Pencarian area tidak memakai autocomplete.</div>
+      </section>
+
+      <section class="sidebar-section">
+        <div class="side-heading"><h3>02 · Ringkasan titik</h3><span id="dataModePill" class="pill gray">BELUM DIPILIH</span></div>
+        <div class="mini-stats">
+          <div class="mini-stat"><span>Wisata ≤5 km</span><b id="tourismCount">—</b><small>atraksi terpetakan</small></div>
+          <div class="mini-stat"><span>Usaha sekitar</span><b id="localCount">—</b><small>titik calon kanal</small></div>
+          <div class="mini-stat"><span>Pasar global</span><b id="marketCount">—</b><small>negara dengan sinyal</small></div>
+        </div>
+        <div class="side-heading"><h3>Ide usaha yang relevan</h3><small id="ideaSummary">Menunggu lokasi</small></div>
+        <div id="opportunityResults" class="cards"><div class="empty">Letakkan pin lalu klik Analisis titik untuk melihat potensi.</div></div>
+      </section>
+
+      <section class="sidebar-section">
+        <div class="side-heading"><h3>03 · Potensi lokal</h3><small id="localSummary">Radius 5 km</small></div>
+        <div id="localResults" class="cards"><div class="empty">Titik wisata, pasar, perajin, pemasok dan retail akan tampil di sini.</div></div>
+      </section>
+
+      <section class="sidebar-section">
+        <div class="side-heading"><h3>04 · Pasar internasional</h3><small id="marketSummary">Data perdagangan GPIR</small></div>
+        <div id="marketResults" class="cards"><div class="empty">Masukkan sumber daya atau pilih ide usaha untuk mencari kecocokan dengan data impor.</div></div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="below-map">
+    <section class="info-panel"><h3>Bagaimana membaca garis?</h3><p><b>Pink — wisata:</b> garis hanya dibuat ke atraksi yang terpetakan dalam radius 5 km. <b>Hijau — ekosistem lokal:</b> pasar, pemasok, retail atau usaha yang tercatat di peta. <b>Biru — internasional:</b> negara tujuan yang mempunyai baris impor cocok dengan kata kunci produk di feed GPIR. Klik “Zoom to link” untuk melihat hubungan tertentu.</p></section>
+    <section class="info-panel"><h3>Sumber & batasan</h3><ul><li>OpenStreetMap/Overpass: titik terpetakan, mungkin tidak lengkap atau tidak aktif.</li><li>UN Comtrade GPIR: statistik impor per negara dan produk; bukan penjualan retail atau order buyer.</li><li>UN Tourism: data statistik dipakai di Explorer statistik, bukan hitungan pengunjung per atraksi.</li><li>Semua rekomendasi adalah hipotesis untuk diteliti. Periksa buyer, margin, izin, pasokan dan repeat order sebelum investasi.</li></ul></section>
+  </div>
+  <footer class="foot"><span>Regional Science Observatory · Local Economy Explorer · Nearby mapped places and market signals.</span><span><a href="./regional-science.html">Regional Science Observatory</a> · <a href="https://anggaconni.github.io/GPIR/index.html" target="_blank" rel="noopener">GPIR</a> · <a href="https://www.openstreetmap.org/copyright">OpenStreetMap attribution</a></span></footer>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./geopark-market-context.js"></script>
+<script src="./geopark-economy.js"></script>
+</body>
+</html>
