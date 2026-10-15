@@ -6,6 +6,8 @@ on:
       - "scripts/**"
       - "tests/**"
       - "biodiversity-atlas.html"
+      - "regional-science.html"
+      - ".github/workflows/fishstat-production.yml"
       - ".github/workflows/biodiversity-data.yml"
       - ".github/workflows/python-ci.yml"
   pull_request:
@@ -47,3 +49,18 @@ jobs:
           Path("/tmp/biodiversity-atlas.js").write_text(inline, encoding="utf-8")
           PY
           node --check /tmp/biodiversity-atlas.js
+
+      - name: Check Regional Science Observatory JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path("regional-science.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>", html, flags=re.IGNORECASE)
+          inline = "\n".join(script for script in scripts if script.strip())
+          if not inline.strip():
+              raise SystemExit("No inline JavaScript found in regional-science.html")
+          Path("/tmp/regional-science.js").write_text(inline, encoding="utf-8")
+          PY
+          node --check /tmp/regional-science.js
