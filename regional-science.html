@@ -33,7 +33,56 @@
     @media(max-width:820px){.theme-detail{grid-template-columns:1fr}.source-links-grid{grid-template-columns:1fr}.workspace{grid-template-columns:1fr;grid-template-areas:"map" "climate" "side"}.bottom-workspace{grid-template-columns:1fr}.map-stage{height:60vh;min-height:430px}.climate-columns{grid-template-columns:repeat(2,minmax(0,1fr))}.climate-hydrology{grid-column:1/-1}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto;align-items:start}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.navlinks{gap:10px}}
     @media(max-width:560px){.data-controls{grid-template-columns:1fr}.fishstat-summary{grid-template-columns:1fr}.tech-notes-field{grid-column:auto}.workstream-data-panel{padding:11px}.data-actions>*{max-width:100%}.theme-workbench{padding:12px}.theme-header{gap:8px}.theme-options{grid-template-columns:1fr}.theme-option{padding:10px}.theme-detail{padding:11px}.sdg-goals-grid{grid-template-columns:1fr}.wrap{width:calc(100% - 22px)}.nav{align-items:flex-start}.navlinks a:not(:last-child){display:none}.brand-sub{max-width:180px;line-height:1.5}.hero{padding:25px 0 20px}.hero p{font-size:12px}.summary{gap:8px}.stat{padding:11px}.stat strong{font-size:21px}.workspace{gap:10px}.bottom-workspace{gap:10px;margin-top:10px}.map-head{align-items:flex-start;flex-direction:column}.map-tools .hint{width:100%;margin-left:0}.map-stage{height:55vh;min-height:390px}.climate-columns{grid-template-columns:1fr}.climate-hydrology{grid-column:auto}.climate-source-block{padding:11px}.side{grid-template-columns:1fr;grid-template-rows:auto auto}.map-selection{grid-template-columns:1fr;gap:10px;padding:12px}.map-selection-actions .secondary-btn{flex:1}.panel{padding:13px}.footer-grid{grid-template-columns:1fr}.map-overlay{max-width:220px}.research-input{min-height:84px}}
     @media print{body{background:#fff!important;color:#1e2b20!important}.dark,.summary,.workspace,.bottom-workspace,.footer-notes,.evidence-brief-panel>.panel-head,.brief-controls,.brief-actions,.brief-status{display:none!important}main{padding:0!important}.wrap{width:100%!important;max-width:none!important}.evidence-brief-panel{display:block!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;border-radius:0!important}.evidence-preview{display:block!important;max-height:none!important;overflow:visible!important;border:0!important;padding:0!important;margin:0!important;font-size:10pt!important;color:#111!important}.evidence-preview:before{content:"Regional Science Intelligence — Evidence Brief";display:block;font:bold 19pt Arial,sans-serif;margin-bottom:12pt} @page{size:A4;margin:16mm}}\n    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
-  </style>
+  
+    .geoecon-trigger{display:inline-flex;align-items:center;gap:7px;margin-top:9px;padding:9px 12px;border:1px solid #b7dec3;border-radius:9px;background:linear-gradient(110deg,#eaf8ee,#f7fbe8);color:#1b6137;font-size:11px;font-weight:800;cursor:pointer}
+    .geoecon-trigger:hover{background:#dff3e5;border-color:#79bf91}
+    .geoecon-modal{position:fixed;inset:0;z-index:5000;background:#f3f7f2;color:#183529;display:none;flex-direction:column;overflow:hidden}
+    .geoecon-modal.is-open{display:flex}
+    body.geoecon-open{overflow:hidden}
+    .geoecon-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;background:#102f23;color:#f4fbf5;flex-shrink:0}
+    .geoecon-brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .geoecon-brand .mark{width:37px;height:37px;display:grid;place-items:center;border-radius:11px;background:#d4f17b;color:#173d2a}
+    .geoecon-title{margin:0;font:800 16px Manrope,sans-serif}
+    .geoecon-subtitle{margin:3px 0 0;color:#bdd8c5;font-size:10px}
+    .geoecon-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .geoecon-actions button{padding:8px 11px;border:1px solid #ffffff35;border-radius:9px;background:#ffffff12;color:#fff;font-size:11px;font-weight:750;cursor:pointer}
+    .geoecon-actions button:hover{background:#ffffff25}
+    .geoecon-main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,.9fr);gap:12px;padding:12px;overflow:auto;min-height:0;flex:1}
+    .geoecon-panel{min-width:0;background:#fff;border:1px solid #dce8dc;border-radius:13px;overflow:hidden;box-shadow:0 7px 23px #143d2510}
+    .geoecon-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #edf2ea}
+    .geoecon-panel-head h3{margin:0;font:800 12px Manrope,sans-serif}
+    .geoecon-panel-head p{margin:3px 0 0;color:#718174;font-size:10px;line-height:1.5}
+    #geoecon-map{height:clamp(360px,52vh,680px);width:100%;background:#dcecf0}
+    .geoecon-map-note{padding:9px 12px;border-top:1px solid #e7eee5;color:#6b7c6f;font-size:10px;line-height:1.6}
+    .geoecon-content{display:grid;gap:10px;padding:12px;align-content:start}
+    .geoecon-site{padding:12px;border-radius:10px;background:#f1f8ef;border:1px solid #dcebd7}
+    .geoecon-site .eyebrow{font-size:8px;color:#56845e;letter-spacing:.1em;font-weight:850}
+    .geoecon-site h2{margin:5px 0 4px;font:800 18px Manrope,sans-serif;letter-spacing:-.03em}
+    .geoecon-site p{margin:0;color:#65766a;font-size:10px;line-height:1.6}
+    .geoecon-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .geoecon-metric{padding:10px;border:1px solid #e3ece1;border-radius:10px;min-width:0}
+    .geoecon-metric span{display:block;color:#758575;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+    .geoecon-metric strong{display:block;color:#204c31;font:800 18px Manrope,sans-serif;margin-top:5px;overflow-wrap:anywhere}
+    .geoecon-metric small{display:block;color:#7b8a7c;font-size:9px;line-height:1.45;margin-top:3px}
+    .geoecon-status{padding:9px 10px;border-radius:9px;background:#f5f8f3;border:1px solid #e4ece1;color:#617365;font-size:10px;line-height:1.6;overflow-wrap:anywhere}
+    .geoecon-status.error{background:#fff3f1;border-color:#f4cfc8;color:#8b3227}
+    .geoecon-status.success{background:#edf9ef;border-color:#c9e9cf;color:#265e35}
+    .geoecon-section-title{margin:0;font:800 11px Manrope,sans-serif;color:#284c34}
+    .geoecon-bars{display:grid;gap:8px}
+    .geoecon-bar-row{display:grid;gap:4px}
+    .geoecon-bar-label{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#536858}
+    .geoecon-bar-track{height:7px;background:#edf2eb;border-radius:99px;overflow:hidden}
+    .geoecon-bar-track span{display:block;height:100%;border-radius:99px;background:#3d9c65}
+    .geoecon-list{display:grid;gap:7px}
+    .geoecon-row{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;padding:9px 0;border-bottom:1px solid #edf1ea}
+    .geoecon-row:last-child{border-bottom:0}
+    .geoecon-row strong{display:block;font-size:10px;color:#2e5238}
+    .geoecon-row small{display:block;color:#7c8b7e;font-size:9px;line-height:1.5;margin-top:3px}
+    .geoecon-row .value{font-weight:850;color:#224f32;font-size:10px;white-space:nowrap}
+    .geoecon-footer{padding:9px 14px;border-top:1px solid #e3ebe0;color:#778677;font-size:9px;line-height:1.55;background:#fbfcfa;flex-shrink:0}
+    @media(max-width:850px){.geoecon-main{grid-template-columns:1fr;overflow:auto}.geoecon-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:10px}.geoecon-site,.geoecon-section-wide{grid-column:1/-1}#geoecon-map{height:48vh;min-height:320px}}
+    @media(max-width:560px){.geoecon-top{align-items:flex-start;padding:10px;gap:8px}.geoecon-title{font-size:13px}.geoecon-subtitle{max-width:220px}.geoecon-actions{gap:4px}.geoecon-actions button{font-size:10px;padding:7px}.geoecon-main{padding:7px;gap:8px}.geoecon-side{grid-template-columns:1fr}.geoecon-site,.geoecon-section-wide{grid-column:auto}.geoecon-panel-head{padding:10px}.geoecon-metric strong{font-size:16px}}
+</style>
 </head>
 <body>
   <section class="dark">
@@ -373,7 +422,7 @@
           actions:[["research","Search policy and governance evidence","fa-book-open"],["projects","Find governance projects & datasets","fa-diagram-project"],["sdg","Load official SDG indicators","fa-list-check"]]
         }
       };
-      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",sdgPage:1,sdgTotalPages:1,fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
+      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",sdgPage:1,sdgTotalPages:1,fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map(),geoeconMap:null,geoeconLayer:null,geoeconRequestId:0,selectedGeopark:null};
       const $ = id => document.getElementById(id);
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
@@ -540,7 +589,8 @@
       function markerFor(item){
         const circle=L.circleMarker([item.lat,item.lon],{radius:item.type==="marine"?6.5:7,color:"#ffffff",weight:1.6,fillColor:DATASETS[item.type].color,fillOpacity:.9});
         const sourceUrl=safeUrl(item.source);
-        circle.bindPopup('<div class="popup-type">'+esc(item.kind)+'</div><div class="popup-title">'+esc(item.name)+'</div><div>'+esc(item.country||"Country not specified")+'</div><a class="popup-link" href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Open source record ↗</a>');
+        const econButton=item.type==="geopark" ? '<button type="button" class="geoecon-trigger" data-geoecon-marker="'+esc(item.id)+'"><i class="fa-solid fa-chart-line"></i> Analyse economy</button>' : '';
+        circle.bindPopup('<div class="popup-type">'+esc(item.kind)+'</div><div class="popup-title">'+esc(item.name)+'</div><div>'+esc(item.country||"Country not specified")+'</div><a class="popup-link" href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Open source record ↗</a>'+econButton);
         circle.on("click",()=>selectRecord(item));
         return circle;
       }
@@ -566,12 +616,159 @@
         if(points.length)state.map.fitBounds(L.latLngBounds(points),{padding:[30,30],maxZoom:6});
         else state.map.setView([15,100],3);
       }
+
+      const COMTRADE_API = "https://comtradeapi.un.org/public/v1/preview/C/A/HS";
+      const GEOPARK_COUNTRY_CODES = {
+        "indonesia":"360","viet nam":"704","vietnam":"704","thailand":"764","malaysia":"458","philippines":"608","cambodia":"116","lao people's democratic republic":"418","laos":"418","myanmar":"104","singapore":"702","brunei darussalam":"096","brunei":"096","timor-leste":"626","china":"156","japan":"392","republic of korea":"410","south korea":"410","india":"356","sri lanka":"144","nepal":"524","bangladesh":"050","pakistan":"586","papua new guinea":"598","fiji":"242","australia":"036","new zealand":"554","iran":"364","turkey":"792","türkiye":"792","mongolia":"496","kazakhstan":"398","uzbekistan":"860","kyrgyzstan":"417","tajikistan":"762"
+      };
+      const GEOPARK_COUNTRY_ANCHORS = {
+        "360":{name:"Indonesia",lat:-2.5,lon:118},"704":{name:"Viet Nam",lat:16,lon:106},"764":{name:"Thailand",lat:15,lon:101},
+        "458":{name:"Malaysia",lat:4.2,lon:102},"608":{name:"Philippines",lat:12,lon:122},"116":{name:"Cambodia",lat:12.6,lon:105},
+        "418":{name:"Lao PDR",lat:19.8,lon:102.6},"104":{name:"Myanmar",lat:21.9,lon:95.9},"702":{name:"Singapore",lat:1.35,lon:103.8},
+        "096":{name:"Brunei",lat:4.5,lon:114.7},"626":{name:"Timor-Leste",lat:-8.8,lon:125.7},"156":{name:"China",lat:35,lon:103},
+        "392":{name:"Japan",lat:36.2,lon:138.2},"410":{name:"Republic of Korea",lat:36,lon:128},"356":{name:"India",lat:22,lon:79},
+        "144":{name:"Sri Lanka",lat:7.9,lon:80.7},"524":{name:"Nepal",lat:28.3,lon:84},"050":{name:"Bangladesh",lat:24,lon:90},
+        "586":{name:"Pakistan",lat:30.4,lon:69.3},"598":{name:"Papua New Guinea",lat:-6.3,lon:145},"242":{name:"Fiji",lat:-17.7,lon:178},
+        "036":{name:"Australia",lat:-25.3,lon:133.8},"554":{name:"New Zealand",lat:-41.3,lon:174.8},"364":{name:"Iran",lat:32,lon:53},
+        "792":{name:"Türkiye",lat:39,lon:35},"496":{name:"Mongolia",lat:46.8,lon:103},"398":{name:"Kazakhstan",lat:48,lon:68}
+      };
+      function geoparkCountryCode(item){
+        const raw=String(item&&item.countryCode||"").trim().toUpperCase();
+        if(/^\\d{3}$/.test(raw))return raw;
+        if(/^[A-Z]{3}$/.test(raw)){
+          const alpha3={"IDN":"360","VNM":"704","THA":"764","MYS":"458","PHL":"608","KHM":"116","LAO":"418","MMR":"104","SGP":"702","BRN":"096","TLS":"626","CHN":"156","JPN":"392","KOR":"410","IND":"356","LKA":"144","NPL":"524","BGD":"050","PAK":"586","PNG":"598","FJI":"242","AUS":"036","NZL":"554","IRN":"364","TUR":"792","MNG":"496","KAZ":"398"};
+          if(alpha3[raw])return alpha3[raw];
+        }
+        return GEOPARK_COUNTRY_CODES[String(item&&item.country||"").trim().toLowerCase()]||"";
+      }
+      function comtradeNumber(v){const n=Number(v);return v==null||v===""||!Number.isFinite(n)?null:n;}
+      function formatTradeUSD(v){
+        if(v==null)return "Not supplied";
+        return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:1}).format(v);
+      }
+      function comtradeProductLabel(row){return String(row.cmdDesc||row.cmdCode||row.aggrLevel||"Unspecified HS product");}
+      async function fetchGeoparkTrade(countryCode){
+        const endYear=new Date().getUTCFullYear()-1, startYear=endYear-4;
+        const params=new URLSearchParams({reporterCode:countryCode,period:Array.from({length:endYear-startYear+1},(_,i)=>String(startYear+i)).join(","),cmdCode:"TOTAL",flowCode:"M",partnerCode:"0",motCode:"0",partner2Code:"0",aggregateBy:"6",breakdownMode:"classic"});
+        const url=COMTRADE_API+"?"+params.toString();
+        const data=await apiJSON(url,null,6*60*60*1000);
+        const rows=Array.isArray(data.data)?data.data:[];
+        return {rows:rows,period:(data.query&&data.query.period)||params.get("period"),url:url,elapsed:data.elapsedTime};
+      }
+      function economicProducts(rows){
+        const byCode=new Map();
+        rows.forEach(row=>{
+          const code=String(row.cmdCode||row.cmdDesc||"");
+          const old=byCode.get(code)||{code:code,name:comtradeProductLabel(row),value:0,hasValue:false,years:[],records:0};
+          const value=comtradeNumber(row.primaryValue);
+          if(value!=null){old.value+=value;old.hasValue=true;}
+          if(row.period!=null)old.years.push(String(row.period));
+          old.records++;
+          byCode.set(code,old);
+        });
+        return [...byCode.values()].map(row=>({...row,year:row.years.sort().slice(-1)[0]||""})).sort((a,b)=>(b.hasValue?b.value:0)-(a.hasValue?a.value:0));
+      }
+      function renderGeoparkProductBars(products){
+        const el=$("geoecon-product-bars");
+        if(!products.length){el.innerHTML='<div class="geoecon-status">No product-level records were returned for this query. This can reflect endpoint limits, product-code coverage or a source response format—not an absence of economic activity.</div>';return;}
+        const top=products.filter(p=>p.code!=="TOTAL"&&p.code!=="0").slice(0,7);
+        const max=Math.max(1,...top.map(p=>p.value||0));
+        el.innerHTML=top.map(p=>'<div class="geoecon-bar-row"><div class="geoecon-bar-label"><span>'+esc(p.name)+' · HS '+esc(p.code)+'</span><strong>'+esc(formatTradeUSD(p.hasValue?p.value:null))+'</strong></div><div class="geoecon-bar-track"><span style="width:'+Math.max(3,Math.round((p.value||0)/max*100))+'%"></span></div><small style="font-size:9px;color:#7b8a7c">Reported national import value · '+esc(p.year||"year not identified")+'</small></div>').join("");
+      }
+      function renderGeoparkLinkages(item,tradeRows,products){
+        const country=item.country||"the selected country";
+        const productNames=products.filter(p=>p.code!=="TOTAL"&&p.code!=="0").slice(0,5);
+        const linkages=[
+          {title:"Geological and geoheritage services",description:"Candidate services for local assessment: guided interpretation, geotourism, educational visits and conservation-compatible experiences. Confirm visitor demand and site management rules."},
+          {title:"Local crafts and food systems",description:"Check whether locally sourced food, craft products or community enterprises can supply visitor services. Trade statistics cannot establish local production or geopark provenance."},
+          {title:"Sustainable infrastructure and services",description:"Review transport, accommodation, waste, water and accessibility needs using local administrative data and stakeholder consultation."},
+          {title:"Market signals to investigate",description:productNames.length?"National import product categories surfaced by Comtrade: "+productNames.map(p=>p.name).join("; ")+". These are macro trade categories, not evidence of demand for a geopark-specific product.":"No product categories could be inferred from the current trade response; use local statistics and stakeholder interviews instead."}
+        ];
+        $("geoecon-linkages").innerHTML=linkages.map(row=>'<div class="geoecon-row"><div><strong>'+esc(row.title)+'</strong><small>'+esc(row.description)+'</small></div></div>').join("");
+        $("geoecon-caveat").textContent="Interpretation: UN Comtrade reports merchandise trade at national level for "+country+". It does not measure geopark income, visitor expenditure, jobs, community value added or sales of geopark-branded products. Linkages are hypotheses for follow-up, not quantified impacts.";
+      }
+      function openGeoeconModal(item){
+        if(!item||item.type!=="geopark")return;
+        state.selectedGeopark=item;
+        const modal=$("geoecon-modal");
+        modal.classList.add("is-open");modal.setAttribute("aria-hidden","false");document.body.classList.add("geoecon-open");
+        $("geoecon-title").textContent="Economic linkages · "+item.name;
+        $("geoecon-site-name").textContent=item.name;
+        $("geoecon-site-meta").textContent=[item.country||"Country not identified",item.lat.toFixed(4)+", "+item.lon.toFixed(4),"UNESCO Global Geoparks dataset"].join(" · ");
+        $("geoecon-open-source").onclick=()=>window.open("https://comtradeplus.un.org/","_blank","noopener");
+        $("geoecon-import-value").textContent="Loading…";$("geoecon-partners").textContent="—";$("geoecon-records").textContent="—";$("geoecon-products").textContent="—";
+        $("geoecon-product-bars").innerHTML='<div class="geoecon-status">Loading national import trade data…</div>';
+        $("geoecon-linkages").innerHTML='<div class="geoecon-status">Preparing candidate linkages…</div>';
+        $("geoecon-status").className="geoecon-status";$("geoecon-status").textContent="Looking up country trade coverage and building the economic context map…";
+        const requestId=++state.geoeconRequestId;
+        const code=geoparkCountryCode(item);
+        if(state.geoeconMap){state.geoeconMap.remove();state.geoeconMap=null;}
+        state.geoeconMap=L.map("geoecon-map",{scrollWheelZoom:true,preferCanvas:true}).setView([item.lat,item.lon],6);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'}).addTo(state.geoeconMap);
+        state.geoeconLayer=L.layerGroup().addTo(state.geoeconMap);
+        const site=L.circleMarker([item.lat,item.lon],{radius:9,color:"#fff",weight:2,fillColor:"#8b6fe8",fillOpacity:.95}).bindPopup('<strong>'+esc(item.name)+'</strong><br>UNESCO Global Geopark').addTo(state.geoeconLayer);
+        const anchor=GEOPARK_COUNTRY_ANCHORS[code];
+        if(anchor){
+          L.circleMarker([anchor.lat,anchor.lon],{radius:7,color:"#fff",weight:2,fillColor:"#2e8b5b",fillOpacity:.9}).bindPopup('<strong>'+esc(anchor.name)+'</strong><br>Country reference point—not a trade route').addTo(state.geoeconLayer);
+          L.polyline([[item.lat,item.lon],[anchor.lat,anchor.lon]],{color:"#2e8b5b",weight:2,dashArray:"5 7",opacity:.7}).bindTooltip("Geopark-to-country reference line (not a trade flow)").addTo(state.geoeconLayer);
+          state.geoeconMap.fitBounds(L.latLngBounds([[item.lat,item.lon],[anchor.lat,anchor.lon]]),{padding:[30,30],maxZoom:7});
+          $("geoecon-map-count").textContent="2 reference points";
+        }else{
+          state.geoeconMap.setView([item.lat,item.lon],7);$("geoecon-map-count").textContent="1 geopark point";
+        }
+        setTimeout(()=>state.geoeconMap&&state.geoeconMap.invalidateSize(),120);
+        if(!code){
+          $("geoecon-import-note").textContent="Country code unavailable";
+          $("geoecon-status").className="geoecon-status error";
+          $("geoecon-status").textContent="The source record does not expose a recognised country code. National UN Comtrade queries were not guessed; use the map and local-linkage prompts while country metadata is verified.";
+          renderGeoparkLinkages(item,[],[]);
+          return;
+        }
+        $("geoecon-import-note").textContent="Reporter code "+code+" · annual merchandise imports";
+        fetchGeoparkTrade(code).then(result=>{
+          if(requestId!==state.geoeconRequestId)return;
+          const rows=result.rows;
+          const partners=new Set(rows.map(row=>row.partnerCode).filter(value=>value!=null&&String(value)!=="0")).size;
+          const products=economicProducts(rows);
+          const total=products.reduce((sum,row)=>sum+(row.value||0),0);
+          const years=[...new Set(rows.map(row=>String(row.period||"")).filter(Boolean))].sort();
+          $("geoecon-import-value").textContent=formatTradeUSD(total||null);
+          $("geoecon-partners").textContent=partners.toLocaleString("en-US");
+          $("geoecon-records").textContent=rows.length.toLocaleString("en-US");
+          $("geoecon-products").textContent=products.filter(p=>p.code!=="TOTAL"&&p.code!=="0").length.toLocaleString("en-US");
+          $("geoecon-import-note").textContent="Query years: "+(years.length?years.join(", "):result.period||"not returned");
+          $("geoecon-records-note").textContent="Annual reported import records · "+(result.elapsed?result.elapsed+"s":"response time not returned");
+          renderGeoparkProductBars(products);
+          renderGeoparkLinkages(item,rows,products);
+          $("geoecon-status").className=rows.length?"geoecon-status success":"geoecon-status";
+          $("geoecon-status").textContent=rows.length?"Received "+rows.length+" Comtrade record(s) for "+(item.country||"the reporting country")+". National trade is context only; it is not a measure of geopark-level economic impact.":"Comtrade returned no product rows for this request. Check reporter coverage, API limits and year parameters; an empty result does not mean no economic activity.";
+        }).catch(error=>{
+          if(requestId!==state.geoeconRequestId)return;
+          $("geoecon-import-value").textContent="Unavailable";$("geoecon-status").className="geoecon-status error";
+          $("geoecon-status").textContent="UN Comtrade query failed: "+String(error.message||error)+". The local context map and candidate linkage checklist remain available.";
+          renderGeoparkLinkages(item,[],[]);
+        });
+      }
+      function closeGeoeconModal(){
+        const modal=$("geoecon-modal");
+        if(!modal)return;
+        modal.classList.remove("is-open");modal.setAttribute("aria-hidden","true");document.body.classList.remove("geoecon-open");
+        state.geoeconRequestId++;
+        if(state.geoeconMap){state.geoeconMap.remove();state.geoeconMap=null;state.geoeconLayer=null;}
+      }
+      function initGeoeconModal(){
+        $("geoecon-close").addEventListener("click",closeGeoeconModal);
+        $("geoecon-modal").addEventListener("click",event=>{if(event.target===$("geoecon-modal"))closeGeoeconModal();});
+        document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("geoecon-modal").classList.contains("is-open"))closeGeoeconModal();});
+        $("selected-detail").addEventListener("click",event=>{const button=event.target.closest("#selected-geoecon-trigger");if(button&&state.selected)openGeoeconModal(state.selected);});
+        $("map").addEventListener("click",event=>{const button=event.target.closest("[data-geoecon-marker]");if(!button)return;const id=button.getAttribute("data-geoecon-marker");const item=state.records.geopark.find(row=>String(row.id)===String(id));if(item)openGeoeconModal(item);});
+      }
       function selectRecord(item){
         state.selected=item;
         const detail=$("selected-detail");
         const link=safeUrl(item.source);
         const meta=[item.country||"Country not specified",item.lat.toFixed(4)+", "+item.lon.toFixed(4),item.meta].filter(Boolean).join(" · ");
-        detail.innerHTML='<div class="selected-kicker">'+esc(item.kind)+'</div><h3>'+esc(item.name)+'</h3><div class="selected-meta">'+esc(meta)+'</div>'+(item.description?'<div class="selected-detail">'+esc(item.description.slice(0,700))+'</div>':'<div class="selected-detail">The source did not provide an additional description in this response.</div>')+'<div class="selected-links"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>';
+        detail.innerHTML='<div class="selected-kicker">'+esc(item.kind)+'</div><h3>'+esc(item.name)+'</h3><div class="selected-meta">'+esc(meta)+'</div>'+(item.description?'<div class="selected-detail">'+esc(item.description.slice(0,700))+'</div>':'<div class="selected-detail">The source did not provide an additional description in this response.</div>')+'<div class="selected-links"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>'+(item.type==="geopark"?'<button type="button" class="geoecon-trigger" id="selected-geoecon-trigger"><i class="fa-solid fa-chart-line"></i> Analyse economy</button>':'');
         $("research-from-location").disabled=false;
         $("run-climate").disabled=false;
         let query="";
@@ -1983,6 +2180,7 @@
         }
       }
       function init(){
+        initGeoeconModal();
         selectTheme("water");
         state.map=L.map("map",{preferCanvas:true,worldCopyJump:true}).setView([15,105],3);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'}).addTo(state.map);
@@ -2068,5 +2266,52 @@
       document.addEventListener("DOMContentLoaded",init);
     })();
   </script>
+
+  <section id="geoecon-modal" class="geoecon-modal" role="dialog" aria-modal="true" aria-labelledby="geoecon-title" aria-hidden="true">
+    <header class="geoecon-top">
+      <div class="geoecon-brand">
+        <span class="mark"><i class="fa-solid fa-chart-line"></i></span>
+        <div><h1 class="geoecon-title" id="geoecon-title">Geopark economic linkages</h1><p class="geoecon-subtitle">Trade signals · local context · research leads · not a formal GEMS score</p></div>
+      </div>
+      <div class="geoecon-actions">
+        <button type="button" id="geoecon-open-source">UN Comtrade ↗</button>
+        <button type="button" id="geoecon-close" aria-label="Close economic analysis">✕ Close</button>
+      </div>
+    </header>
+    <div class="geoecon-main">
+      <section class="geoecon-panel">
+        <div class="geoecon-panel-head"><div><h3>Location & economic context map</h3><p>Selected geopark, country reference point and available open-map context</p></div><span class="source-count" id="geoecon-map-count">MAP</span></div>
+        <div id="geoecon-map" role="application" aria-label="Map of selected geopark and national trade context"></div>
+        <div class="geoecon-map-note">The geopark coordinate is a source-provided point, not an official geopark boundary. Country reference points are representative map anchors, not trade routes or local markets.</div>
+      </section>
+      <aside class="geoecon-side" style="display:grid;gap:10px;align-content:start">
+        <section class="geoecon-panel">
+          <div class="geoecon-content">
+            <div class="geoecon-site"><span class="eyebrow">UNESCO GLOBAL GEOPARK</span><h2 id="geoecon-site-name">Selected geopark</h2><p id="geoecon-site-meta">Loading location context…</p></div>
+            <div class="geoecon-metrics">
+              <div class="geoecon-metric"><span>Country imports</span><strong id="geoecon-import-value">—</strong><small id="geoecon-import-note">UN Comtrade search</small></div>
+              <div class="geoecon-metric"><span>Partner countries</span><strong id="geoecon-partners">—</strong><small>Distinct reported partners in result rows</small></div>
+              <div class="geoecon-metric"><span>Trade records</span><strong id="geoecon-records">—</strong><small id="geoecon-records-note">Latest available annual observations</small></div>
+              <div class="geoecon-metric"><span>Matched products</span><strong id="geoecon-products">—</strong><small>Product descriptions returned by Comtrade</small></div>
+            </div>
+            <div id="geoecon-status" class="geoecon-status">Select a geopark to begin.</div>
+          </div>
+        </section>
+        <section class="geoecon-panel">
+          <div class="geoecon-panel-head"><div><h3>Trade product signals</h3><p>National HS product data; not geopark-level sales</p></div></div>
+          <div class="geoecon-content"><div id="geoecon-product-bars" class="geoecon-bars"><div class="geoecon-status">No analysis loaded.</div></div></div>
+        </section>
+        <section class="geoecon-panel">
+          <div class="geoecon-panel-head"><div><h3>Potential local economic linkages</h3><p>Hypotheses for field verification, not proven causal relationships</p></div></div>
+          <div class="geoecon-content">
+            <div id="geoecon-linkages" class="geoecon-list"><div class="geoecon-status">Waiting for country trade data.</div></div>
+            <div id="geoecon-caveat" class="geoecon-status">Trade statistics describe national cross-border merchandise flows, not geopark revenue, visitor spending or community income.</div>
+          </div>
+        </section>
+      </aside>
+    </div>
+    <footer class="geoecon-footer">Sources: UN Comtrade API, OpenStreetMap, UNESCO Global Geoparks / UNESCO DataHub. Economic linkages are exploratory. Results do not prove that products were made inside the geopark or sold to visitors. Review HS definitions, reporter, partner, flow, year, units and source coverage before policy use.</footer>
+  </section>
+
 </body>
 </html>
