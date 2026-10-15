@@ -1550,7 +1550,7 @@
         const question=$("brief-question").value.trim()||"No decision question supplied.";
         const date=new Date().toISOString().slice(0,10);
         const activeTheme=THEMES[state.selectedTheme]||THEMES.water;
-        const lines=["# Regional Science Intelligence — Evidence Brief","","**Prepared:** "+date+" (UTC)","**Status:** Exploratory source-linked draft; human review required.","","## 1. Decision question","",question,"","## Selected thematic workstream","","- **Workstream:** "+briefText(activeTheme.title),"- **Focus:** "+briefText(activeTheme.description),"- **Interpretation boundary:** "+briefText(activeTheme.limits),"- **Official SDG metadata:** "+(state.selectedTheme==="governance"?(state.sdgLoaded?"Goal-level metadata loaded from the UNSD SDG API; indicator observations were not fetched by this brief.":"Not loaded in this session; consult the official UN SDG database."):"Not applicable to the selected workstream unless the decision question requires it."),"","## 2. Selected location",""];
+        const lines=["# Regional Science Intelligence — Evidence Brief","","**Prepared:** "+date+" (UTC)","**Status:** Exploratory source-linked draft; human review required.","","## 1. Decision question","",question,"","## Selected thematic workstream","","- **Workstream:** "+briefText(activeTheme.title),"- **Focus:** "+briefText(activeTheme.description),"- **Interpretation boundary:** "+briefText(activeTheme.limits),"- **Official SDG evidence:** "+(state.selectedTheme==="governance"?(state.sdgObservationFetched?number(state.sdgObservations.length)+" returned observation row(s) for "+briefText(state.sdgCountryName||"selected area")+"; see the dedicated section below.":(state.sdgLoaded?number(state.sdgSeries.length)+" relevant series options loaded; no observation query completed in this session.":"Metadata not loaded in this session; use the official UN SDG database.")):"Not queried for this selected workstream."),"","## 2. Selected location",""];
         if(selected){
           lines.push("- **Feature:** "+briefText(selected.name)+" ("+briefText(selected.kind)+")");
           lines.push("- **Country/area:** "+(briefText(selected.country)||"Not supplied"));
@@ -1559,6 +1559,42 @@
           lines.push("- **Original record:** "+markdownLink("Open source",selected.source||"https://data.unesco.org/"));
           if(selected.description)lines.push("- **Description:** "+briefText(selected.description).slice(0,600));
         }else lines.push("No map location selected; this brief is not site-specific.");
+
+        if(state.selectedTheme==="water"){
+          lines.push("","## Workstream evidence — Water Informatics","");
+          lines.push("- **GEMStat access:** the provider's official page contained a service-outage notice dated "+GEMSTAT_LAST_NOTICE+". The page may have changed since that notice. This application has not fetched a station value and does not treat the outage as proof that water-quality data are absent.");
+          lines.push("- **Open-license subset:** "+markdownLink("GEMStat Zenodo dataset","https://doi.org/10.5281/zenodo.13881899")+" — use only the records whose licence permits the intended reuse; preserve attribution. Limited/Restricted data are not republished by this app.");
+          lines.push("- **Next validation:** check parameter, station, sampling date, unit, detection limits, laboratory/method notes, data owner and licence before combining any water-quality observation with the selected location.");
+        }else if(state.selectedTheme==="marineTech"){
+          lines.push("","## Workstream evidence — Marine Technology Transfer","");
+          lines.push("- **Curated lead register:** "+number(state.techRegistry.length)+" lead(s) stored locally in this browser. These are user-curated records, not a shared catalogue or independent verification by the app.");
+          if(state.techRegistry.length){
+            state.techRegistry.slice(0,25).forEach((row,i)=>{
+              lines.push((i+1)+". **"+briefText(row.name)+"** — provider/owner: "+briefText(row.owner)+"; need: "+briefText(row.need)+"; recipient/location: "+briefText(row.location||"not supplied")+"; status: "+briefText(row.status||"unverified")+".");
+              lines.push("   - Evidence: "+(isHttpUrl(row.evidenceUrl)?markdownLink("Open source",row.evidenceUrl):"No source URL supplied."));
+              if(row.notes)lines.push("   - Notes/conditions: "+briefText(row.notes).slice(0,400));
+            });
+          }else lines.push("- No technology leads were entered in this browser session. No provider or transfer availability is inferred from publication search results.");
+        }else if(state.selectedTheme==="marineSeafood"){
+          lines.push("","## Workstream evidence — Marine Biodiversity & Seafood Security","");
+          const fishData=state.fishstatDataset;
+          const fishMeta=fishData&&fishData.metadata?fishData.metadata:{};
+          const fishRows=fishStatSelectedRows();
+          lines.push("- **FAO FishStat local series status:** "+(fishMeta.status==="ready"?("release "+briefText(fishMeta.release||"not supplied")+", "+number(fishMeta.recordCount||0)+" country-year-source rows, "+briefText(String(fishMeta.startYear||"unknown"))+"–"+briefText(String(fishMeta.endYear||"unknown"))+"."):briefText(fishMeta.message||"Published compact series has not yet been loaded or generated.")));
+          lines.push("- **Selected series:** "+briefText($("fishstat-country").selectedOptions[0]?.textContent||"No country selected")+"; "+briefText($("fishstat-source").value)+"; "+number(fishRows.length)+" year rows loaded for this selection.");
+          lines.push("- **Unit and interpretation:** tonnes live weight. Capture/aquaculture production is not a direct measure of seafood consumption, household food security, stock abundance or sustainability.");
+          if(fishRows.length)fishRows.slice().reverse().slice(0,12).forEach(row=>lines.push("- "+briefText(String(row.year))+": "+number(row.value)+" "+briefText(row.unit||"unit not supplied")+"; source flags: "+briefText((row.sourceFlags||[]).join(", ")||"none supplied")+"."));
+          lines.push("- **Sources:** "+markdownLink("FAO FishStat — Global Production","https://www.fao.org/fishery/en/collection/global_production")+"; "+markdownLink("OBIS","https://obis.org/")+". Species occurrence records and production totals are different evidence types.");
+        }else if(state.selectedTheme==="governance"){
+          lines.push("","## Workstream evidence — Water & Environmental Governance for SDGs","");
+          if(state.sdgGoals.length)lines.push("- **Goal metadata:** "+state.sdgGoals.map(goal=>"SDG "+briefText(goal.code||goal.goal)+" — "+briefText(goal.title||goal.description||"Goal title not supplied")).join("; ")+".");
+          if(state.sdgSelectedSeries)lines.push("- **Selected official series:** "+briefText(state.sdgSelectedSeries.indicatorCode)+" — "+briefText(state.sdgSelectedSeries.indicatorTitle)+"; series code "+briefText(state.sdgSelectedSeries.code)+"; reporting area "+briefText(state.sdgCountryName||"not selected")+".");
+          if(state.sdgObservationFetched&&state.sdgObservations.length){
+            state.sdgObservations.slice(0,30).forEach(row=>lines.push("- "+briefText(row.year||"Period not supplied")+": "+briefText(row.value)+" "+briefText(row.unit||"unit not supplied")+"; source: "+briefText(row.source)+ (row.footnotes.length?"; footnote: "+briefText(row.footnotes.join("; ")).slice(0,260):"")+"."));
+          }else lines.push("- **Indicator observations:** "+(state.sdgObservationFetched?"The API returned no rows for the current query. Check dimensions and the official database; an empty response is not proof that no data exist.":"No observation query completed in this session. Metadata alone are not indicator values."));
+          lines.push("- **Original source:** "+markdownLink("UNSD SDG Global Database","https://unstats.un.org/sdgs/dataportal/database")+"; "+markdownLink("UNSD SDG API documentation","https://unstats.un.org/SDGAPI/swagger/")+". No synthetic SDG progress score is calculated.");
+        }
+
         lines.push("","## 3. Spatial evidence coverage","");
         [["mab","UNESCO MAB biosphere-reserve points"],["geopark","UNESCO Global Geopark points"],["marine","UNESCO marine-indicator points"],["obis","OBIS marine occurrence points"]].forEach(([key,label])=>{
           const loaded=key!=="obis"||state.obisLoaded;
@@ -1761,6 +1797,37 @@
           const action=event.target.closest("[data-theme-action]");
           if(action)handleThemeAction(action.getAttribute("data-theme-action"));
         });
+        $("fishstat-country").addEventListener("change",renderFishStatSeries);
+        $("fishstat-source").addEventListener("change",renderFishStatSeries);
+        $("refresh-fishstat").addEventListener("click",()=>loadFishStatDataset(true));
+        $("export-fishstat-csv").addEventListener("click",exportFishStatCSV);
+        $("sdg-series").addEventListener("change",()=>{
+          state.sdgSelectedSeries=selectedSDGSeries();
+          state.sdgObservations=[];
+          state.sdgObservationFetched=false;
+          $("sdg-observations-table").innerHTML="";
+          $("export-sdg-csv").disabled=true;
+          $("load-sdg-observations").disabled=!state.sdgSelectedSeries;
+          $("sdg-observations-status").textContent=state.sdgSelectedSeries?"Selected "+state.sdgSelectedSeries.indicatorCode+" / "+state.sdgSelectedSeries.code+". Load reported observations to continue.":"Choose an indicator series.";
+        });
+        $("sdg-country").addEventListener("change",()=>{
+          const country=SDG_COUNTRIES.find(item=>item[0]===$("sdg-country").value);
+          state.sdgCountryName=country?country[1]:$("sdg-country").selectedOptions[0]?.textContent||"";
+          state.sdgObservations=[];
+          state.sdgObservationFetched=false;
+          $("sdg-observations-table").innerHTML="";
+          $("export-sdg-csv").disabled=true;
+          $("sdg-observations-status").textContent="Reporting area changed to "+state.sdgCountryName+". Load values again for this area.";
+        });
+        $("load-sdg-observations").addEventListener("click",loadSDGObservations);
+        $("export-sdg-csv").addEventListener("click",exportSDGObservations);
+        $("tech-registry-form").addEventListener("submit",saveTechnologyLead);
+        $("tech-registry-list").addEventListener("click",event=>{
+          const remove=event.target.closest("[data-delete-tech]");
+          if(remove)deleteTechnologyLead(remove.getAttribute("data-delete-tech"));
+        });
+        $("export-tech-registry").addEventListener("click",exportTechnologyRegistry);
+        $("clear-tech-registry").addEventListener("click",clearTechnologyRegistry);
         $("run-research").addEventListener("click",runResearch);
         $("clear-research").addEventListener("click",clearResearch);
         $("research-query").addEventListener("keydown",event=>{if((event.ctrlKey||event.metaKey)&&event.key==="Enter")runResearch();});
