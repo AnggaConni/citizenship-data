@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "status": "pending_refresh",
+    "source": "UN Comtrade API",
+    "sourceUrl": "https://comtradeplus.un.org/",
+    "mode": "authenticated",
+    "generatedAt": null,
+    "yearsQueried": [],
+    "reportersRequested": 0,
+    "reportersIncluded": 0,
+    "countriesAvailable": 0,
+    "failures": [],
+    "interpretation": "National annual merchandise imports from reported HS 2-digit product groups. Not geopark-level revenue, tourism spend, employment, local production or community income."
+  },
+  "countries": {}
+}
