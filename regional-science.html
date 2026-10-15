@@ -1340,6 +1340,211 @@
         }
       }
 
+      function compactValue(value){
+        const n=Number(value);
+        if(!Number.isFinite(n))return String(value==null?"—":value);
+        return new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:1}).format(n);
+      }
+      function fishCountryKey(row){
+        return String(row.countryCode||row.unCode||"").trim();
+      }
+      function renderFishStatCountryOptions(){
+        const select=$("fishstat-country");
+        const dataset=state.fishstatDataset;
+        const rows=dataset&&Array.isArray(dataset.records)?dataset.records:[];
+        if(!rows.length){
+          select.innerHTML='<option value="">No country series in current data file</option>';
+          return;
+        }
+        const map=new Map();
+        rows.forEach(row=>{
+          const key=fishCountryKey(row);
+          if(key&&!map.has(key))map.set(key,String(row.countryName||key));
+        });
+        const entries=[...map.entries()].sort((a,b)=>a[1].localeCompare(b[1]));
+        select.innerHTML=entries.map(([key,name])=>'<option value="'+esc(key)+'">'+esc(name)+' ('+esc(key)+')</option>').join("");
+        select.value=map.has("ID")?"ID":(entries[0]?entries[0][0]:"");
+      }
+      function fishStatSelectedRows(){
+        const data=state.fishstatDataset;
+        if(!data||!Array.isArray(data.records))return [];
+        const country=$("fishstat-country").value;
+        const source=$("fishstat-source").value;
+        return data.records.filter(row=>fishCountryKey(row)===country&&row.source===source).sort((a,b)=>Number(a.year)-Number(b.year));
+      }
+      function renderFishStatSeries(){
+        const dataset=state.fishstatDataset;
+        const metadata=dataset&&dataset.metadata?dataset.metadata:{};
+        const allRows=dataset&&Array.isArray(dataset.records)?dataset.records:[];
+        const rows=fishStatSelectedRows();
+        $("export-fishstat-csv").disabled=!rows.length;
+        $("fishstat-release").textContent=metadata.release?("FAO "+metadata.release):"FAO FISHSTAT";
+        if(metadata.status!=="ready"||!allRows.length){
+          $("fishstat-summary").innerHTML="";
+          $("fishstat-chart").innerHTML='<div class="data-empty">No production series have been published to this JSON file yet.</div>';
+          $("fishstat-table-container").innerHTML="";
+          $("fishstat-status").innerHTML=esc(metadata.message||"The static FishStat file is not yet ready. The repository data workflow will populate it after a successful official source download.")+' <a href="https://www.fao.org/fishery/en/collection/global_production" target="_blank" rel="noopener noreferrer">Open FAO source ↗</a>';
+          return;
+        }
+        const endYear=metadata.endYear||"latest available";
+        $("fishstat-status").textContent="Loaded release "+String(metadata.release||"unspecified")+", "+number(metadata.recordCount||allRows.length)+" country-year-source rows for "+number(metadata.countries||0)+" countries; years "+String(metadata.startYear||"unknown")+"–"+String(endYear)+".";
+        if(!rows.length){
+          $("fishstat-summary").innerHTML="";
+          $("fishstat-chart").innerHTML='<div class="data-empty">No rows are available for this country and production source in the published series. Try the other source or check FAO's original collection.</div>';
+          $("fishstat-table-container").innerHTML="";
+          return;
+        }
+        const latest=rows[rows.length-1];
+        const previous=rows.length>1?rows[rows.length-2]:null;
+        const change=previous&&Number(previous.value)!==0?((Number(latest.value)-Number(previous.value))/Number(previous.value))*100:null;
+        const sumStat=(label,value,caption)=>'<div class="stat"><span class="stat-label">'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(caption)+'</small></div>';
+        $("fishstat-summary").innerHTML=sumStat("Latest year",String(latest.year),"Latest year reported in the selected series")+sumStat("Production",Number(latest.value).toLocaleString("en-US",{maximumFractionDigits:2}),latest.unit||"Unit not supplied")+sumStat("Year-to-year change",change===null?"—":((change>0?"+":"")+change.toFixed(1)+"%"),previous?"Compared with "+previous.year:"No previous year in series");
+        const chartRows=rows.slice(-12);
+        const maxValue=Math.max(1,...chartRows.map(row=>Number(row.value)||0));
+        $("fishstat-chart").setAttribute("aria-label","FAO FishStat "+String($("fishstat-source").value)+" in "+String(latest.countryName||$("fishstat-country").selectedOptions[0]?.textContent||"selected country")+", units tonnes live weight, by year.");
+        $("fishstat-chart").innerHTML=chartRows.map(row=>{
+          const value=Number(row.value)||0;
+          const height=Math.max(2,Math.round(value/maxValue*126));
+          return '<div class="fishstat-bar-col" title="'+esc(row.year+": "+Number(value).toLocaleString("en-US")+" "+(row.unit||""))+'"><div class="fishstat-bar-value">'+esc(compactValue(value))+'</div><div class="fishstat-bar-track"><div class="fishstat-bar" style="height:'+height+'px"></div></div><span class="fishstat-bar-year">'+esc(row.year)+'</span></div>';
+        }).join("");
+        const displayed=rows.slice().reverse().slice(0,20);
+        const tableRows=displayed.map(row=>{
+          const sourceUrl=safeUrl(row.sourceUrl||metadata.sourceUrl||"https://www.fao.org/fishery/en/collection/global_production");
+          const flags=Array.isArray(row.sourceFlags)?row.sourceFlags.join(", "):"";
+          return '<tr><td>'+esc(row.year)+'</td><td>'+esc(Number(row.value).toLocaleString("en-US",{maximumFractionDigits:3}))+'</td><td>'+esc(row.unit||metadata.unit||"Not supplied")+'</td><td>'+esc(flags||"No flags supplied")+'</td><td>'+esc(row.componentCount||"Not supplied")+'</td><td><a href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">FAO source ↗</a></td></tr>';
+        }).join("");
+        $("fishstat-table-container").innerHTML='<table class="data-table"><thead><tr><th>Year</th><th>Production</th><th>Unit</th><th>Source flags</th><th>Rows aggregated</th><th>Source</th></tr></thead><tbody>'+tableRows+'</tbody></table>';
+      }
+      async function loadFishStatDataset(force){
+        if(state.fishstatBusy)return;
+        state.fishstatBusy=true;
+        $("fishstat-status").textContent="Loading the published compact FAO FishStat series…";
+        $("refresh-fishstat").disabled=true;
+        if(force)state.apiCache.delete(FISHSTAT_URL);
+        try{
+          const payload=await apiJSON(FISHSTAT_URL,null,force?5000:900000);
+          state.fishstatDataset=payload;
+          renderFishStatCountryOptions();
+          renderFishStatSeries();
+        }catch(error){
+          state.fishstatDataset=null;
+          $("fishstat-release").textContent="FAO source";
+          $("fishstat-summary").innerHTML="";
+          $("fishstat-chart").innerHTML='<div class="data-empty">The country production file could not be loaded.</div>';
+          $("fishstat-table-container").innerHTML="";
+          $("export-fishstat-csv").disabled=true;
+          $("fishstat-status").textContent="Could not load the static series ("+String(error&&error.message||"request failed")+"). Check the FAO source or repository workflow status; this is not evidence that the source has no data.";
+        }finally{
+          state.fishstatBusy=false;
+          $("refresh-fishstat").disabled=false;
+        }
+      }
+      function exportFishStatCSV(){
+        const rows=fishStatSelectedRows();
+        if(!rows.length)return;
+        downloadCSV("fao-fishstat-"+$("fishstat-country").value+"-"+$("fishstat-source").value.toLowerCase().replace(/[^a-z0-9]+/g,"-")+".csv",
+          ["country_code","country_name","un_code","year","production_source","value","unit","component_rows","source_flags","source_url"],
+          rows.map(row=>[row.countryCode,row.countryName,row.unCode,row.year,row.source,row.value,row.unit,row.componentCount,Array.isArray(row.sourceFlags)?row.sourceFlags.join("; "):"",row.sourceUrl]));
+      }
+      function isHttpUrl(value){
+        try{const url=new URL(String(value||""));return url.protocol==="http:"||url.protocol==="https:";}catch(e){return false;}
+      }
+      function loadTechnologyRegistry(){
+        try{
+          const raw=localStorage.getItem(TECH_REGISTRY_KEY);
+          const parsed=raw?JSON.parse(raw):[];
+          state.techRegistry=Array.isArray(parsed)?parsed.filter(row=>row&&typeof row==="object"):[];
+          renderTechnologyRegistry();
+        }catch(error){
+          state.techRegistry=[];
+          $("tech-registry-status").textContent="This browser could not read local storage. The technology register may not persist in this browser profile; no data have been uploaded.";
+          $("tech-registry-list").innerHTML="";
+        }
+      }
+      function renderTechnologyRegistry(message){
+        const list=$("tech-registry-list");
+        const rows=Array.isArray(state.techRegistry)?state.techRegistry:[];
+        $("export-tech-registry").disabled=!rows.length;
+        $("clear-tech-registry").disabled=!rows.length;
+        if(message)$("tech-registry-status").textContent=message;
+        else $("tech-registry-status").textContent=rows.length
+          ? number(rows.length)+" locally stored technology lead(s). These records are not shared with other users and do not certify transfer readiness."
+          : "No leads have been curated in this browser yet. The register intentionally starts empty; add a candidate and verify it from its original source.";
+        if(!rows.length){
+          list.innerHTML='<div class="data-empty">The local registry is empty. Start by adding a candidate with a source link when available; use “Lead — unverified” until a human review is completed.</div>';
+          return;
+        }
+        list.innerHTML=rows.map(row=>{
+          const evidence=isHttpUrl(row.evidenceUrl)?'<a href="'+safeUrl(row.evidenceUrl)+'" target="_blank" rel="noopener noreferrer">Open supporting evidence ↗</a>':'No supporting source URL supplied';
+          return '<article class="tech-registry-card"><div class="tech-registry-card-head"><div><h4>'+esc(row.name||"Unnamed technology lead")+'</h4><div class="status-pill">'+esc(row.status||"Lead — unverified")+'</div></div><button type="button" class="tech-registry-delete" data-delete-tech="'+esc(row.id)+'" aria-label="Delete '+esc(row.name||"technology lead")+'">Remove</button></div><div class="tech-registry-meta"><strong>Provider/owner:</strong> '+esc(row.owner||"Not supplied")+' · <strong>Potential recipient:</strong> '+esc(row.location||"Not supplied")+'</div><p><strong>Need:</strong> '+esc(row.need||"Not supplied")+'</p><p><strong>Transfer conditions / notes:</strong> '+esc(row.notes||"Not supplied")+'</p><p>'+evidence+'</p><div class="tech-registry-meta">Created: '+esc(row.createdAt||"Date not supplied")+'. “Verified” is a user-entered status, not an independent platform endorsement.</div></article>';
+        }).join("");
+      }
+      function persistTechnologyRegistry(nextRows){
+        try{
+          localStorage.setItem(TECH_REGISTRY_KEY,JSON.stringify(nextRows));
+          state.techRegistry=nextRows;
+          return true;
+        }catch(error){
+          renderTechnologyRegistry("Could not save the registry to this browser ("+String(error&&error.message||"storage unavailable")+"). No server copy exists. Try another browser profile or export any records you need.");
+          return false;
+        }
+      }
+      function saveTechnologyLead(event){
+        event.preventDefault();
+        const name=$("tech-name").value.trim();
+        const owner=$("tech-owner").value.trim();
+        const need=$("tech-need").value.trim();
+        const location=$("tech-location").value.trim();
+        const status=$("tech-status").value;
+        const evidenceUrl=$("tech-evidence-url").value.trim();
+        if(!name||!owner||!need){
+          $("tech-registry-status").textContent="Technology/capability, provider/owner and receiving-side need are required.";
+          return;
+        }
+        if(evidenceUrl&&!isHttpUrl(evidenceUrl)){
+          $("tech-registry-status").textContent="Evidence link must be a valid HTTP or HTTPS URL.";
+          return;
+        }
+        if(status==="Verified (evidence linked)"&&!evidenceUrl){
+          $("tech-registry-status").textContent="To mark a lead verified, add a supporting HTTP/HTTPS source URL first. The reviewer must still check that the evidence substantiates the status.";
+          return;
+        }
+        const row={
+          id:"tech-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),
+          name:name,owner:owner,need:need,location:location,status:status,evidenceUrl:evidenceUrl,notes:$("tech-notes").value.trim(),
+          createdAt:new Date().toISOString().slice(0,10)
+        };
+        const next=[row,...state.techRegistry];
+        if(persistTechnologyRegistry(next)){
+          $("tech-registry-form").reset();
+          renderTechnologyRegistry("Saved locally in this browser. The record has not been independently verified or shared.");
+        }
+      }
+      function deleteTechnologyLead(id){
+        const next=state.techRegistry.filter(row=>String(row.id)!==String(id));
+        if(persistTechnologyRegistry(next))renderTechnologyRegistry("Removed one record from this browser's local register.");
+      }
+      function exportTechnologyRegistry(){
+        if(!state.techRegistry.length)return;
+        const payload={exportedAt:new Date().toISOString(),storage:"local browser only; export is user initiated",records:state.techRegistry};
+        const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"});
+        const url=URL.createObjectURL(blob);
+        const anchor=document.createElement("a");
+        anchor.href=url;anchor.download="marine-technology-transfer-leads.json";document.body.appendChild(anchor);anchor.click();anchor.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }
+      function clearTechnologyRegistry(){
+        if(!state.techRegistry.length)return;
+        if(!window.confirm("Clear every technology lead stored in this browser? This cannot be undone unless you exported a copy."))return;
+        try{
+          localStorage.removeItem(TECH_REGISTRY_KEY);
+          state.techRegistry=[];
+          renderTechnologyRegistry("Local register cleared from this browser. Any exported JSON file remains on your device.");
+        }catch(error){
+          renderTechnologyRegistry("Could not clear the browser's local storage. No server copy exists.");
+        }
+      }
+
       function generateEvidenceBrief(){
         const selected=state.selected;
         const question=$("brief-question").value.trim()||"No decision question supplied.";
