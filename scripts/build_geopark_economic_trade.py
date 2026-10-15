@@ -155,7 +155,7 @@ def build_country_record(iso3: str, reporter: dict[str, Any], rows: list[dict[st
         ],
         "yearsAvailable": nonempty_years,
         "yearsQueried": years_queried,
-        "note": "Sum of returned HS 2-digit product-group imports for the latest available year; national total may be incomplete if source coverage is truncated.",
+        "note": "Sum of returned HS 2-digit product-group imports for the latest available year; this is not geopark-level revenue or local economic impact, and the national total may be incomplete if source coverage is truncated.",
     }
 
 
