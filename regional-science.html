@@ -636,9 +636,11 @@
       function markerFor(item){
         const circle=L.circleMarker([item.lat,item.lon],{radius:item.type==="marine"?6.5:7,color:"#ffffff",weight:1.6,fillColor:DATASETS[item.type].color,fillOpacity:.9});
         const sourceUrl=safeUrl(item.source);
-        const econButton=item.type==="geopark" ? '<button type="button" class="geoecon-trigger" data-geoecon-marker="'+esc(item.id)+'"><i class="fa-solid fa-chart-line"></i><span>Analyse economy</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></button>' : '';
+        const eligible=item.type==="geopark"||item.type==="mab";
+        const econButton=eligible ? '<button type="button" class="geoecon-trigger" data-geoecon-marker="'+esc(item.type)+'::'+esc(item.id)+'"><i class="fa-solid fa-chart-line"></i><span>Analyse local economy</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></button>' : '';
         const countryLabel=geoeconCountryLabel(item.country);
-        circle.bindPopup('<div class="geoecon-popup"><div class="geoecon-popup-kicker"><span class="geoecon-popup-dot"></span> UNESCO GLOBAL GEOPARK</div><div class="geoecon-popup-title">'+esc(item.name)+'</div><div class="geoecon-popup-country"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>'+esc(countryLabel)+'</div><div class="geoecon-popup-actions"><a class="geoecon-popup-source" href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Source record <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>'+econButton+'</div></div>',{maxWidth:320,minWidth:250,closeButton:true});
+        const popupKind=item.type==="mab"?"UNESCO BIOSPHERE RESERVE":item.type==="geopark"?"UNESCO GLOBAL GEOPARK":item.kind;
+        circle.bindPopup('<div class="geoecon-popup"><div class="geoecon-popup-kicker"><span class="geoecon-popup-dot"></span> '+esc(popupKind)+'</div><div class="geoecon-popup-title">'+esc(item.name)+'</div><div class="geoecon-popup-country"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>'+esc(countryLabel)+'</div><div class="geoecon-popup-actions"><a class="geoecon-popup-source" href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Source record <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>'+econButton+'</div></div>',{maxWidth:320,minWidth:250,closeButton:true});
         circle.on("click",()=>selectRecord(item));
         return circle;
       }
@@ -811,7 +813,7 @@
         const radius=L.circle([item.lat,item.lon],{radius:GEOECON_RADIUS_METRES,color:"#8b6fe8",weight:1.5,dashArray:"5 6",fillColor:"#8b6fe8",fillOpacity:.045});
         radius.bindTooltip("5 km search radius · not an official geopark boundary").addTo(state.geoeconPoiLayer);
         L.circleMarker([item.lat,item.lon],{radius:10,color:"#fff",weight:3,fillColor:"#8b6fe8",fillOpacity:1})
-          .bindPopup('<strong>'+esc(item.name)+'</strong><br>Selected UNESCO Global Geopark').addTo(state.geoeconPoiLayer);
+          .bindPopup('<strong>'+esc(item.name)+'</strong><br>'+esc(item.type==="mab"?"UNESCO Biosphere Reserve":"UNESCO Global Geopark")).addTo(state.geoeconPoiLayer);
         const bounds=radius.getBounds();
         places.slice(0,350).forEach(poi=>{
           const marker=geoeconPoiIcon(poi.category);
@@ -922,6 +924,7 @@
           renderGeoeconPoiResults(places,requestId);
         }catch(error){
           if(requestId!==state.geoeconPoiRequestId)return;
+          console.error("Nearby places query failed",error);
           $("geoecon-local-status").className="geoecon-status error";
           $("geoecon-local-status").textContent="Could not load nearby OpenStreetMap places: "+String(error.message||error)+". The geopark point and radius remain visible; try Refresh places later.";
           $("geoecon-local-list").innerHTML='<div class="geoecon-status error">Overpass may be busy or the location may have incomplete mapping. Refresh the search to retry another public endpoint.</div>';
@@ -941,7 +944,9 @@
         return codes[raw.toUpperCase()]||raw||"Country not identified";
       }
       async function openGeoeconModal(item){
-        if(!item||item.type!=="geopark")return;
+        if(!item||!["geopark","mab"].includes(item.type))return;
+        const isMab=item.type==="mab";
+        const siteTypeLabel=isMab?"UNESCO BIOSPHERE RESERVE":"UNESCO GLOBAL GEOPARK";
         state.selectedGeopark=item;
         state.selectedGeoeconPoiId=null;
         state.geoeconPois=[];
@@ -949,8 +954,9 @@
         modal.classList.add("is-open");modal.setAttribute("aria-hidden","false");document.body.classList.add("geoecon-open");
         const main=$("geoecon-main");if(main)main.scrollTop=0;
         $("geoecon-title").textContent="Local economy · "+item.name;
+        $("geoecon-site-type").textContent=siteTypeLabel;
         $("geoecon-site-name").textContent=item.name;
-        $("geoecon-site-meta").textContent=[geoeconCountryLabel(item.country),item.lat.toFixed(4)+", "+item.lon.toFixed(4),"UNESCO Global Geoparks dataset"].join(" · ");
+        $("geoecon-site-meta").textContent=[geoeconCountryLabel(item.country),item.lat.toFixed(4)+", "+item.lon.toFixed(4),isMab?"UNESCO MAB Biosphere Reserves":"UNESCO Global Geoparks dataset","5 km local search radius"].join(" · ");
         $("geoecon-open-source").onclick=()=>window.open("https://www.openstreetmap.org/copyright","_blank","noopener");
         const requestId=++state.geoeconRequestId;
         const poiRequestId=++state.geoeconPoiRequestId;
@@ -982,6 +988,7 @@
           state.geoeconMap.invalidateSize();
           setTimeout(()=>{if(state.geoeconMap)state.geoeconMap.invalidateSize();},250);
         }catch(error){
+          console.error("Geopark local map initialization failed",error);
           $("geoecon-map-count").textContent="Map initialization failed";
           $("geoecon-local-status").className="geoecon-status error";
           $("geoecon-local-status").textContent="Map setup failed: "+String(error.message||error);
@@ -1018,8 +1025,11 @@
           if(!button)return;
           event.preventDefault();
           event.stopPropagation();
-          const id=button.getAttribute("data-geoecon-marker");
-          const item=state.records.geopark.find(row=>String(row.id)===String(id));
+          const token=button.getAttribute("data-geoecon-marker")||"";
+          const splitAt=token.indexOf("::");
+          const type=splitAt>=0?token.slice(0,splitAt):"geopark";
+          const id=splitAt>=0?token.slice(splitAt+2):token;
+          const item=(state.records[type]||[]).find(row=>String(row.id)===String(id));
           if(item)openGeoeconModal(item);
         },true);
         $("geoecon-local-search").addEventListener("input",renderGeoeconPoiList);
@@ -1033,7 +1043,7 @@
         const detail=$("selected-detail");
         const link=safeUrl(item.source);
         const meta=[item.country||"Country not specified",item.lat.toFixed(4)+", "+item.lon.toFixed(4),item.meta].filter(Boolean).join(" · ");
-        detail.innerHTML='<div class="selected-kicker">'+esc(item.kind)+'</div><h3>'+esc(item.name)+'</h3><div class="selected-meta">'+esc(meta)+'</div>'+(item.description?'<div class="selected-detail">'+esc(item.description.slice(0,700))+'</div>':'<div class="selected-detail">The source did not provide an additional description in this response.</div>')+'<div class="selected-links"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>'+(item.type==="geopark"?'<button type="button" class="geoecon-trigger" id="selected-geoecon-trigger"><i class="fa-solid fa-chart-line"></i> Analyse economy</button>':'');
+        detail.innerHTML='<div class="selected-kicker">'+esc(item.kind)+'</div><h3>'+esc(item.name)+'</h3><div class="selected-meta">'+esc(meta)+'</div>'+(item.description?'<div class="selected-detail">'+esc(item.description.slice(0,700))+'</div>':'<div class="selected-detail">The source did not provide an additional description in this response.</div>')+'<div class="selected-links"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open source ↗</a></div>'+((item.type==="geopark"||item.type==="mab")?'<button type="button" class="geoecon-trigger" id="selected-geoecon-trigger"><i class="fa-solid fa-chart-line"></i> Analyse local economy</button>':'');
         $("research-from-location").disabled=false;
         $("run-climate").disabled=false;
         let query="";
