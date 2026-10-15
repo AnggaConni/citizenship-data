@@ -1,0 +1,72 @@
+name: Refresh geopark economic trade snapshot
+
+on:
+  push:
+    paths:
+      - "scripts/build_geopark_economic_trade.py"
+      - "tests/test_geopark_economic_trade.py"
+      - ".github/workflows/geopark-economic-trade.yml"
+  schedule:
+    - cron: "29 4 5 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: geopark-economic-trade-snapshot
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test Comtrade transformation helpers
+        run: python -m unittest tests.test_geopark_economic_trade -v
+      - name: Fetch authenticated UN Comtrade country snapshot
+        env:
+          UN_COMTRADE_API_KEY: ${{ secrets.UN_COMTRADE_API_KEY }}
+          PYTHONUNBUFFERED: "1"
+        run: python scripts/build_geopark_economic_trade.py --output data/geopark-economic-trade.json
+      - name: Validate snapshot without printing credentials
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path("data/geopark-economic-trade.json").read_text(encoding="utf-8"))
+          meta = p.get("metadata", {})
+          countries = p.get("countries", {})
+          if meta.get("status") != "ready" or not countries:
+              raise SystemExit("Trade snapshot validation failed.")
+          if meta.get("mode") != "authenticated":
+              raise SystemExit("Snapshot must be built with the authenticated endpoint.")
+          for iso3, country in countries.items():
+              if not iso3.isalpha() or len(iso3) != 3:
+                  raise SystemExit("Invalid country key in snapshot.")
+              if "UN_COMTRADE_API_KEY" in json.dumps(country):
+                  raise SystemExit("A credential-like field appeared in country data.")
+          print("Validated %d reporter snapshots; %d have product data. Generated at %s." % (
+              len(countries), meta.get("countriesAvailable", 0), meta.get("generatedAt")))
+          PY
+      - name: Commit refreshed public aggregate snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/geopark-economic-trade.json
+          if git diff --cached --quiet; then
+            echo "Geopark economic trade snapshot is unchanged."
+          else
+            git commit -m "Refresh authenticated geopark economic trade snapshot"
+            git fetch --no-tags --deepen=50 origin +refs/heads/main:refs/remotes/origin/main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
