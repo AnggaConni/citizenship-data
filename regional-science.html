@@ -627,7 +627,7 @@
         const button=$("run-climate");button.disabled=true;
         $("climate-status").textContent="Requesting NASA POWER monthly data for "+point.lat.toFixed(3)+", "+point.lon.toFixed(3)+"…";
         $("climate-results").innerHTML="";
-        const params=new URLSearchParams({parameters:"T2M,PRECTOTCORR,RH2M",community:"AG",longitude:String(point.lon),latitude:String(point.lat),start:"2021",end:"2025,format:"JSON","time-standard":"UTC"});
+        const params=new URLSearchParams({parameters:"T2M,PRECTOTCORR,RH2M",community:"AG",longitude:String(point.lon),latitude:String(point.lat),start:"2021",end:"2025",format:"JSON","time-standard":"UTC"});
         try{
           const data=await apiJSON(NASA_POWER+"?"+params.toString(),null,43200000);
           const values=data.properties&&data.properties.parameter||{};
