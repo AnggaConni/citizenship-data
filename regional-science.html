@@ -32,7 +32,8 @@
     @media(max-width:1050px){.theme-options{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace{grid-template-columns:minmax(0,2fr) minmax(260px,1fr)}.bottom-workspace{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.wrap{width:min(1440px,calc(100% - 28px))}.map-stage{height:560px}}
     @media(max-width:820px){.theme-detail{grid-template-columns:1fr}.source-links-grid{grid-template-columns:1fr}.workspace{grid-template-columns:1fr;grid-template-areas:"map" "climate" "side"}.bottom-workspace{grid-template-columns:1fr}.map-stage{height:60vh;min-height:430px}.climate-columns{grid-template-columns:repeat(2,minmax(0,1fr))}.climate-hydrology{grid-column:1/-1}.side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto auto;align-items:start}.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.navlinks{gap:10px}}
     @media(max-width:560px){.data-controls{grid-template-columns:1fr}.fishstat-summary{grid-template-columns:1fr}.tech-notes-field{grid-column:auto}.workstream-data-panel{padding:11px}.data-actions>*{max-width:100%}.theme-workbench{padding:12px}.theme-header{gap:8px}.theme-options{grid-template-columns:1fr}.theme-option{padding:10px}.theme-detail{padding:11px}.sdg-goals-grid{grid-template-columns:1fr}.wrap{width:calc(100% - 22px)}.nav{align-items:flex-start}.navlinks a:not(:last-child){display:none}.brand-sub{max-width:180px;line-height:1.5}.hero{padding:25px 0 20px}.hero p{font-size:12px}.summary{gap:8px}.stat{padding:11px}.stat strong{font-size:21px}.workspace{gap:10px}.bottom-workspace{gap:10px;margin-top:10px}.map-head{align-items:flex-start;flex-direction:column}.map-tools .hint{width:100%;margin-left:0}.map-stage{height:55vh;min-height:390px}.climate-columns{grid-template-columns:1fr}.climate-hydrology{grid-column:auto}.climate-source-block{padding:11px}.side{grid-template-columns:1fr;grid-template-rows:auto auto}.map-selection{grid-template-columns:1fr;gap:10px;padding:12px}.map-selection-actions .secondary-btn{flex:1}.panel{padding:13px}.footer-grid{grid-template-columns:1fr}.map-overlay{max-width:220px}.research-input{min-height:84px}}
-    @media print{body{background:#fff!important;color:#1e2b20!important}.dark,.summary,.workspace,.bottom-workspace,.footer-notes,.evidence-brief-panel>.panel-head,.brief-controls,.brief-actions,.brief-status{display:none!important}main{padding:0!important}.wrap{width:100%!important;max-width:none!important}.evidence-brief-panel{display:block!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;border-radius:0!important}.evidence-preview{display:block!important;max-height:none!important;overflow:visible!important;border:0!important;padding:0!important;margin:0!important;font-size:10pt!important;color:#111!important}.evidence-preview:before{content:"Regional Science Intelligence — Evidence Brief";display:block;font:bold 19pt Arial,sans-serif;margin-bottom:12pt} @page{size:A4;margin:16mm}}\n    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+    @media print{body{background:#fff!important;color:#1e2b20!important}.dark,.summary,.workspace,.bottom-workspace,.footer-notes,.evidence-brief-panel>.panel-head,.brief-controls,.brief-actions,.brief-status{display:none!important}main{padding:0!important}.wrap{width:100%!important;max-width:none!important}.evidence-brief-panel{display:block!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;border-radius:0!important}.evidence-preview{display:block!important;max-height:none!important;overflow:visible!important;border:0!important;padding:0!important;margin:0!important;font-size:10pt!important;color:#111!important}.evidence-preview:before{content:"Regional Science Intelligence — Evidence Brief";display:block;font:bold 19pt Arial,sans-serif;margin-bottom:12pt} @page{size:A4;margin:16mm}}
+        n    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
   </style>
 </head>
 <body>
@@ -223,10 +224,10 @@
             <button class="query-chip" type="button" data-query="Marine biodiversity, sustainable fisheries, aquaculture and seafood security">Biodiversity & Seafood</button>
             <button class="query-chip" type="button" data-query="Water governance, environmental governance, SDG indicators and evidence-informed policy">Governance & SDGs</button>
           </div>
-          <details style="margin-top:10px"><summary>Semantic Scholar connection</summary><p>Search requests use a restricted Cloudflare Worker proxy to avoid browser CORS restrictions. Any Semantic Scholar API key is configured server-side as a Worker secret; it is not exposed in this page or browser storage.</p><div class="api-status" id="s2-key-status">Proxy endpoint: <code>/semantic-scholar</code> · Up to 8 papers per query · 12-second upstream timeout.</div></details>
+          <details style="margin-top:10px"><summary>Europe PMC connection</summary><p>Uses the public Europe PMC REST search API directly; no API key or proxy deployment is required. Europe PMC is strongest for life-sciences literature, so coverage is narrower for general policy and governance research.</p><div class="api-status">Public REST API · Up to 8 papers per query · search terms are broadened across comma-separated topics.</div></details>
           <div class="provider-status" id="research-provider-status" aria-label="Research provider status"></div>
-          <div class="research-note">OpenAlex uses semantic similarity; Crossref and Semantic Scholar provide complementary metadata and relevance-ranked search; OpenAIRE adds research-graph records. Results are deduplicated where possible. Relevance, citation counts, and open-access labels do not establish methodological quality or policy applicability. Review each original source.</div>
-          <div id="research-status" class="alert info" role="status" aria-live="polite">Search OpenAlex, Crossref, Semantic Scholar and OpenAIRE in parallel. Results from available providers will be retained even if one provider is unavailable.</div>
+          <div class="research-note">OpenAlex provides semantic similarity; Crossref provides publication metadata; Europe PMC adds life-sciences literature; OpenAIRE adds research-graph records. Results are deduplicated where possible. Relevance, citation counts, and open-access labels do not establish methodological quality or policy applicability. Review each original source.</div>
+          <div id="research-status" class="alert info" role="status" aria-live="polite">Search OpenAlex, Crossref, Europe PMC and OpenAIRE in parallel. Results from available providers will be retained even if one provider is unavailable.</div>
           <div id="research-results" class="research-results results-scroll"></div>
         </section>
         
@@ -268,7 +269,7 @@
           Global geoparks: <a href="https://data.unesco.org/explore/dataset/eg0001/" target="_blank" rel="noopener noreferrer">UNESCO Global Geoparks (eg0001)</a> ·
           Marine indicators: <a href="https://data.unesco.org/explore/dataset/ioc001/" target="_blank" rel="noopener noreferrer">Marine Biodiversity by Ocean Area (ioc001)</a> ·
           Marine occurrences: <a href="https://obis.org/" target="_blank" rel="noopener noreferrer">OBIS</a> · Hydrology: <a href="https://open-meteo.com/en/docs/flood-api" target="_blank" rel="noopener noreferrer">Open-Meteo Flood API / GloFAS</a> · Water indicators: <a href="https://api.worldbank.org/" target="_blank" rel="noopener noreferrer">World Bank / FAO AQUASTAT</a> · Climate: <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA POWER</a> ·
-          Publications: <a href="https://openalex.org/" target="_blank" rel="noopener noreferrer">OpenAlex</a>, <a href="https://www.semanticscholar.org/" target="_blank" rel="noopener noreferrer">Semantic Scholar</a>, <a href="https://www.crossref.org/" target="_blank" rel="noopener noreferrer">Crossref</a> and <a href="https://graph.openaire.eu/" target="_blank" rel="noopener noreferrer">OpenAIRE Graph</a> ·
+          Publications: <a href="https://openalex.org/" target="_blank" rel="noopener noreferrer">OpenAlex</a>, <a href="https://europepmc.org/" target="_blank" rel="noopener noreferrer">Europe PMC</a>, <a href="https://www.crossref.org/" target="_blank" rel="noopener noreferrer">Crossref</a> and <a href="https://graph.openaire.eu/" target="_blank" rel="noopener noreferrer">OpenAIRE Graph</a> ·
           Institutions: <a href="https://ror.org/" target="_blank" rel="noopener noreferrer">ROR</a>.
         </div>
         <div><strong>How to interpret recommendations</strong><br>
@@ -286,7 +287,7 @@
       const DATAHUB = "https://data.unesco.org/api/explore/v2.1/catalog/datasets/";
       const OPENALEX = "https://api.openalex.org/works";
       const OPENAIRE = "https://api.openaire.eu/graph/v3";
-      const SEMANTIC_SCHOLAR_PROXY = "https://civilaegis-tinyfish-proxy.conniezz-cool.workers.dev/semantic-scholar";
+      const EUROPE_PMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search";
       const CROSSREF = "https://api.crossref.org/works";
       const ROR = "https://api.ror.org/v2/organizations";
       const OBIS = "https://api.obis.org/v3";
@@ -378,7 +379,8 @@
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
       function esc(value){
-        return String(value==null?"":value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+        return String(value==null?"":value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","
+        "":"&quot;","'":"&#39;"}[char]));
       }
       function recordFields(row){
         if(!row || typeof row!=="object") return {};
@@ -410,9 +412,14 @@
           const source=raw.trim();
           if(!source)return null;
           try{raw=JSON.parse(source);}catch(e){
-            const nums=source.match(/-?\d+(?:\.\d+)?/g);
+            const nums=source.match(/-?
+        d+(?:
+        .
+        d+)?/g);
             if(nums&&nums.length>=2){
-              if(/POINT\s*\(/i.test(source))raw={lon:Number(nums[0]),lat:Number(nums[1])};
+              if(/POINT
+        s*
+        (/i.test(source))raw={lon:Number(nums[0]),lat:Number(nums[1])};
               else raw={lat:Number(nums[0]),lon:Number(nums[1])};
             }else return null;
           }
@@ -662,7 +669,10 @@
           if(name&&!institutionRelations.some(x=>x.name===name))institutionRelations.push({name:name,url:url,type:"institution",source:"OpenAlex"});
         }));
         const doi=work.doi||"";
-        return sourceWork("OpenAlex",{title:plain(work.title)||"Untitled work",year:work.publication_year||"",authors:authors,doi:doi,url:doi?("https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,"")):(work.id||"https://openalex.org/"),citations:work.cited_by_count,openAccess:!!(work.open_access&&work.open_access.is_oa),score:work.relevance_score,abstract:"",type:work.type||"Research work",relationships:{authors:authorRelations,institutions:institutionRelations,projects:[]}});
+        return sourceWork("OpenAlex",{title:plain(work.title)||"Untitled work",year:work.publication_year||"",authors:authors,doi:doi,url:doi?("https://doi.org/"+String(doi).replace(/^https?:
+        /
+        /doi.org
+        //i,"")):(work.id||"https://openalex.org/"),citations:work.cited_by_count,openAccess:!!(work.open_access&&work.open_access.is_oa),score:work.relevance_score,abstract:"",type:work.type||"Research work",relationships:{authors:authorRelations,institutions:institutionRelations,projects:[]}});
       }
       function normalizeCrossref(work){
         const date=(work.published&&work.published["date-parts"]&&work.published["date-parts"][0])||[];
@@ -676,12 +686,37 @@
         const doi=work.DOI||"";
         return sourceWork("Crossref",{title:plain(work.title&&work.title[0])||"Untitled work",year:date[0]||"",authors:authors,doi:doi,url:work.URL||(doi?"https://doi.org/"+doi:"https://search.crossref.org/"),citations:work["is-referenced-by-count"],openAccess:null,score:null,type:plain(work.type)||"Publication",venue:plain(work["container-title"]&&work["container-title"][0]),relationships:{authors:[],institutions:affiliations,projects:[]}});
       }
-      function normalizeSemanticScholar(work){
-        const doi=work.externalIds&&work.externalIds.DOI||"";
-        const pdf=work.openAccessPdf&&work.openAccessPdf.url;
-        const authorsRaw=work.authors||[];
-        const authorRelations=authorsRaw.slice(0,8).map(a=>({name:a.name||"Author",url:a.authorId?"https://www.semanticscholar.org/author/"+encodeURIComponent(a.authorId):"",type:"author",source:"Semantic Scholar"}));
-        return sourceWork("Semantic Scholar",{title:plain(work.title)||"Untitled work",year:work.year||"",authors:authorsRaw.slice(0,4).map(a=>a.name).filter(Boolean).join(", "),doi:doi,url:pdf||work.url||(doi?"https://doi.org/"+doi:"https://www.semanticscholar.org/"),citations:work.citationCount,openAccess:!!(work.isOpenAccess||pdf),score:null,type:plain(work.publicationVenue&&work.publicationVenue.name)||"Paper",abstract:work.abstract||"",relationships:{authors:authorRelations,institutions:[],projects:[]}});
+      function normalizeEuropePMC(work){
+        const doi=plain(work.doi||"");
+        const pmid=plain(work.pmid||"");
+        const pmcid=plain(work.pmcid||"");
+        const url=doi
+          ? "https://doi.org/"+doi.replace(/^https?:
+        /
+        /doi.org
+        //i,"")
+          : (pmid ? "https://europepmc.org/article/MED/"+encodeURIComponent(pmid)
+            : (pmcid ? "https://europepmc.org/articles/"+encodeURIComponent(pmcid) : "https://europepmc.org/"));
+        const authors=plain(work.authorString||"");
+        const date=plain(work.firstPublicationDate||work.pubYear||"");
+        const year=(date.match(/
+        d{4}/)||[])[0]||"";
+        const abstract=plain(work.abstractText||"");
+        const open=work.isOpenAccess===true||String(work.isOpenAccess||"").toUpperCase()==="Y";
+        return sourceWork("Europe PMC",{
+          title:plain(work.title)||"Untitled research work",
+          year:year,
+          authors:authors,
+          doi:doi,
+          url:url,
+          citations:work.citedByCount,
+          openAccess:open,
+          score:null,
+          type:plain(work.pubTypeList&&work.pubTypeList.pubType)||"Life-sciences publication",
+          venue:plain(work.journalTitle||""),
+          abstract:abstract,
+          relationships:{authors:[],institutions:[],projects:[]}
+        });
       }
       function normalizeOpenAIREProduct(product){
         const title=plain(product.mainTitle||product.title||product.name||product.titles)||"Untitled research output";
@@ -695,7 +730,10 @@
           if(candidate)doi=plain(candidate.value||candidate.identifier||candidate);
         }
         const id=plain(product.id);
-        const url=product.webUrl||product.landingPage||product.url||(doi?"https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,""):(id?OPENAIRE+"/research-products/"+encodeURIComponent(id):"https://explore.openaire.eu/"));
+        const url=product.webUrl||product.landingPage||product.url||(doi?"https://doi.org/"+String(doi).replace(/^https?:
+        /
+        /doi.org
+        //i,""):(id?OPENAIRE+"/research-products/"+encodeURIComponent(id):"https://explore.openaire.eu/"));
         const access=plain(product.accessRightLabel||(product.bestAccessRight&&product.bestAccessRight.label)||product.bestAccessRight||"").toLowerCase();
         const orgs=product.organizations&&(product.organizations.organization||product.organizations);
         const organizationRows=Array.isArray(orgs)?orgs:(orgs?[orgs]:[]);
@@ -723,7 +761,13 @@
         return sourceWork("OpenAIRE",{title:title,year:date,authors:authors,doi:doi,url:url,citations:product.citationCount||product.citationsCount,openAccess:access.includes("open"),score:product.score,type:plain(product.type)||"Research output",abstract:plain(descriptions),relationships:{authors:authorRelations,institutions:institutions,projects:projects}});
       }
       function canonicalDoi(doi){
-        return String(doi||"").trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i,"").replace(/^doi:\s*/i,"").toLowerCase();
+        return String(doi||"").trim().replace(/^https?:
+        /
+        /(dx
+        .)?doi
+        .org
+        //i,"").replace(/^doi:
+        s*/i,"").toLowerCase();
       }
       function mergeWorks(groups){
         const merged=new Map();
@@ -795,13 +839,34 @@
         const items=data.message&&Array.isArray(data.message.items)?data.message.items:[];
         return items.map(normalizeCrossref);
       }
-      async function fetchSemanticScholarWorks(query){
-        const params=new URLSearchParams({query:String(query||"").trim().slice(0,400)});
-        const data=await apiJSON(SEMANTIC_SCHOLAR_PROXY+"?"+params.toString(),null,900000);
-        if(!data||!Array.isArray(data.data)){
-          throw new Error(data&&data.error?String(data.error):"Semantic Scholar proxy returned an unexpected response.");
+      function buildEuropePMCQuery(query){
+        const phrases=String(query||"").split(/[,;
+        n]+/)
+          .map(part=>part.trim()
+            .replace(/^(?:and|or)
+        s+/i,"")
+            .replace(/^(?:scientific evidence for|evidence for|research on|publications about|research question:?
+        s*)/i,"")
+          )
+          .filter(part=>part.length>=3)
+          .filter((part,index,all)=>all.findIndex(other=>other.toLowerCase()===part.toLowerCase())===index)
+          .slice(0,10);
+        if(phrases.length>1){
+          return "("+phrases.map(part=>'"'+part.replace(/"/g,"")+'"').join(" OR ")+")";
         }
-        return data.data.map(normalizeSemanticScholar);
+        return String(query||"").trim().slice(0,400);
+      }
+      async function fetchEuropePMCWorks(query){
+        const params=new URLSearchParams({
+          query:buildEuropePMCQuery(query),
+          format:"json",
+          resultType:"core",
+          pageSize:"8",
+          page:"1"
+        });
+        const data=await apiJSON(EUROPE_PMC+"?"+params.toString());
+        const rows=data.resultList&&Array.isArray(data.resultList.result)?data.resultList.result:[];
+        return rows.map(normalizeEuropePMC);
       }
       async function fetchOpenAIREWorks(query){
         const params=new URLSearchParams({search:query.slice(0,500),type:"publication",pageSize:"8",sortBy:"relevance DESC"});
@@ -809,7 +874,7 @@
         return (data.results||[]).map(normalizeOpenAIREProduct);
       }
       function setResearchLoading(){
-        const names=["OpenAlex","Crossref","Semantic Scholar","OpenAIRE Graph"];
+        const names=["OpenAlex","Crossref","Europe PMC","OpenAIRE Graph"];
         providerPills("research-provider-status",names.map(name=>({name:name,status:"loading",detail:"Requesting"})));
       }
       async function runResearch(){
@@ -821,13 +886,13 @@
         button.disabled=true;
         button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Searching 4 sources…';
         $("research-status").className="alert info";
-        $("research-status").textContent="Searching OpenAlex semantic search, Crossref, Semantic Scholar and OpenAIRE in parallel. Slow or unavailable sources will not block the others.";
+        $("research-status").textContent="Searching OpenAlex semantic search, Crossref, Europe PMC and OpenAIRE in parallel. Slow or unavailable sources will not block the others.";
         $("research-results").innerHTML="";
         setResearchLoading();
         const providers=[
           {name:"OpenAlex",run:()=>fetchOpenAlexWorks(query)},
           {name:"Crossref",run:()=>fetchCrossrefWorks(query)},
-          {name:"Semantic Scholar",run:()=>fetchSemanticScholarWorks(query)},
+          {name:"Europe PMC",run:()=>fetchEuropePMCWorks(query)},
           {name:"OpenAIRE Graph",run:()=>fetchOpenAIREWorks(query)}
         ];
         try{
@@ -999,7 +1064,9 @@
         return '<div class="climate-metric"><span>'+esc(label)+'</span><strong>'+esc(stats.mean.toFixed(1))+' '+esc(unit)+'</strong><small>'+esc(detail||("Mean of "+stats.n+" monthly value(s)"))+'</small></div>';
       }
       function normalizedCountryName(value){
-        return String(value||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+        return String(value||"").normalize("NFKD").replace(/[
+        u0300-
+        u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
       }
       async function resolveWorldBankCountryCode(point){
         const candidate=String(point.countryCode||"").toUpperCase().trim();
@@ -1007,7 +1074,9 @@
         const raw=String(point.country||"").trim();
         const rawCode=raw.toUpperCase();
         if(/^[A-Z]{2}$/.test(rawCode)&&rawCode!=="XX"&&rawCode!=="ZZ")return rawCode;
-        if(!raw||/[;,|/]/.test(raw)||/\b(and|multiple|various)\b/i.test(raw))return "";
+        if(!raw||/[;,|/]/.test(raw)||/
+        b(and|multiple|various)
+        b/i.test(raw))return "";
         const queryName=normalizedCountryName(raw);
         if(!queryName)return "";
         const payload=await apiJSON(WORLD_BANK+"/country?format=json&per_page=400",null,604800000);
@@ -1192,10 +1261,18 @@
         }
       }
       function briefText(value){
-        return String(value==null?"":value).replace(/\r/g," ").replace(/\n+/g," ").replace(/\|/g,"\\|").trim();
+        return String(value==null?"":value).replace(/
+        r/g," ").replace(/
+        n+/g," ").replace(/
+        |/g,"
+        
+        |").trim();
       }
       function markdownLink(label,url){
-        return "["+briefText(label).replace(/\]/g,"\\]")+"]("+safeUrl(url)+")";
+        return "["+briefText(label).replace(/
+        ]/g,"
+        
+        ]")+"]("+safeUrl(url)+")";
       }
       function renderThemePanel(key){
         const theme=THEMES[key]||THEMES.water;
@@ -1226,13 +1303,20 @@
       }
       function normalizeIndicatorCode(value){
         const raw=String(value||"").trim().toLowerCase().replace(/[_-]+/g,".");
-        const found=raw.match(/\b\d{1,2}\.[0-9a-z]+\.\d+\b/i);
+        const found=raw.match(/
+        b
+        d{1,2}
+        .[0-9a-z]+
+        .
+        d+
+        b/i);
         return found?found[0]:raw;
       }
       function indicatorSeriesFromGoals(goals){
         const series=[];
         (Array.isArray(goals)?goals:[]).forEach(goal=>{
-          const goalCode=String(goal.code||goal.goal||"").replace(/^goal\s*/i,"").trim();
+          const goalCode=String(goal.code||goal.goal||"").replace(/^goal
+        s*/i,"").trim();
           const targets=Array.isArray(goal.targets)?goal.targets:[];
           targets.forEach(target=>{
             const indicators=Array.isArray(target.indicators)?target.indicators:[];
@@ -1313,19 +1397,22 @@
             const targets=Array.isArray(targetResponse)?targetResponse:(targetResponse&&Array.isArray(targetResponse.data)?targetResponse.data:[]);
             const goalMap=new Map();
             targets.forEach(target=>{
-              const goalCode=String(target.goal||"").replace(/^goal\s*/i,"").trim();
+              const goalCode=String(target.goal||"").replace(/^goal
+        s*/i,"").trim();
               if(!goalMap.has(goalCode))goalMap.set(goalCode,{code:goalCode,title:"SDG "+goalCode,targets:[]});
               goalMap.get(goalCode).targets.push(target);
             });
             flattened=[...goalMap.values()];
             series=indicatorSeriesFromGoals(flattened);
           }
-          const selectedGoals=flattened.filter(goal=>["6","13","14","15","17"].includes(String(goal.code||goal.goal||"").replace(/^goal\s*/i,"").trim()));
+          const selectedGoals=flattened.filter(goal=>["6","13","14","15","17"].includes(String(goal.code||goal.goal||"").replace(/^goal
+        s*/i,"").trim()));
           state.sdgGoals=selectedGoals;
           state.sdgSeries=series.sort((a,b)=>a.indicatorCode.localeCompare(b.indicatorCode)||a.code.localeCompare(b.code));
           state.sdgLoaded=true;
           result.innerHTML=selectedGoals.map(goal=>{
-            const code=String(goal.code||goal.goal||"").replace(/^goal\s*/i,"").trim();
+            const code=String(goal.code||goal.goal||"").replace(/^goal
+        s*/i,"").trim();
             return '<a class="sdg-goal" href="'+safeUrl("https://sdgs.un.org/goals/goal"+code)+'" target="_blank" rel="noopener noreferrer"><b>SDG '+esc(code)+'</b><span>'+esc(goal.title||goal.description||"Official Sustainable Development Goal")+' ↗</span></a>';
           }).join("");
           renderSDGSeriesOptions();
@@ -1479,8 +1566,11 @@
         return '"'+text.replace(/"/g,'""')+'"';
       }
       function downloadCSV(filename,headers,rows){
-        const csv=[headers,...rows].map(row=>row.map(csvCell).join(",")).join("\r\n");
-        const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8"});
+        const csv=[headers,...rows].map(row=>row.map(csvCell).join(",")).join("
+        r
+        n");
+        const blob=new Blob(["
+        uFEFF",csv],{type:"text/csv;charset=utf-8"});
         const url=URL.createObjectURL(blob);
         const anchor=document.createElement("a");
         anchor.href=url;anchor.download=filename;document.body.appendChild(anchor);anchor.click();anchor.remove();
@@ -1794,7 +1884,11 @@
           state.researchResults.slice(0,15).forEach((work,i)=>{
             lines.push((i+1)+". **"+briefText(work.title||"Untitled work")+"**"+(work.year?" ("+work.year+")":""));
             lines.push("   - Authors: "+briefText(work.authors||"Not supplied")+"; sources: "+briefText((work.sources||[work.source]).filter(Boolean).join(", ")));
-            if(work.doi)lines.push("   - DOI: "+markdownLink(work.doi,"https://doi.org/"+String(work.doi).replace(/^https?:\/\/doi\.org\//i,"")));
+            if(work.doi)lines.push("   - DOI: "+markdownLink(work.doi,"https://doi.org/"+String(work.doi).replace(/^https?:
+        /
+        /doi
+        .org
+        //i,"")));
             else if(work.url)lines.push("   - Record: "+markdownLink("Open publication",work.url));
             const inst=(work.relationships&&work.relationships.institutions||[]).map(x=>x.name).filter(Boolean);
             const projects=(work.relationships&&work.relationships.projects||[]).map(x=>x.name).filter(Boolean);
@@ -1844,10 +1938,11 @@
         (activeTheme.sources||[]).forEach(source=>lines.push("- "+markdownLink(source.label,source.url)+" — "+briefText(source.note)));
         if(state.selectedTheme==="governance"&&state.sdgGoals.length)lines.push("- **SDG goal metadata returned:** "+state.sdgGoals.map(goal=>"SDG "+goal.code+" — "+briefText(goal.title)).join("; ")+". See the official UN database for indicator observations.");
         lines.push("- "+markdownLink("UNESCO DataHub MAB","https://data.unesco.org/explore/dataset/mab001/information/")+" · "+markdownLink("Global Geoparks","https://data.unesco.org/explore/dataset/eg0001/")+" · "+markdownLink("Marine indicators","https://data.unesco.org/explore/dataset/ioc001/"));
-        lines.push("- "+markdownLink("OpenAlex","https://openalex.org/")+" · "+markdownLink("Crossref","https://www.crossref.org/")+" · "+markdownLink("Semantic Scholar","https://www.semanticscholar.org/")+" · "+markdownLink("OpenAIRE Graph","https://graph.openaire.eu/"));
+        lines.push("- "+markdownLink("OpenAlex","https://openalex.org/")+" · "+markdownLink("Crossref","https://www.crossref.org/")+" · "+markdownLink("Europe PMC","https://europepmc.org/")+" · "+markdownLink("OpenAIRE Graph","https://graph.openaire.eu/"));
         lines.push("- "+markdownLink("ROR","https://ror.org/")+" · "+markdownLink("OBIS","https://obis.org/")+" · "+markdownLink("World Bank","https://api.worldbank.org/")+" · "+markdownLink("NASA POWER","https://power.larc.nasa.gov/"));
         lines.push("","---","Generated automatically from the independent Regional Science Observatory on "+date+". All scientific, environmental and institutional conclusions require human review.");
-        state.evidenceBriefMarkdown=lines.join("\n");
+        state.evidenceBriefMarkdown=lines.join("
+        n");
         $("brief-preview").textContent=state.evidenceBriefMarkdown;
         $("download-brief").disabled=false;
         $("print-brief").disabled=false;
@@ -2043,7 +2138,7 @@
         providerPills("research-provider-status",[
           {name:"OpenAlex",status:"",detail:"Semantic research search"},
           {name:"Crossref",status:"",detail:"Publication metadata"},
-          {name:"Semantic Scholar",status:"",detail:"Papers and citations"},
+          {name:"Europe PMC",status:"",detail:"Life-sciences publications"},
           {name:"OpenAIRE Graph",status:"",detail:"Research graph"}
         ]);
         providerPills("network-provider-status",[
