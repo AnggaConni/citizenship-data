@@ -15,6 +15,8 @@ on:
       - "scripts/**"
       - "tests/**"
       - "biodiversity-atlas.html"
+      - "regional-science.html"
+      - ".github/workflows/fishstat-production.yml"
       - ".github/workflows/biodiversity-data.yml"
       - ".github/workflows/python-ci.yml"
   workflow_dispatch:
