@@ -1266,7 +1266,7 @@
         $("reload-data").addEventListener("click",refreshData);
         $("toggle-map-fullscreen").addEventListener("click",toggleMapFullscreen);
         document.addEventListener("fullscreenchange",()=>{const card=document.querySelector(".map-card");const active=document.fullscreenElement===card;setFullscreenButton(active);setTimeout(()=>state.map&&state.map.invalidateSize(),150);});
-        $("theme-workbench").addEventListener("click",event=>{
+        $("workstreams").addEventListener("click",event=>{
           const option=event.target.closest("[data-theme]");
           if(option){selectTheme(option.getAttribute("data-theme"));return;}
           const action=event.target.closest("[data-theme-action]");
