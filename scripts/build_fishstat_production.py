@@ -184,6 +184,12 @@ def fetch_bytes(url: str, timeout: int = 90) -> bytes:
 
 
 def latest_fishstat_release(index_html: str) -> tuple[str, str]:
+    """Pick the latest version advertised by FAO, with a known-current fallback.
+
+    Some FAO static-file endpoints do not expose a browsable directory index in all
+    environments. If neither the index nor release page is parseable, the current
+    verified release is used; update this fallback when FAO publishes a newer file.
+    """
     matches = re.findall(
         r"""href=["']([^"']*GlobalProduction_(\d{4}\.\d+\.\d+)\.zip)["']""",
         index_html,
@@ -196,9 +202,9 @@ def latest_fishstat_release(index_html: str) -> tuple[str, str]:
             flags=re.IGNORECASE,
         )
     if not matches:
-        raise RuntimeError("Could not find a GlobalProduction version in FAO's official download index.")
+        return "2026.1.0", "GlobalProduction_2026.1.0.zip"
     filename, version = max(matches, key=lambda pair: tuple(int(x) for x in pair[1].split(".")))
-    return version, filename
+    return version, Path(filename).name
 
 
 def iter_csv_member(archive: zipfile.ZipFile, basename: str):
@@ -213,7 +219,15 @@ def iter_csv_member(archive: zipfile.ZipFile, basename: str):
 
 
 def build_payload(start_year: int = DEFAULT_START_YEAR) -> dict[str, object]:
-    index_html = fetch_bytes(INDEX_URL).decode("utf-8", errors="replace")
+    try:
+        index_html = fetch_bytes(INDEX_URL).decode("utf-8", errors="replace")
+    except Exception:
+        index_html = ""
+    if "GlobalProduction_" not in index_html:
+        try:
+            index_html += "\\n" + fetch_bytes(SOURCE_PAGE + "?lang=en").decode("utf-8", errors="replace")
+        except Exception:
+            pass
     version, filename = latest_fishstat_release(index_html)
     zip_url = INDEX_URL + filename
     zip_bytes = fetch_bytes(zip_url)
