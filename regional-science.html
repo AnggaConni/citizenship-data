@@ -727,7 +727,7 @@
         const around="around:5000,"+lat+","+lon;
         // Reuse the proven, broad GPIR query pattern: include tourism, services,
         // shops, crafts, offices and suppliers; the client deduplicates by OSM id.
-        return '[out:json][timeout:20];('+
+        return '[out:json][timeout:25];('+
           'nwr('+around+')["tourism"~"attraction|museum|gallery|viewpoint|theme_park|zoo|aquarium|artwork|picnic_site|hotel|guest_house|hostel|camp_site"];'+
           'nwr('+around+')["historic"~"monument|memorial|ruins|castle|archaeological_site|wayside_shrine"];'+
           'nwr('+around+')["natural"~"beach|waterfall|hot_spring|cave_entrance"];'+
@@ -793,8 +793,8 @@
             const timeoutPromise=new Promise((_,reject)=>{
               timer=setTimeout(()=>{
                 try{controller.abort();}catch(_){}
-                reject(new Error("Overpass did not respond within 12 seconds"));
-              },12000);
+                reject(new Error("Overpass did not respond within 26 seconds"));
+              },26000);
             });
             const payload=await Promise.race([fetchPromise,timeoutPromise]);
             if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
@@ -987,7 +987,11 @@
         if(poiRequestId!==state.geoeconPoiRequestId)return;
         try{
           if(!window.L)throw new Error("Leaflet did not load; refresh the page and try again.");
-          state.geoeconMap=L.map("geoecon-map",{scrollWheelZoom:true,preferCanvas:true}).setView([item.lat,item.lon],12);
+          const mapContainer=$("geoecon-map");
+          mapContainer.innerHTML="";
+          mapContainer.style.position="relative";
+          mapContainer.style.minHeight="350px";
+          state.geoeconMap=L.map(mapContainer,{scrollWheelZoom:true,preferCanvas:true}).setView([item.lat,item.lon],12);
           let tileCount=0,primaryFailed=false,fallbackAdded=false;
           const fallbackTiles=L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:'&copy; OpenStreetMap contributors &copy; CARTO'});
           const primaryTiles=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'});
@@ -1027,6 +1031,7 @@
         modal.classList.remove("is-open");modal.setAttribute("aria-hidden","true");document.body.classList.remove("geoecon-open");
         state.geoeconRequestId++;state.geoeconPoiRequestId++;
         if(state.geoeconMap){state.geoeconMap.remove();state.geoeconMap=null;state.geoeconPoiLayer=null;}
+        const mapContainer=$("geoecon-map");if(mapContainer)mapContainer.innerHTML="";
       }
       function initGeoeconModal(){
         $("geoecon-close").addEventListener("click",closeGeoeconModal);
