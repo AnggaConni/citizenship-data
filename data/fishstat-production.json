@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "status": "pending",
+    "source": "FAO FishStat — Global Production",
+    "sourceUrl": "https://www.fao.org/fishery/en/collection/global_production",
+    "downloadUrl": "https://www.fao.org/fishery/static/Data/",
+    "release": null,
+    "generatedAt": null,
+    "startYear": null,
+    "endYear": null,
+    "recordCount": 0,
+    "countries": 0,
+    "unit": "tonnes live weight",
+    "message": "The scheduled GitHub Actions updater will generate the first compact series from FAO's official Global Production release."
+  },
+  "records": []
+}
