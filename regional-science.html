@@ -877,17 +877,17 @@
         return plain(row.mainTitle||row.title||row.name||row.projectTitle||row.acronym)||"Research record";
       }
       function openAIRERows(data){
-        // Graph API versions/response envelopes may expose result rows directly
-        // or nest each entity under a "result" or "entity" property.
+        // OpenAIRE Graph v3 commonly wraps each result in an "entity" object.
         const rows = Array.isArray(data && data.results) ? data.results
           : Array.isArray(data && data.result) ? data.result
           : Array.isArray(data && data.items) ? data.items
           : [];
         return rows.map(item => {
           if (!item || typeof item !== "object") return item;
-          return item.result && typeof item.result === "object" ? Object.assign({}, item.result, item)
-            : item.entity && typeof item.entity === "object" ? Object.assign({}, item.entity, item)
-            : item;
+          const inner = item.entity && typeof item.entity === "object" ? item.entity
+            : item.result && typeof item.result === "object" ? item.result
+            : null;
+          return inner ? Object.assign({}, item, inner) : item;
         }).filter(Boolean);
       }
       function openAIRESearchParams(query, pageSize){
@@ -961,7 +961,7 @@
         $("network-results").innerHTML="";
         const tasks=mode==="projects"?[
           {name:"OpenAIRE projects",run:async()=>{const data=await apiJSON(openAIREUrl("projects",query));return openAIRERows(data).map(normalizeOpenAIREProject);}},
-          {name:"OpenAIRE datasets/software",run:async()=>{const params=openAIRESearchParams(query,12);const data=await apiJSON(OPENAIRE+"/research-products?"+params.toString());const rows=openAIRERows(data);const filtered=rows.filter(row=>{const type=String(row.type||row.subtype||row.resultType||"").toLowerCase();return type.includes("dataset")||type.includes("software");});return (filtered.length?filtered:rows).map(normalizeOpenAIREAsset);}}
+          {name:"OpenAIRE datasets/software",run:async()=>{const makeUrl=type=>{const params=openAIRESearchParams(query,8);params.set("type",type);return OPENAIRE+"/research-products?"+params.toString();};const settled=await Promise.allSettled([apiJSON(makeUrl("dataset")),apiJSON(makeUrl("software"))]);const rows=[];settled.forEach(result=>{if(result.status==="fulfilled")rows.push(...openAIRERows(result.value));});if(!rows.length){const failure=settled.find(result=>result.status==="rejected");if(failure)throw failure.reason;}const seen=new Set();return rows.filter(row=>{const id=String(row.id||row.openAIREId||row.mainTitle||row.title||"");if(seen.has(id))return false;seen.add(id);return true;}).map(normalizeOpenAIREAsset);}}
         ]:[
           {name:"OpenAIRE organizations",run:async()=>{const data=await apiJSON(openAIREUrl("organizations",query));return openAIRERows(data).map(normalizeOpenAIREOrganization);}},
           {name:"ROR registry",run:async()=>{const params=new URLSearchParams({query:query.slice(0,180)});const data=await apiJSON(ROR+"?"+params.toString());return (data.items||[]).map(normalizeROR);}}
