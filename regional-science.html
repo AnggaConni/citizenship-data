@@ -373,7 +373,7 @@
           actions:[["research","Search policy and governance evidence","fa-book-open"],["projects","Find governance projects & datasets","fa-diagram-project"],["sdg","Load official SDG indicators","fa-list-check"]]
         }
       };
-      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",sdgPage:1,sdgTotalPages:1,fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
+      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",sdgPage:1,sdgTotalPages:1,fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map(),semanticScholarAuthFallback:false};
       const $ = id => document.getElementById(id);
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
@@ -796,12 +796,31 @@
         return items.map(normalizeCrossref);
       }
       async function fetchSemanticScholarWorks(query){
-        const params=new URLSearchParams({query:query.slice(0,500),limit:"8",fields:"title,year,authors,citationCount,url,abstract,openAccessPdf,externalIds,publicationVenue,isOpenAccess"});
+        const params=new URLSearchParams({
+          query:String(query||"").slice(0,400),
+          limit:"8",
+          fields:"title,year,authors,citationCount,url,abstract,openAccessPdf,externalIds,publicationVenue,isOpenAccess"
+        });
+        const url=SEMANTIC_SCHOLAR+"?"+params.toString();
         const key=localStorage.getItem("regionalScienceSemanticScholarKey")||"";
-        const options={};
-        if(key)options.headers={"x-api-key":key,"Accept":"application/json"};
-        const data=await apiJSON(SEMANTIC_SCHOLAR+"?"+params.toString(),options);
-        return (data.data||[]).map(normalizeSemanticScholar);
+        state.semanticScholarAuthFallback=false;
+        if(!key){
+          const data=await apiJSON(url);
+          return (data.data||[]).map(normalizeSemanticScholar);
+        }
+        try{
+          const data=await apiJSON(url,{headers:{"x-api-key":key,"Accept":"application/json"}});
+          return (data.data||[]).map(normalizeSemanticScholar);
+        }catch(error){
+          // A custom x-api-key header can trigger a browser CORS preflight.
+          // If that preflight fails, retry once without the optional key.
+          const message=String(error&&error.message||error);
+          if(!/failed to fetch|load failed|networkerror|network error/i.test(message))throw error;
+          state.apiCache.delete(url);
+          const data=await apiJSON(url,{headers:{"Accept":"application/json"}});
+          state.semanticScholarAuthFallback=true;
+          return (data.data||[]).map(normalizeSemanticScholar);
+        }
       }
       async function fetchOpenAIREWorks(query){
         const params=new URLSearchParams({search:query.slice(0,500),type:"publication",pageSize:"8",sortBy:"relevance DESC"});
@@ -836,10 +855,10 @@
           settled.forEach((result,i)=>{
             if(result.status==="fulfilled"){
               const items=result.value||[];
-              good.push({name:providers[i].name,status:"ok",detail:items.length+" result(s)"});
+              good.push({name:providers[i].name,status:"ok",detail:items.length+" result(s)"+(providers[i].name==="Semantic Scholar"&&state.semanticScholarAuthFallback?" · anonymous fallback":"")});
               groups.push(items);
             }else{
-              good.push({name:providers[i].name,status:"error",detail:String(result.reason&&result.reason.message||"Unavailable").slice(0,80)});
+              const message=String(result.reason&&result.reason.message||"Unavailable");const friendly=/failed to fetch|load failed|networkerror|network error/i.test(message)?"Network/CORS failure":message.slice(0,80);good.push({name:providers[i].name,status:"error",detail:friendly});
               groups.push([]);
             }
           });
