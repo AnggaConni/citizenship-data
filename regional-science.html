@@ -632,13 +632,135 @@
         if(!stats)return '<div class="climate-metric"><span>'+esc(label)+'</span><strong>—</strong><small>No usable values supplied</small></div>';
         return '<div class="climate-metric"><span>'+esc(label)+'</span><strong>'+esc(stats.mean.toFixed(1))+' '+esc(unit)+'</strong><small>'+esc(detail||("Mean of "+stats.n+" monthly value(s)"))+'</small></div>';
       }
-      async function loadClimate(){
+      function normalizedCountryName(value){
+        return String(value||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+      }
+      async function resolveWorldBankCountryCode(point){
+        const candidate=String(point.countryCode||"").toUpperCase().trim();
+        if(/^[A-Z]{2}$/.test(candidate)&&candidate!=="XX"&&candidate!=="ZZ")return candidate;
+        const raw=String(point.country||"").trim();
+        if(!raw||/[;,|/]/.test(raw)||/\b(and|multiple|various)\b/i.test(raw))return "";
+        const queryName=normalizedCountryName(raw);
+        if(!queryName)return "";
+        const payload=await apiJSON(WORLD_BANK+"/country?format=json&per_page=400",null,604800000);
+        const countries=Array.isArray(payload)&&Array.isArray(payload[1])?payload[1]:[];
+        const matched=countries.find(c=>normalizedCountryName(c.name)===queryName);
+        return matched&&matched.iso2Code&&/^[A-Z]{2}$/.test(matched.iso2Code)?matched.iso2Code:"";
+      }
+      async function fetchWorldBankIndicator(code,indicator){
+        const params=new URLSearchParams({format:"json",per_page:"70"});
+        const payload=await apiJSON(WORLD_BANK+"/country/"+encodeURIComponent(code)+"/indicator/"+encodeURIComponent(indicator)+"?"+params.toString(),null,86400000);
+        const rows=Array.isArray(payload)&&Array.isArray(payload[1])?payload[1]:[];
+        const usable=rows.filter(row=>row&&row.value!==null&&row.value!==undefined&&row.value!==""&&Number.isFinite(Number(row.value)));
+        usable.sort((a,b)=>Number(b.date)-Number(a.date));
+        if(!usable.length)return null;
+        return {indicator:indicator,year:String(usable[0].date||""),value:Number(usable[0].value),country:usable[0].country&&usable[0].country.value,source:"World Bank / FAO AQUASTAT"};
+      }
+      function waterMetric(title,item,unit,description){
+        if(!item)return '<div class="climate-metric"><span>'+esc(title)+'</span><strong>—</strong><small>No usable country-year value supplied</small></div>';
+        return '<div class="climate-metric"><span>'+esc(title)+'</span><strong>'+esc(number(item.value))+' '+esc(unit)+'</strong><small>'+esc((item.year?"Latest available year: "+item.year+". ":"")+description)+'</small></div>';
+      }
+      async function loadWaterSecurity(point){
+        $("water-security-status").textContent="Resolving a single country and retrieving the latest available freshwater indicators…";
+        $("water-security-results").innerHTML="";
+        try{
+          const code=await resolveWorldBankCountryCode(point);
+          if(!code){
+            state.waterContext.waterIndicators={point:point,available:false,reason:"This map record did not identify exactly one country; country-level indicators were not inferred."};
+            $("water-security-status").textContent="Country indicators are not available for this record because a single country code could not be confirmed.";
+            return;
+          }
+          const settled=await Promise.allSettled([
+            fetchWorldBankIndicator(code,"ER.H2O.FWTL.ZS"),
+            fetchWorldBankIndicator(code,"ER.H2O.INTR.PC")
+          ]);
+          const stress=settled[0].status==="fulfilled"?settled[0].value:null;
+          const resources=settled[1].status==="fulfilled"?settled[1].value:null;
+          state.waterContext.waterIndicators={point:point,countryCode:code,waterStress:stress,resourcesPerCapita:resources,available:!!(stress||resources),retrievedAt:new Date().toISOString()};
+          if(!stress&&!resources)throw new Error("World Bank returned no non-null annual values for these indicators.");
+          $("water-security-results").innerHTML='<div class="climate-grid">'+
+            waterMetric("Water stress",stress,"%","Freshwater withdrawals as a proportion of available resources; not a local measurement.")+
+            waterMetric("Renewable freshwater per capita",resources,"m³/person/year","Internal renewable freshwater resources per capita; national annual estimate.")+
+            waterMetric("Latest year",stress||resources,"","Indicator years may differ.")+'</div>'+
+            '<div class="api-status">Country: '+esc((stress&&stress.country)||(resources&&resources.country)||point.country||code)+' ('+esc(code)+') · Source: World Bank Indicators API; freshwater indicator source is FAO AQUASTAT. Missing data are not zero.</div>';
+          $("water-security-status").textContent="Country-level indicators loaded where values are available.";
+        }catch(error){
+          state.waterContext.waterIndicators={point:point,available:false,reason:error.message};
+          $("water-security-status").textContent="Country indicators could not be loaded: "+error.message+". River-discharge and climate tools remain independent.";
+        }
+      }
+      function renderDischargeChart(times,values){
+        const clean=(values||[]).map(v=>v===null||v===undefined||v===""?null:Number(v));
+        const valid=clean.filter(v=>v!==null&&Number.isFinite(v)&&v>=0);
+        if(valid.length<2)return '<div class="api-status">Not enough daily values to draw a discharge chart for this grid cell.</div>';
+        const width=640,height=174,left=35,right=12,top=12,bottom=28,plotW=width-left-right,plotH=height-top-bottom;
+        const maxValue=Math.max(...valid,0.001);
+        const points=[];
+        clean.forEach((v,i)=>{
+          if(v===null||!Number.isFinite(v)||v<0)return;
+          const x=left+(i/Math.max(1,clean.length-1))*plotW;
+          const y=top+plotH-(v/maxValue)*plotH;
+          points.push(x.toFixed(1)+","+y.toFixed(1));
+        });
+        const path=points.join(" ");
+        const start=times&&times.length?String(times[0]):"",end=times&&times.length?String(times[times.length-1]):"";
+        return '<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Daily modeled river discharge trend" style="width:100%;height:auto;display:block;margin-top:8px">'+
+          '<line x1="'+left+'" y1="'+(top+plotH)+'" x2="'+(width-right)+'" y2="'+(top+plotH)+'" stroke="#d7e3d4" stroke-width="1"/>'+
+          '<line x1="'+left+'" y1="'+(top+plotH/2)+'" x2="'+(width-right)+'" y2="'+(top+plotH/2)+'" stroke="#e7eee4" stroke-width="1" stroke-dasharray="4 4"/>'+
+          '<polyline points="'+path+'" fill="none" stroke="#237a4a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+          '<text x="'+left+'" y="'+(height-8)+'" font-size="10" fill="#758675">'+esc(start)+'</text>'+
+          '<text x="'+(width-right)+'" y="'+(height-8)+'" text-anchor="end" font-size="10" fill="#758675">'+esc(end)+'</text>'+
+          '<text x="'+(left-4)+'" y="'+(top+5)+'" text-anchor="end" font-size="9" fill="#758675">'+esc(number(maxValue))+'</text>'+
+          '<text x="'+(left-4)+'" y="'+(top+plotH+3)+'" text-anchor="end" font-size="9" fill="#758675">0</text>'+
+          '<text x="'+(width/2)+'" y="10" text-anchor="middle" font-size="9" fill="#758675">Discharge (m³/s)</text></svg>';
+      }
+      async function loadRiverDischarge(point){
+        $("hydrology-status").textContent="Requesting modeled river discharge near "+point.lat.toFixed(3)+", "+point.lon.toFixed(3)+"…";
+        $("hydrology-results").innerHTML="";
+        if(point.type==="marine"||point.type==="obis"){
+          state.waterContext.flood={point:point,available:false,reason:"The selected item is a marine location; the river-discharge model is not appropriate for this point."};
+          $("hydrology-status").textContent="River discharge not requested for a marine point. Select a land-based reserve or geopark for nearby river-grid context.";
+          return;
+        }
+        const params=new URLSearchParams({
+          latitude:String(point.lat),longitude:String(point.lon),
+          daily:"river_discharge,river_discharge_mean,river_discharge_max",
+          past_days:"7",forecast_days:"30",timezone:"GMT",cell_selection:"land"
+        });
+        try{
+          const payload=await apiJSON(FLOOD_API+"?"+params.toString(),null,1800000);
+          const daily=payload.daily||{};
+          const times=Array.isArray(daily.time)?daily.time:[];
+          const raw=Array.isArray(daily.river_discharge_mean)&&daily.river_discharge_mean.some(v=>v!==null)?daily.river_discharge_mean:(daily.river_discharge||[]);
+          const values=raw.map(v=>v===null||v===undefined?null:Number(v));
+          const available=values.filter(v=>v!==null&&Number.isFinite(v)&&v>=0);
+          if(!times.length||available.length<2)throw new Error("The model returned insufficient river-grid values for this coordinate.");
+          const today=new Date().toISOString().slice(0,10);
+          let latestPast=null,forecastPeak=null;
+          times.forEach((date,i)=>{
+            const val=values[i];
+            if(val===null||!Number.isFinite(val))return;
+            if(date<=today)latestPast={date:date,value:val};
+            if(date>=today&&(!forecastPeak||val>forecastPeak.value))forecastPeak={date:date,value:val};
+          });
+          const units=(payload.daily_units&&payload.daily_units.river_discharge_mean)||(payload.daily_units&&payload.daily_units.river_discharge)||"m³/s";
+          state.waterContext.flood={point:point,available:true,times:times,values:values,units:units,latestPast:latestPast,forecastPeak:forecastPeak,source:"Open-Meteo Flood API / GloFAS",retrievedAt:new Date().toISOString(),gridResolution:"about 5 km"};
+          $("hydrology-results").innerHTML='<div class="climate-grid">'+
+            '<div class="climate-metric"><span>Latest model value</span><strong>'+esc(latestPast?number(latestPast.value):"—")+' '+esc(units)+'</strong><small>'+esc(latestPast?latestPast.date:"No recent value returned")+'</small></div>'+
+            '<div class="climate-metric"><span>30-day forecast peak</span><strong>'+esc(forecastPeak?number(forecastPeak.value):"—")+' '+esc(units)+'</strong><small>'+esc(forecastPeak?forecastPeak.date:"No forecast value returned")+'</small></div>'+
+            '<div class="climate-metric"><span>Grid / resolution</span><strong>~5 km</strong><small>Nearest modeled river cell; river identity not guaranteed.</small></div></div>'+
+            renderDischargeChart(times,values)+
+            '<div class="api-status">Daily modeled discharge · '+esc(times[0])+' to '+esc(times[times.length-1])+' · Source: <a href="https://open-meteo.com/en/docs/flood-api" target="_blank" rel="noopener noreferrer">Open-Meteo Flood API / GloFAS</a>. This is not an official warning and should not be used alone for emergency decisions.</div>';
+          $("hydrology-status").textContent="Modeled river-discharge context loaded. Verify the river cell and compare with local hydrological sources.";
+        }catch(error){
+          state.waterContext.flood={point:point,available:false,reason:error.message};
+          $("hydrology-status").textContent="River-discharge data could not be loaded: "+error.message+". This may indicate no usable river cell, API limits, or network restrictions.";
+        }
+      }
+      async function loadClimate(point){
         if(state.climateBusy)return;
-        if(!state.selected){$("climate-status").textContent="Select a mapped point first.";return;}
-        const point=state.selected;
         state.climateBusy=true;
-        const button=$("run-climate");button.disabled=true;
-        $("climate-status").textContent="Requesting NASA POWER monthly data for "+point.lat.toFixed(3)+", "+point.lon.toFixed(3)+"…";
+        $("climate-status").textContent="Requesting NASA POWER monthly estimates for "+point.lat.toFixed(3)+", "+point.lon.toFixed(3)+"…";
         $("climate-results").innerHTML="";
         const params=new URLSearchParams({parameters:"T2M,PRECTOTCORR,RH2M",community:"AG",longitude:String(point.lon),latitude:String(point.lat),start:"2021",end:"2025",format:"JSON","time-standard":"UTC"});
         try{
@@ -646,16 +768,32 @@
           const values=data.properties&&data.properties.parameter||{};
           const temp=averageValues(values.T2M),precip=averageValues(values.PRECTOTCORR),humidity=averageValues(values.RH2M);
           if(!temp&&!precip&&!humidity)throw new Error("NASA POWER returned no usable monthly parameter values for this coordinate.");
+          state.waterContext.climate={point:point,temperature:temp,precipitation:precip,humidity:humidity,period:"2021–2025",source:"NASA POWER",retrievedAt:new Date().toISOString()};
           $("climate-results").innerHTML='<div class="climate-grid">'+climateMetric("Mean air temperature",temp,"°C","2021–2025 monthly mean")+
             climateMetric("Precipitation rate",precip,"mm/day","Mean monthly value; not a rainfall total")+
             climateMetric("Relative humidity",humidity,"%","2021–2025 monthly mean")+'</div>'+
-            '<div class="api-status">Coordinate: '+esc(point.lat.toFixed(4)+", "+point.lon.toFixed(4))+' · Period: Jan 2021–Dec 2025 · Source: NASA POWER meteorological parameters. Averages are calculated from valid monthly values returned by the API.</div>';
-          $("climate-status").textContent="Climate context loaded for "+point.name+".";
-          $("climate-panel").scrollIntoView({behavior:"smooth",block:"nearest"});
+            '<div class="api-status">Coordinate: '+esc(point.lat.toFixed(4)+", "+point.lon.toFixed(4))+' · Period: Jan 2021–Dec 2025 · Source: <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA POWER</a>. Values are gridded estimates, not local observations.</div>';
+          $("climate-status").textContent="Meteorological context loaded for "+point.name+".";
         }catch(error){
-          $("climate-status").textContent="Could not load climate data: "+error.message+". The map and research tools remain available.";
+          state.waterContext.climate={point:point,available:false,reason:error.message};
+          $("climate-status").textContent="Could not load NASA POWER context: "+error.message+". The other water tools remain available.";
+        }finally{state.climateBusy=false;}
+      }
+      async function loadWaterAndClimate(){
+        if(state.waterBusy)return;
+        if(!state.selected){$("hydrology-status").textContent="Select a mapped location first.";return;}
+        const point=state.selected;
+        state.waterBusy=true;
+        const button=$("run-climate");button.disabled=true;
+        button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Loading water data…';
+        state.waterContext={point:point};
+        try{
+          await Promise.allSettled([loadRiverDischarge(point),loadWaterSecurity(point),loadClimate(point)]);
+          $("climate-panel").scrollIntoView({behavior:"smooth",block:"nearest"});
         }finally{
-          state.climateBusy=false;button.disabled=!state.selected;
+          state.waterBusy=false;
+          button.disabled=!state.selected;
+          button.innerHTML='<i class="fa-solid fa-water"></i> Water & climate';
         }
       }
       async function loadObisLayer(){
