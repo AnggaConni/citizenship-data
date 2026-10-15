@@ -167,7 +167,6 @@ def build_records(
             "value": clean_value,
             "componentCount": item["componentCount"],
             "sourceFlags": flags,
-            "sourceUrl": SOURCE_PAGE,
         })
 
     records.sort(key=lambda r: (str(r["countryName"]).casefold(), int(r["year"]), str(r["source"])))
