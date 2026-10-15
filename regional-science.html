@@ -47,14 +47,14 @@
     .geoecon-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
     .geoecon-actions button{padding:8px 11px;border:1px solid #ffffff35;border-radius:9px;background:#ffffff12;color:#fff;font-size:11px;font-weight:750;cursor:pointer}
     .geoecon-actions button:hover{background:#ffffff25}
-    .geoecon-main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,.9fr);gap:12px;padding:12px;overflow:auto;min-height:0;flex:1}
+    .geoecon-main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:12px;overflow:auto;min-height:0;flex:1}
     .geoecon-panel{min-width:0;background:#fff;border:1px solid #dce8dc;border-radius:13px;overflow:hidden;box-shadow:0 7px 23px #143d2510}
     .geoecon-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #edf2ea}
     .geoecon-panel-head h3{margin:0;font:800 12px Manrope,sans-serif}
     .geoecon-panel-head p{margin:3px 0 0;color:#718174;font-size:10px;line-height:1.5}
-    #geoecon-map{height:clamp(360px,52vh,680px);width:100%;background:#dcecf0}
+    #geoecon-map{height:clamp(320px,46vh,560px);width:100%;background:#dcecf0}
     .geoecon-map-note{padding:9px 12px;border-top:1px solid #e7eee5;color:#6b7c6f;font-size:10px;line-height:1.6}
-    .geoecon-content{display:grid;gap:10px;padding:12px;align-content:start}
+    .geoecon-content{display:grid;gap:10px;padding:12px;align-content:start}.geoecon-main .geoecon-side{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-content:start}
     .geoecon-site{padding:12px;border-radius:10px;background:#f1f8ef;border:1px solid #dcebd7}
     .geoecon-site .eyebrow{font-size:8px;color:#56845e;letter-spacing:.1em;font-weight:850}
     .geoecon-site h2{margin:5px 0 4px;font:800 18px Manrope,sans-serif;letter-spacing:-.03em}
@@ -80,7 +80,7 @@
     .geoecon-row small{display:block;color:#7c8b7e;font-size:9px;line-height:1.5;margin-top:3px}
     .geoecon-row .value{font-weight:850;color:#224f32;font-size:10px;white-space:nowrap}
     .geoecon-footer{padding:9px 14px;border-top:1px solid #e3ebe0;color:#778677;font-size:9px;line-height:1.55;background:#fbfcfa;flex-shrink:0}
-    @media(max-width:850px){.geoecon-main{grid-template-columns:1fr;overflow:auto}.geoecon-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:10px}.geoecon-site,.geoecon-section-wide{grid-column:1/-1}#geoecon-map{height:48vh;min-height:320px}}
+    @media(max-width:850px){.geoecon-main{grid-template-columns:1fr;overflow:auto}.geoecon-main .geoecon-side{grid-template-columns:1fr}.geoecon-site,.geoecon-section-wide{grid-column:auto}#geoecon-map{height:42vh;min-height:300px}}
     @media(max-width:560px){.geoecon-top{align-items:flex-start;padding:10px;gap:8px}.geoecon-title{font-size:13px}.geoecon-subtitle{max-width:220px}.geoecon-actions{gap:4px}.geoecon-actions button{font-size:10px;padding:7px}.geoecon-main{padding:7px;gap:8px}.geoecon-side{grid-template-columns:1fr}.geoecon-site,.geoecon-section-wide{grid-column:auto}.geoecon-panel-head{padding:10px}.geoecon-metric strong{font-size:16px}}
 </style>
 </head>
@@ -617,139 +617,216 @@
         else state.map.setView([15,100],3);
       }
 
-      const COMTRADE_API = "https://comtradeapi.un.org/public/v1/preview/C/A/HS";
       const GEOPARK_COUNTRY_CODES = {
-        "indonesia":"360","viet nam":"704","vietnam":"704","thailand":"764","malaysia":"458","philippines":"608","cambodia":"116","lao people's democratic republic":"418","laos":"418","myanmar":"104","singapore":"702","brunei darussalam":"096","brunei":"096","timor-leste":"626","china":"156","japan":"392","republic of korea":"410","south korea":"410","india":"356","sri lanka":"144","nepal":"524","bangladesh":"050","pakistan":"586","papua new guinea":"598","fiji":"242","australia":"036","new zealand":"554","iran":"364","turkey":"792","türkiye":"792","mongolia":"496","kazakhstan":"398","uzbekistan":"860","kyrgyzstan":"417","tajikistan":"762"
+        "indonesia":"IDN","viet nam":"VNM","vietnam":"VNM","thailand":"THA","malaysia":"MYS","philippines":"PHL","cambodia":"KHM","lao people's democratic republic":"LAO","laos":"LAO","myanmar":"MMR","singapore":"SGP","brunei darussalam":"BRN","brunei":"BRN","timor-leste":"TLS","china":"CHN","japan":"JPN","republic of korea":"KOR","south korea":"KOR","india":"IND","sri lanka":"LKA","nepal":"NPL","bangladesh":"BGD","pakistan":"PAK","papua new guinea":"PNG","fiji":"FJI","australia":"AUS","new zealand":"NZL","iran":"IRN","turkey":"TUR","türkiye":"TUR","mongolia":"MNG","kazakhstan":"KAZ","uzbekistan":"UZB","kyrgyzstan":"KGZ","tajikistan":"TJK","spain":"ESP","portugal":"PRT","france":"FRA","germany":"DEU","italy":"ITA","greece":"GRC","croatia":"HRV","romania":"ROU","poland":"POL","czechia":"CZE","czech republic":"CZE","slovakia":"SVK","hungary":"HUN","slovenia":"SVN","austria":"AUT","switzerland":"CHE","belgium":"BEL","netherlands":"NLD","luxembourg":"LUX","united kingdom":"GBR","ireland":"IRL","iceland":"ISL","norway":"NOR","sweden":"SWE","finland":"FIN","morocco":"MAR","senegal":"SEN","kenya":"KEN","ethiopia":"ETH","uganda":"UGA","tanzania":"TZA","south africa":"ZAF","jordan":"JOR","oman":"OMN","saudi arabia":"SAU","azerbaijan":"AZE","georgia":"GEO","armenia":"ARM","albania":"ALB","north macedonia":"MKD","serbia":"SRB","bosnia and herzegovina":"BIH","bulgaria":"BGR","estonia":"EST","latvia":"LVA","lithuania":"LTU","ukraine":"UKR","russia":"RUS","united states":"USA","united states of america":"USA","canada":"CAN","mexico":"MEX","brazil":"BRA","chile":"CHL","peru":"PER","uruguay":"URY","colombia":"COL","ecuador":"ECU","nicaragua":"NIC","cuba":"CUB","guatemala":"GTM","honduras":"HND","el salvador":"SLV","argentina":"ARG","bolivia":"BOL","costa rica":"CRI","panama":"PAN"
+      };
+      const GEOPARK_ISO2_TO_ISO3 = {
+        ID:"IDN",MY:"MYS",TH:"THA",VN:"VNM",PH:"PHL",KH:"KHM",LA:"LAO",MM:"MMR",SG:"SGP",BN:"BRN",TL:"TLS",CN:"CHN",JP:"JPN",KR:"KOR",IN:"IND",LK:"LKA",NP:"NPL",BD:"BGD",PK:"PAK",IR:"IRN",TR:"TUR",KZ:"KAZ",UZ:"UZB",KG:"KGZ",TJ:"TJK",MN:"MNG",AU:"AUS",NZ:"NZL",PG:"PNG",FJ:"FJI",ES:"ESP",PT:"PRT",FR:"FRA",DE:"DEU",IT:"ITA",GR:"GRC",HR:"HRV",RO:"ROU",PL:"POL",CZ:"CZE",SK:"SVK",HU:"HUN",SI:"SVN",AT:"AUT",CH:"CHE",BE:"BEL",NL:"NLD",LU:"LUX",GB:"GBR",IE:"IRL",IS:"ISL",NO:"NOR",SE:"SWE",FI:"FIN",MA:"MAR",SN:"SEN",KE:"KEN",ET:"ETH",UG:"UGA",TZ:"TZA",ZA:"ZAF",JO:"JOR",OM:"OMN",SA:"SAU",AZ:"AZE",GE:"GEO",AM:"ARM",AL:"ALB",MK:"MKD",RS:"SRB",BA:"BIH",BG:"BGR",EE:"EST",LV:"LVA",LT:"LTU",UA:"UKR",RU:"RUS",US:"USA",CA:"CAN",MX:"MEX",BR:"BRA",CL:"CHL",PE:"PER",UY:"URY",CO:"COL",EC:"ECU",NI:"NIC",CU:"CUB",GT:"GTM",HN:"HND",SV:"SLV",AR:"ARG",BO:"BOL",CR:"CRI",PA:"PAN"
+      };
+      const GEOPARK_NUMERIC_TO_ISO3 = {
+        "096":"BRN","104":"MMR","116":"KHM","144":"LKA","156":"CHN","242":"FJI","250":"FRA","276":"DEU","288":"GHA","300":"GRC","320":"GTM","344":"HKG","348":"HUN","356":"IND","360":"IDN","364":"IRN","380":"ITA","392":"JPN","398":"KAZ","410":"KOR","417":"KGZ","418":"LAO","422":"LBN","458":"MYS","496":"MNG","504":"MAR","524":"NPL","528":"NLD","554":"NZL","586":"PAK","598":"PNG","608":"PHL","616":"POL","620":"PRT","642":"ROU","643":"RUS","688":"SRB","703":"SVK","704":"VNM","705":"SVN","710":"ZAF","724":"ESP","752":"SWE","756":"CHE","764":"THA","784":"ARE","792":"TUR","804":"UKR","826":"GBR","840":"USA","036":"AUS","040":"AUT","056":"BEL","076":"BRA","124":"CAN","152":"CHL","170":"COL","203":"CZE","208":"DNK","233":"EST","246":"FIN","352":"ISL","372":"IRL","400":"JOR","414":"KWT","428":"LVA","440":"LTU","442":"LUX","508":"MOZ","578":"NOR","818":"EGY","858":"URY"
       };
       const GEOPARK_COUNTRY_ANCHORS = {
-        "360":{name:"Indonesia",lat:-2.5,lon:118},"704":{name:"Viet Nam",lat:16,lon:106},"764":{name:"Thailand",lat:15,lon:101},
-        "458":{name:"Malaysia",lat:4.2,lon:102},"608":{name:"Philippines",lat:12,lon:122},"116":{name:"Cambodia",lat:12.6,lon:105},
-        "418":{name:"Lao PDR",lat:19.8,lon:102.6},"104":{name:"Myanmar",lat:21.9,lon:95.9},"702":{name:"Singapore",lat:1.35,lon:103.8},
-        "096":{name:"Brunei",lat:4.5,lon:114.7},"626":{name:"Timor-Leste",lat:-8.8,lon:125.7},"156":{name:"China",lat:35,lon:103},
-        "392":{name:"Japan",lat:36.2,lon:138.2},"410":{name:"Republic of Korea",lat:36,lon:128},"356":{name:"India",lat:22,lon:79},
-        "144":{name:"Sri Lanka",lat:7.9,lon:80.7},"524":{name:"Nepal",lat:28.3,lon:84},"050":{name:"Bangladesh",lat:24,lon:90},
-        "586":{name:"Pakistan",lat:30.4,lon:69.3},"598":{name:"Papua New Guinea",lat:-6.3,lon:145},"242":{name:"Fiji",lat:-17.7,lon:178},
-        "036":{name:"Australia",lat:-25.3,lon:133.8},"554":{name:"New Zealand",lat:-41.3,lon:174.8},"364":{name:"Iran",lat:32,lon:53},
-        "792":{name:"Türkiye",lat:39,lon:35},"496":{name:"Mongolia",lat:46.8,lon:103},"398":{name:"Kazakhstan",lat:48,lon:68}
+        IDN:{name:"Indonesia",lat:-2.5,lon:118},VNM:{name:"Viet Nam",lat:16,lon:106},THA:{name:"Thailand",lat:15,lon:101},
+        MYS:{name:"Malaysia",lat:4.2,lon:102},PHL:{name:"Philippines",lat:12,lon:122},KHM:{name:"Cambodia",lat:12.6,lon:105},
+        LAO:{name:"Lao PDR",lat:19.8,lon:102.6},MMR:{name:"Myanmar",lat:21.9,lon:95.9},SGP:{name:"Singapore",lat:1.35,lon:103.8},
+        BRN:{name:"Brunei",lat:4.5,lon:114.7},TLS:{name:"Timor-Leste",lat:-8.8,lon:125.7},CHN:{name:"China",lat:35,lon:103},
+        JPN:{name:"Japan",lat:36.2,lon:138.2},KOR:{name:"Republic of Korea",lat:36,lon:128},IND:{name:"India",lat:22,lon:79},
+        LKA:{name:"Sri Lanka",lat:7.9,lon:80.7},NPL:{name:"Nepal",lat:28.3,lon:84},BGD:{name:"Bangladesh",lat:24,lon:90},
+        PAK:{name:"Pakistan",lat:30.4,lon:69.3},PNG:{name:"Papua New Guinea",lat:-6.3,lon:145},FJI:{name:"Fiji",lat:-17.7,lon:178},
+        AUS:{name:"Australia",lat:-25.3,lon:133.8},NZL:{name:"New Zealand",lat:-41.3,lon:174.8},IRN:{name:"Iran",lat:32,lon:53},
+        TUR:{name:"Türkiye",lat:39,lon:35},MNG:{name:"Mongolia",lat:46.8,lon:103},KAZ:{name:"Kazakhstan",lat:48,lon:68},
+        ESP:{name:"Spain",lat:40,lon:-4},PRT:{name:"Portugal",lat:39.5,lon:-8},FRA:{name:"France",lat:46,lon:2},
+        DEU:{name:"Germany",lat:51,lon:10},ITA:{name:"Italy",lat:42.5,lon:12.5},GRC:{name:"Greece",lat:39,lon:22},
+        HRV:{name:"Croatia",lat:45.3,lon:15.5},ROU:{name:"Romania",lat:46,lon:25},POL:{name:"Poland",lat:52,lon:19},
+        CZE:{name:"Czechia",lat:49.8,lon:15.5},SVK:{name:"Slovakia",lat:48.7,lon:19.5},HUN:{name:"Hungary",lat:47,lon:19},
+        SVN:{name:"Slovenia",lat:46.1,lon:14.8},AUT:{name:"Austria",lat:47.5,lon:14.5},CHE:{name:"Switzerland",lat:46.8,lon:8.2},
+        BEL:{name:"Belgium",lat:50.5,lon:4.5},NLD:{name:"Netherlands",lat:52.1,lon:5.3},GBR:{name:"United Kingdom",lat:55,lon:-3.5},
+        IRL:{name:"Ireland",lat:53.2,lon:-8},NOR:{name:"Norway",lat:61,lon:8},SWE:{name:"Sweden",lat:62,lon:15},
+        FIN:{name:"Finland",lat:64,lon:26},MAR:{name:"Morocco",lat:32,lon:-4},SEN:{name:"Senegal",lat:14,lon:-14},KEN:{name:"Kenya",lat:0,lon:38},ETH:{name:"Ethiopia",lat:9,lon:40},UGA:{name:"Uganda",lat:1.4,lon:32.3},TZA:{name:"Tanzania",lat:-6,lon:35},ZAF:{name:"South Africa",lat:-30,lon:25},JOR:{name:"Jordan",lat:31,lon:36},OMN:{name:"Oman",lat:21,lon:57},SAU:{name:"Saudi Arabia",lat:24,lon:45},AZE:{name:"Azerbaijan",lat:40,lon:48},GEO:{name:"Georgia",lat:42,lon:43},ARM:{name:"Armenia",lat:40,lon:45},ALB:{name:"Albania",lat:41,lon:20},MKD:{name:"North Macedonia",lat:41.6,lon:21.7},SRB:{name:"Serbia",lat:44,lon:21},BIH:{name:"Bosnia and Herzegovina",lat:44,lon:18},BGR:{name:"Bulgaria",lat:42.7,lon:25.5},EST:{name:"Estonia",lat:58.7,lon:25.5},LVA:{name:"Latvia",lat:57,lon:25},LTU:{name:"Lithuania",lat:55.2,lon:24},UKR:{name:"Ukraine",lat:49,lon:32},RUS:{name:"Russia",lat:61,lon:100},USA:{name:"United States",lat:39,lon:-98},CAN:{name:"Canada",lat:56,lon:-106},MEX:{name:"Mexico",lat:23,lon:-102},BRA:{name:"Brazil",lat:-10,lon:-52},CHL:{name:"Chile",lat:-30,lon:-71},PER:{name:"Peru",lat:-9,lon:-75},URY:{name:"Uruguay",lat:-33,lon:-56},COL:{name:"Colombia",lat:4,lon:-72},ECU:{name:"Ecuador",lat:-2,lon:-77},NIC:{name:"Nicaragua",lat:13,lon:-85},CUB:{name:"Cuba",lat:22,lon:-79},GTM:{name:"Guatemala",lat:15,lon:-90},HND:{name:"Honduras",lat:15,lon:-86},SLV:{name:"El Salvador",lat:13.8,lon:-89},ARG:{name:"Argentina",lat:-34,lon:-64},BOL:{name:"Bolivia",lat:-17,lon:-65},CRI:{name:"Costa Rica",lat:10,lon:-84},PAN:{name:"Panama",lat:9,lon:-80}
       };
-      function geoparkCountryCode(item){
+      const GEOPARK_COUNTRY_CACHE = new Map();
+      function geoparkCountryIso3(item){
         const raw=String(item&&item.countryCode||"").trim().toUpperCase();
-        if(/^\\d{3}$/.test(raw))return raw;
-        if(/^[A-Z]{3}$/.test(raw)){
-          const alpha3={"IDN":"360","VNM":"704","THA":"764","MYS":"458","PHL":"608","KHM":"116","LAO":"418","MMR":"104","SGP":"702","BRN":"096","TLS":"626","CHN":"156","JPN":"392","KOR":"410","IND":"356","LKA":"144","NPL":"524","BGD":"050","PAK":"586","PNG":"598","FJI":"242","AUS":"036","NZL":"554","IRN":"364","TUR":"792","MNG":"496","KAZ":"398"};
-          if(alpha3[raw])return alpha3[raw];
-        }
-        return GEOPARK_COUNTRY_CODES[String(item&&item.country||"").trim().toLowerCase()]||"";
+        if(/^[A-Z]{3}$/.test(raw))return raw;
+        if(/^[A-Z]{2}$/.test(raw)&&GEOPARK_ISO2_TO_ISO3[raw])return GEOPARK_ISO2_TO_ISO3[raw];
+        if(/^\d{3}$/.test(raw)&&GEOPARK_NUMERIC_TO_ISO3[raw])return GEOPARK_NUMERIC_TO_ISO3[raw];
+        const country=String(item&&item.country||"").trim().toLowerCase();
+        const tokens=country.split(/[;,/|]/).map(value=>value.trim()).filter(Boolean);
+        for(const token of tokens){if(GEOPARK_COUNTRY_CODES[token])return GEOPARK_COUNTRY_CODES[token];}
+        if(GEOPARK_COUNTRY_CODES[country])return GEOPARK_COUNTRY_CODES[country];
+        return "";
       }
-      function comtradeNumber(v){const n=Number(v);return v==null||v===""||!Number.isFinite(n)?null:n;}
+      async function reverseGeoparkCountry(item){
+        const known=geoparkCountryIso3(item);
+        if(known)return {iso3:known,name:item.country||GEOPARK_COUNTRY_CODES[String(item.country||"").toLowerCase()]||known,source:"UNESCO source metadata"};
+        const key=Number(item.lat).toFixed(4)+","+Number(item.lon).toFixed(4);
+        if(GEOPARK_COUNTRY_CACHE.has(key))return GEOPARK_COUNTRY_CACHE.get(key);
+        const controller=new AbortController();
+        const timeout=setTimeout(()=>controller.abort(),10000);
+        try{
+          const params=new URLSearchParams({format:"jsonv2",lat:String(item.lat),lon:String(item.lon),zoom:"5",addressdetails:"1"});
+          const response=await fetch("https://nominatim.openstreetmap.org/reverse?"+params.toString(),{headers:{Accept:"application/json"},signal:controller.signal});
+          if(!response.ok)throw new Error("Reverse geocoding HTTP "+response.status);
+          const payload=await response.json();
+          const address=payload.address||{};
+          const iso2=String(address.country_code||"").toUpperCase();
+          const iso3=GEOPARK_ISO2_TO_ISO3[iso2]||"";
+          const result=iso3?{iso3:iso3,name:address.country||iso3,source:"OpenStreetMap Nominatim reverse geocoding"}:null;
+          GEOPARK_COUNTRY_CACHE.set(key,result);
+          return result;
+        }catch(_){
+          GEOPARK_COUNTRY_CACHE.set(key,null);
+          return null;
+        }finally{clearTimeout(timeout);}
+      }
       function formatTradeUSD(v){
-        if(v==null)return "Not supplied";
-        return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:1}).format(v);
+        if(v==null||!Number.isFinite(Number(v)))return "Not supplied";
+        return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:1}).format(Number(v));
       }
-      function comtradeProductLabel(row){return String(row.cmdDesc||row.cmdCode||row.aggrLevel||"Unspecified HS product");}
-      async function fetchGeoparkTrade(countryCode){
-        const endYear=new Date().getUTCFullYear()-1, startYear=endYear-4;
-        const params=new URLSearchParams({reporterCode:countryCode,period:Array.from({length:endYear-startYear+1},(_,i)=>String(startYear+i)).join(","),cmdCode:"AG2",flowCode:"M",partnerCode:"0",partner2Code:"0",aggregateBy:"6",breakdownMode:"classic"});
-        const url=COMTRADE_API+"?"+params.toString();
-        const data=await apiJSON(url,{timeoutMs:45000},6*60*60*1000);
-        const rows=Array.isArray(data.data)?data.data:[];
-        return {rows:rows,period:(data.query&&data.query.period)||params.get("period"),url:url,elapsed:data.elapsedTime};
+      async function loadGeoparkTradeSnapshot(){
+        if(state.geoeconTradeSnapshot)return state.geoeconTradeSnapshot;
+        const response=await fetch("./data/geopark-economic-trade.json",{cache:"no-cache",headers:{Accept:"application/json"}});
+        if(!response.ok)throw new Error("Trade snapshot HTTP "+response.status);
+        const payload=await response.json();
+        if(!payload||!payload.metadata||!payload.countries)throw new Error("Trade snapshot has an unexpected format");
+        state.geoeconTradeSnapshot=payload;
+        return payload;
       }
-      function economicProducts(rows){
-        const byCode=new Map();
-        rows.forEach(row=>{
-          const code=String(row.cmdCode||row.cmdDesc||"");
-          const old=byCode.get(code)||{code:code,name:comtradeProductLabel(row),value:0,hasValue:false,years:[],records:0};
-          const value=comtradeNumber(row.primaryValue);
-          if(value!=null){old.value+=value;old.hasValue=true;}
-          if(row.period!=null)old.years.push(String(row.period));
-          old.records++;
-          byCode.set(code,old);
-        });
-        return [...byCode.values()].map(row=>({...row,year:row.years.sort().slice(-1)[0]||""})).sort((a,b)=>(b.hasValue?b.value:0)-(a.hasValue?a.value:0));
+      function populateGeoeconCountrySelect(snapshot,selectedIso3){
+        const wrap=$("geoecon-country-select-wrap"),select=$("geoecon-country-select");
+        const countries=Object.entries(snapshot.countries||{}).map(([iso3,item])=>({iso3:iso3,name:item.countryName||iso3,available:!!item.available}));
+        countries.sort((a,b)=>Number(b.available)-Number(a.available)||a.name.localeCompare(b.name));
+        select.innerHTML='<option value="">Choose a country with available trade data…</option>'+countries.map(row=>'<option value="'+esc(row.iso3)+'">'+esc(row.name)+(row.available?"":" · no data")+'</option>').join("");
+        if(selectedIso3&&snapshot.countries[selectedIso3])select.value=selectedIso3;
+        wrap.hidden=!!(selectedIso3&&snapshot.countries[selectedIso3]&&snapshot.countries[selectedIso3].available);
       }
       function renderGeoparkProductBars(products){
         const el=$("geoecon-product-bars");
-        if(!products.length){el.innerHTML='<div class="geoecon-status">No product-level records were returned for this query. This can reflect endpoint limits, product-code coverage or a source response format—not an absence of economic activity.</div>';return;}
-        const top=products.filter(p=>p.code!=="TOTAL"&&p.code!=="0").slice(0,7);
-        const max=Math.max(1,...top.map(p=>p.value||0));
-        el.innerHTML=top.map(p=>'<div class="geoecon-bar-row"><div class="geoecon-bar-label"><span>'+esc(p.name)+' · HS '+esc(p.code)+'</span><strong>'+esc(formatTradeUSD(p.hasValue?p.value:null))+'</strong></div><div class="geoecon-bar-track"><span style="width:'+Math.max(3,Math.round((p.value||0)/max*100))+'%"></span></div><small style="font-size:9px;color:#7b8a7c">Reported national import value · '+esc(p.year||"year not identified")+'</small></div>').join("");
+        if(!products.length){el.innerHTML='<div class="geoecon-status">No product-level records were returned for this country-year. This is a data-coverage gap, not evidence that local economic activity is absent.</div>';return;}
+        const top=products.filter(p=>p.code!=="TOTAL"&&p.code!=="AG2"&&p.code!=="0").slice(0,10);
+        const max=Math.max(1,...top.map(p=>p.valueUsd||0));
+        el.innerHTML=top.map(p=>'<div class="geoecon-bar-row"><div class="geoecon-bar-label"><span>'+esc(p.name)+' · HS '+esc(p.code)+'</span><strong>'+esc(formatTradeUSD(p.valueUsd))+'</strong></div><div class="geoecon-bar-track"><span style="width:'+Math.max(3,Math.round((p.valueUsd||0)/max*100))+'%"></span></div><small style="font-size:9px;color:#7b8a7c">Reported national import value · '+esc(p.year||"year not identified")+'</small></div>').join("");
       }
-      function renderGeoparkLinkages(item,tradeRows,products){
-        const country=item.country||"the selected country";
-        const productNames=products.filter(p=>p.code!=="TOTAL"&&p.code!=="0").slice(0,5);
+      function renderGeoparkLinkages(item,countryRecord,products){
+        const country=countryRecord.countryName||item.country||"the selected country";
+        const productNames=products.slice(0,5);
         const linkages=[
           {title:"Geological and geoheritage services",description:"Candidate services for local assessment: guided interpretation, geotourism, educational visits and conservation-compatible experiences. Confirm visitor demand and site management rules."},
           {title:"Local crafts and food systems",description:"Check whether locally sourced food, craft products or community enterprises can supply visitor services. Trade statistics cannot establish local production or geopark provenance."},
           {title:"Sustainable infrastructure and services",description:"Review transport, accommodation, waste, water and accessibility needs using local administrative data and stakeholder consultation."},
-          {title:"Market signals to investigate",description:productNames.length?"National import product categories surfaced by Comtrade: "+productNames.map(p=>p.name).join("; ")+". These are macro trade categories, not evidence of demand for a geopark-specific product.":"No product categories could be inferred from the current trade response; use local statistics and stakeholder interviews instead."}
+          {title:"Market signals to investigate",description:productNames.length?"National imports included these broad HS 2-digit categories: "+productNames.map(p=>p.name).join("; ")+". These are macro trade categories, not evidence of demand for a geopark-specific product.":"No product categories are available in the selected country snapshot; use local statistics and stakeholder interviews instead."}
         ];
         $("geoecon-linkages").innerHTML=linkages.map(row=>'<div class="geoecon-row"><div><strong>'+esc(row.title)+'</strong><small>'+esc(row.description)+'</small></div></div>').join("");
-        $("geoecon-caveat").textContent="Interpretation: UN Comtrade reports merchandise trade at national level for "+country+". It does not measure geopark income, visitor expenditure, jobs, community value added or sales of geopark-branded products. Linkages are hypotheses for follow-up, not quantified impacts.";
+        $("geoecon-caveat").textContent="Interpretation: UN Comtrade reports national merchandise imports for "+country+". It does not measure geopark income, visitor expenditure, jobs, community value added or sales of geopark-branded products. Linkages are hypotheses for follow-up, not quantified impacts.";
       }
-      function openGeoeconModal(item){
+      function drawGeoeconMap(item,iso3,countryRecord){
+        if(!state.geoeconMap)return;
+        state.geoeconLayer.clearLayers();
+        L.circleMarker([item.lat,item.lon],{radius:9,color:"#fff",weight:2,fillColor:"#8b6fe8",fillOpacity:.95})
+          .bindPopup('<strong>'+esc(item.name)+'</strong><br>UNESCO Global Geopark').addTo(state.geoeconLayer);
+        const anchor=GEOPARK_COUNTRY_ANCHORS[iso3];
+        if(anchor){
+          L.circleMarker([anchor.lat,anchor.lon],{radius:7,color:"#fff",weight:2,fillColor:"#2e8b5b",fillOpacity:.9})
+            .bindPopup('<strong>'+esc(anchor.name)+'</strong><br>Country reference point—not a trade route').addTo(state.geoeconLayer);
+          L.polyline([[item.lat,item.lon],[anchor.lat,anchor.lon]],{color:"#2e8b5b",weight:2,dashArray:"5 7",opacity:.7})
+            .bindTooltip("Geopark-to-country reference line (not a trade flow)").addTo(state.geoeconLayer);
+          state.geoeconMap.fitBounds(L.latLngBounds([[item.lat,item.lon],[anchor.lat,anchor.lon]]),{padding:[30,30],maxZoom:7});
+          $("geoecon-map-count").textContent="2 reference points";
+        }else{
+          state.geoeconMap.setView([item.lat,item.lon],7);
+          $("geoecon-map-count").textContent="1 geopark point";
+        }
+        setTimeout(()=>state.geoeconMap&&state.geoeconMap.invalidateSize(),100);
+      }
+      function showGeoeconUnavailable(item,snapshot,iso3,message){
+        $("geoecon-import-value").textContent="Unavailable";
+        $("geoecon-partners").textContent="World";
+        $("geoecon-records").textContent="—";
+        $("geoecon-products").textContent="—";
+        $("geoecon-import-note").textContent="Country: "+(iso3||"not resolved");
+        $("geoecon-status").className="geoecon-status error";
+        $("geoecon-status").textContent=message;
+        renderGeoparkLinkages(item,{countryName:item.country||"the selected country"},[]);
+      }
+      function renderGeoeconCountry(item,iso3,snapshot,sourceNote){
+        const record=snapshot.countries[iso3];
+        if(!record||!record.available){
+          showGeoeconUnavailable(item,snapshot,iso3,"The country is identified as "+(record&&record.countryName||iso3||"unknown")+", but the authenticated snapshot has no usable trade rows for it. Choose another country only if you are intentionally comparing contexts; this is not a zero-trade finding.");
+          populateGeoeconCountrySelect(snapshot,iso3);
+          return;
+        }
+        state.selectedGeopark={...item,country:record.countryName,countryCode:iso3};
+        $("geoecon-site-meta").textContent=[record.countryName,item.lat.toFixed(4)+", "+item.lon.toFixed(4),"UNESCO Global Geoparks dataset",sourceNote].filter(Boolean).join(" · ");
+        $("geoecon-import-value").textContent=formatTradeUSD(record.totalImportUsd);
+        $("geoecon-partners").textContent="World";
+        $("geoecon-records").textContent=Number(record.recordCount||0).toLocaleString("en-US");
+        $("geoecon-products").textContent=Number(record.productCount||0).toLocaleString("en-US");
+        $("geoecon-import-note").textContent="HS 2-digit import estimate · "+(record.latestYear||"year unavailable");
+        $("geoecon-records-note").textContent="Year "+(record.latestYear||"not supplied")+" · snapshot updated "+(snapshot.metadata.generatedAt||"date not supplied");
+        const products=(record.products||[]).map(p=>({...p,valueUsd:Number(p.valueUsd),year:p.year||record.latestYear}));
+        renderGeoparkProductBars(products);
+        renderGeoparkLinkages(item,record,products);
+        $("geoecon-status").className="geoecon-status success";
+        $("geoecon-status").textContent="Loaded authenticated UN Comtrade aggregate snapshot for "+record.countryName+", "+record.latestYear+". This is national trade context—not a geopark-level economic estimate."+(sourceNote?" Country resolved from "+sourceNote+".":"");
+        populateGeoeconCountrySelect(snapshot,iso3);
+        drawGeoeconMap(item,iso3,record);
+      }
+      async function loadGeoeconCountry(iso3,requestId,sourceNote){
+        if(requestId!==state.geoeconRequestId||!state.selectedGeopark)return;
+        const item=state.selectedGeopark;
+        const snapshot=state.geoeconTradeSnapshot;
+        if(!snapshot){showGeoeconUnavailable(item,{},iso3,"The authenticated trade snapshot is not available yet. Open GitHub Actions and run “Refresh geopark economic trade snapshot”, then reload the page.");return;}
+        renderGeoeconCountry(item,iso3,snapshot,sourceNote);
+      }
+      async function openGeoeconModal(item){
         if(!item||item.type!=="geopark")return;
         state.selectedGeopark=item;
         const modal=$("geoecon-modal");
         modal.classList.add("is-open");modal.setAttribute("aria-hidden","false");document.body.classList.add("geoecon-open");
         $("geoecon-title").textContent="Economic linkages · "+item.name;
         $("geoecon-site-name").textContent=item.name;
-        $("geoecon-site-meta").textContent=[item.country||"Country not identified",item.lat.toFixed(4)+", "+item.lon.toFixed(4),"UNESCO Global Geoparks dataset"].join(" · ");
+        $("geoecon-site-meta").textContent=[item.country||"Resolving country from geopark coordinates…",item.lat.toFixed(4)+", "+item.lon.toFixed(4),"UNESCO Global Geoparks dataset"].join(" · ");
         $("geoecon-open-source").onclick=()=>window.open("https://comtradeplus.un.org/","_blank","noopener");
-        $("geoecon-import-value").textContent="Loading…";$("geoecon-partners").textContent="—";$("geoecon-records").textContent="—";$("geoecon-products").textContent="—";
-        $("geoecon-product-bars").innerHTML='<div class="geoecon-status">Loading national import trade data…</div>';
+        $("geoecon-import-value").textContent="Loading…";$("geoecon-partners").textContent="World";$("geoecon-records").textContent="—";$("geoecon-products").textContent="—";
+        $("geoecon-product-bars").innerHTML='<div class="geoecon-status">Loading authenticated country trade snapshot…</div>';
         $("geoecon-linkages").innerHTML='<div class="geoecon-status">Preparing candidate linkages…</div>';
-        $("geoecon-status").className="geoecon-status";$("geoecon-status").textContent="Looking up country trade coverage and building the economic context map…";
+        $("geoecon-status").className="geoecon-status";$("geoecon-status").textContent="Loading the public aggregate snapshot and resolving the geopark country…";
+        $("geoecon-country-select-wrap").hidden=true;
         const requestId=++state.geoeconRequestId;
-        const code=geoparkCountryCode(item);
         if(state.geoeconMap){state.geoeconMap.remove();state.geoeconMap=null;}
         state.geoeconMap=L.map("geoecon-map",{scrollWheelZoom:true,preferCanvas:true}).setView([item.lat,item.lon],6);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'}).addTo(state.geoeconMap);
         state.geoeconLayer=L.layerGroup().addTo(state.geoeconMap);
-        const site=L.circleMarker([item.lat,item.lon],{radius:9,color:"#fff",weight:2,fillColor:"#8b6fe8",fillOpacity:.95}).bindPopup('<strong>'+esc(item.name)+'</strong><br>UNESCO Global Geopark').addTo(state.geoeconLayer);
-        const anchor=GEOPARK_COUNTRY_ANCHORS[code];
-        if(anchor){
-          L.circleMarker([anchor.lat,anchor.lon],{radius:7,color:"#fff",weight:2,fillColor:"#2e8b5b",fillOpacity:.9}).bindPopup('<strong>'+esc(anchor.name)+'</strong><br>Country reference point—not a trade route').addTo(state.geoeconLayer);
-          L.polyline([[item.lat,item.lon],[anchor.lat,anchor.lon]],{color:"#2e8b5b",weight:2,dashArray:"5 7",opacity:.7}).bindTooltip("Geopark-to-country reference line (not a trade flow)").addTo(state.geoeconLayer);
-          state.geoeconMap.fitBounds(L.latLngBounds([[item.lat,item.lon],[anchor.lat,anchor.lon]]),{padding:[30,30],maxZoom:7});
-          $("geoecon-map-count").textContent="2 reference points";
-        }else{
-          state.geoeconMap.setView([item.lat,item.lon],7);$("geoecon-map-count").textContent="1 geopark point";
-        }
+        drawGeoeconMap(item,geoparkCountryIso3(item),null);
         setTimeout(()=>state.geoeconMap&&state.geoeconMap.invalidateSize(),120);
-        if(!code){
-          $("geoecon-import-note").textContent="Country code unavailable";
+        const [snapshotResult,countryResult]=await Promise.allSettled([loadGeoparkTradeSnapshot(),reverseGeoparkCountry(item)]);
+        if(requestId!==state.geoeconRequestId)return;
+        if(snapshotResult.status!=="fulfilled"){
           $("geoecon-status").className="geoecon-status error";
-          $("geoecon-status").textContent="The source record does not expose a recognised country code. National UN Comtrade queries were not guessed; use the map and local-linkage prompts while country metadata is verified.";
-          renderGeoparkLinkages(item,[],[]);
+          $("geoecon-status").textContent="Could not load the country trade snapshot: "+String(snapshotResult.reason&&snapshotResult.reason.message||"request failed")+".";
+          $("geoecon-product-bars").innerHTML='<div class="geoecon-status error">Trade data unavailable. Refresh the static snapshot through GitHub Actions and reload.</div>';
           return;
         }
-        $("geoecon-import-note").textContent="Reporter code "+code+" · annual merchandise imports";
-        fetchGeoparkTrade(code).then(result=>{
-          if(requestId!==state.geoeconRequestId)return;
-          const rows=result.rows;
-          const partners=new Set(rows.map(row=>row.partnerCode).filter(value=>value!=null&&String(value)!=="0")).size;
-          const products=economicProducts(rows);
-          const totalRows=rows.filter(row=>["AG2","TOTAL"].includes(String(row.cmdCode||"")));
-          const productRows=products.filter(row=>!["AG2","TOTAL","0"].includes(String(row.code)));
-          const total=totalRows.length?totalRows.reduce((sum,row)=>sum+(comtradeNumber(row.primaryValue)||0),0):null;
-          const years=[...new Set(rows.map(row=>String(row.period||"")).filter(Boolean))].sort();
-          $("geoecon-import-value").textContent=formatTradeUSD(total);
-          $("geoecon-partners").textContent=partners.toLocaleString("en-US");
-          $("geoecon-records").textContent=rows.length.toLocaleString("en-US");
-          $("geoecon-products").textContent=productRows.length.toLocaleString("en-US");
-          $("geoecon-import-note").textContent="Query years: "+(years.length?years.join(", "):result.period||"not returned");
-          $("geoecon-records-note").textContent="Annual reported import records · "+(result.elapsed?result.elapsed+"s":"response time not returned");
-          renderGeoparkProductBars(productRows);
-          renderGeoparkLinkages(item,rows,productRows);
-          $("geoecon-status").className=rows.length?"geoecon-status success":"geoecon-status";
-          $("geoecon-status").textContent=rows.length?"Received "+rows.length+" Comtrade record(s) for "+(item.country||"the reporting country")+". National trade is context only; it is not a measure of geopark-level economic impact.":"Comtrade returned no product rows for this request. Check reporter coverage, API limits and year parameters; an empty result does not mean no economic activity.";
-        }).catch(error=>{
-          if(requestId!==state.geoeconRequestId)return;
-          $("geoecon-import-value").textContent="Unavailable";$("geoecon-status").className="geoecon-status error";
-          $("geoecon-status").textContent="UN Comtrade query failed: "+String(error.message||error)+". The local context map and candidate linkage checklist remain available.";
-          renderGeoparkLinkages(item,[],[]);
-        });
+        const snapshot=snapshotResult.value;
+        if(snapshot.metadata.status!=="ready"){
+          $("geoecon-status").className="geoecon-status error";
+          $("geoecon-status").textContent="Authenticated UN Comtrade snapshot is awaiting its first workflow refresh. Open GitHub Actions and run “Refresh geopark economic trade snapshot”.";
+          $("geoecon-product-bars").innerHTML='<div class="geoecon-status">No committed trade snapshot yet.</div>';
+          return;
+        }
+        const country=countryResult.status==="fulfilled"?countryResult.value:null;
+        const iso3=country&&country.iso3||geoparkCountryIso3(item);
+        const sourceNote=country&&country.source||"";
+        if(iso3&&snapshot.countries[iso3]){
+          await loadGeoeconCountry(iso3,requestId,sourceNote);
+        }else{
+          $("geoecon-status").className="geoecon-status error";
+          $("geoecon-status").textContent="The geopark country could not be resolved confidently from the source metadata or coordinates. Choose a reporting country if you know the correct one.";
+          populateGeoeconCountrySelect(snapshot,"");
+          $("geoecon-country-select-wrap").hidden=false;
+          renderGeoparkLinkages(item,{countryName:item.country||"the selected country"},[]);
+        }
       }
       function closeGeoeconModal(){
         const modal=$("geoecon-modal");
@@ -760,6 +837,7 @@
       }
       function initGeoeconModal(){
         $("geoecon-close").addEventListener("click",closeGeoeconModal);
+        $("geoecon-country-select").addEventListener("change",event=>{const iso3=event.target.value;if(iso3&&state.geoeconRequestId)loadGeoeconCountry(iso3,state.geoeconRequestId,"manual country selection");});
         $("geoecon-modal").addEventListener("click",event=>{if(event.target===$("geoecon-modal"))closeGeoeconModal();});
         document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("geoecon-modal").classList.contains("is-open"))closeGeoeconModal();});
         $("selected-detail").addEventListener("click",event=>{const button=event.target.closest("#selected-geoecon-trigger");if(button&&state.selected)openGeoeconModal(state.selected);});
@@ -2293,9 +2371,16 @@
         <section class="geoecon-panel">
           <div class="geoecon-content">
             <div class="geoecon-site"><span class="eyebrow">UNESCO GLOBAL GEOPARK</span><h2 id="geoecon-site-name">Selected geopark</h2><p id="geoecon-site-meta">Loading location context…</p></div>
+            <div id="geoecon-country-select-wrap" class="geoecon-status" hidden>
+              <label for="geoecon-country-select" style="display:block;font-weight:800;margin-bottom:6px">Trade context country</label>
+              <select id="geoecon-country-select" style="width:100%;padding:9px;border:1px solid #cfe0ce;border-radius:8px;background:#fff;color:#20432b">
+                <option value="">Choose a country with available trade data…</option>
+              </select>
+              <small style="display:block;margin-top:5px">Use only when country metadata cannot be resolved automatically.</small>
+            </div>
             <div class="geoecon-metrics">
               <div class="geoecon-metric"><span>Country imports</span><strong id="geoecon-import-value">—</strong><small id="geoecon-import-note">UN Comtrade search</small></div>
-              <div class="geoecon-metric"><span>Partner countries</span><strong id="geoecon-partners">—</strong><small>Distinct reported partners in result rows</small></div>
+              <div class="geoecon-metric"><span>Partner scope</span><strong id="geoecon-partners">—</strong><small>World aggregate; not a bilateral partner breakdown</small></div>
               <div class="geoecon-metric"><span>Trade records</span><strong id="geoecon-records">—</strong><small id="geoecon-records-note">Latest available annual observations</small></div>
               <div class="geoecon-metric"><span>Matched products</span><strong id="geoecon-products">—</strong><small>Product descriptions returned by Comtrade</small></div>
             </div>
