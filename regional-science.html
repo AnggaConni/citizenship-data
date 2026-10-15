@@ -643,7 +643,20 @@
         SVN:{name:"Slovenia",lat:46.1,lon:14.8},AUT:{name:"Austria",lat:47.5,lon:14.5},CHE:{name:"Switzerland",lat:46.8,lon:8.2},
         BEL:{name:"Belgium",lat:50.5,lon:4.5},NLD:{name:"Netherlands",lat:52.1,lon:5.3},GBR:{name:"United Kingdom",lat:55,lon:-3.5},
         IRL:{name:"Ireland",lat:53.2,lon:-8},NOR:{name:"Norway",lat:61,lon:8},SWE:{name:"Sweden",lat:62,lon:15},
-        FIN:{name:"Finland",lat:64,lon:26},MAR:{name:"Morocco",lat:32,lon:-4},SEN:{name:"Senegal",lat:14,lon:-14},KEN:{name:"Kenya",lat:0,lon:38},ETH:{name:"Ethiopia",lat:9,lon:40},UGA:{name:"Uganda",lat:1.4,lon:32.3},TZA:{name:"Tanzania",lat:-6,lon:35},ZAF:{name:"South Africa",lat:-30,lon:25},JOR:{name:"Jordan",lat:31,lon:36},OMN:{name:"Oman",lat:21,lon:57},SAU:{name:"Saudi Arabia",lat:24,lon:45},AZE:{name:"Azerbaijan",lat:40,lon:48},GEO:{name:"Georgia",lat:42,lon:43},ARM:{name:"Armenia",lat:40,lon:45},ALB:{name:"Albania",lat:41,lon:20},MKD:{name:"North Macedonia",lat:41.6,lon:21.7},SRB:{name:"Serbia",lat:44,lon:21},BIH:{name:"Bosnia and Herzegovina",lat:44,lon:18},BGR:{name:"Bulgaria",lat:42.7,lon:25.5},EST:{name:"Estonia",lat:58.7,lon:25.5},LVA:{name:"Latvia",lat:57,lon:25},LTU:{name:"Lithuania",lat:55.2,lon:24},UKR:{name:"Ukraine",lat:49,lon:32},RUS:{name:"Russia",lat:61,lon:100},USA:{name:"United States",lat:39,lon:-98},CAN:{name:"Canada",lat:56,lon:-106},MEX:{name:"Mexico",lat:23,lon:-102},BRA:{name:"Brazil",lat:-10,lon:-52},CHL:{name:"Chile",lat:-30,lon:-71},PER:{name:"Peru",lat:-9,lon:-75},URY:{name:"Uruguay",lat:-33,lon:-56},COL:{name:"Colombia",lat:4,lon:-72},ECU:{name:"Ecuador",lat:-2,lon:-77},NIC:{name:"Nicaragua",lat:13,lon:-85},CUB:{name:"Cuba",lat:22,lon:-79},GTM:{name:"Guatemala",lat:15,lon:-90},HND:{name:"Honduras",lat:15,lon:-86},SLV:{name:"El Salvador",lat:13.8,lon:-89},ARG:{name:"Argentina",lat:-34,lon:-64},BOL:{name:"Bolivia",lat:-17,lon:-65},CRI:{name:"Costa Rica",lat:10,lon:-84},PAN:{name:"Panama",lat:9,lon:-80}
+        FIN:{name:"Finland",lat:64,lon:26},MAR:{name:"Morocco",lat:32,lon:-4},SEN:{name:"Senegal",lat:14,lon:-14},
+        KEN:{name:"Kenya",lat:0,lon:38},ETH:{name:"Ethiopia",lat:9,lon:40},UGA:{name:"Uganda",lat:1.4,lon:32},
+        TZA:{name:"Tanzania",lat:-6,lon:35},ZAF:{name:"South Africa",lat:-30,lon:25},JOR:{name:"Jordan",lat:31,lon:36},
+        OMN:{name:"Oman",lat:21,lon:57},SAU:{name:"Saudi Arabia",lat:24,lon:45},AZE:{name:"Azerbaijan",lat:40,lon:48},
+        GEO:{name:"Georgia",lat:42,lon:43},ARM:{name:"Armenia",lat:40,lon:45},ALB:{name:"Albania",lat:41,lon:20},
+        MKD:{name:"North Macedonia",lat:41.6,lon:21.7},SRB:{name:"Serbia",lat:44,lon:21},BIH:{name:"Bosnia and Herzegovina",lat:44,lon:18},
+        BGR:{name:"Bulgaria",lat:42.7,lon:25.5},EST:{name:"Estonia",lat:58.7,lon:25.5},LVA:{name:"Latvia",lat:57,lon:25},
+        LTU:{name:"Lithuania",lat:55.2,lon:24},UKR:{name:"Ukraine",lat:49,lon:32},RUS:{name:"Russia",lat:61,lon:100},
+        USA:{name:"United States",lat:39,lon:-98},CAN:{name:"Canada",lat:56,lon:-106},MEX:{name:"Mexico",lat:23,lon:-102},
+        BRA:{name:"Brazil",lat:-10,lon:-52},CHL:{name:"Chile",lat:-30,lon:-71},PER:{name:"Peru",lat:-9,lon:-75},
+        URY:{name:"Uruguay",lat:-33,lon:-56},COL:{name:"Colombia",lat:4,lon:-72},ECU:{name:"Ecuador",lat:-2,lon:-77},
+        NIC:{name:"Nicaragua",lat:13,lon:-85},CUB:{name:"Cuba",lat:22,lon:-79},GTM:{name:"Guatemala",lat:15,lon:-90},
+        HND:{name:"Honduras",lat:15,lon:-86},SLV:{name:"El Salvador",lat:13.8,lon:-89},ARG:{name:"Argentina",lat:-34,lon:-64},
+        BOL:{name:"Bolivia",lat:-17,lon:-65},CRI:{name:"Costa Rica",lat:10,lon:-84},PAN:{name:"Panama",lat:9,lon:-80}
       };
       const GEOPARK_COUNTRY_CACHE = new Map();
       function geoparkCountryIso3(item){
@@ -699,7 +712,7 @@
         countries.sort((a,b)=>Number(b.available)-Number(a.available)||a.name.localeCompare(b.name));
         select.innerHTML='<option value="">Choose a country with available trade data…</option>'+countries.map(row=>'<option value="'+esc(row.iso3)+'">'+esc(row.name)+(row.available?"":" · no data")+'</option>').join("");
         if(selectedIso3&&snapshot.countries[selectedIso3])select.value=selectedIso3;
-        wrap.hidden=!!(selectedIso3&&snapshot.countries[selectedIso3]&&snapshot.countries[selectedIso3].available);
+        wrap.hidden=false;
       }
       function renderGeoparkProductBars(products){
         const el=$("geoecon-product-bars");
@@ -792,7 +805,7 @@
         $("geoecon-product-bars").innerHTML='<div class="geoecon-status">Loading authenticated country trade snapshot…</div>';
         $("geoecon-linkages").innerHTML='<div class="geoecon-status">Preparing candidate linkages…</div>';
         $("geoecon-status").className="geoecon-status";$("geoecon-status").textContent="Loading the public aggregate snapshot and resolving the geopark country…";
-        $("geoecon-country-select-wrap").hidden=true;
+        $("geoecon-country-select-wrap").hidden=false;
         const requestId=++state.geoeconRequestId;
         if(state.geoeconMap){state.geoeconMap.remove();state.geoeconMap=null;}
         state.geoeconMap=L.map("geoecon-map",{scrollWheelZoom:true,preferCanvas:true}).setView([item.lat,item.lon],6);
