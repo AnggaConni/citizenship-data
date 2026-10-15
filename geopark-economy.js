@@ -190,7 +190,7 @@ function renderDesignatedSiteOptions(open=true){
  const list=$("designatedSiteOptions"),input=$("designatedSiteSearch");
  if(!list||!input)return;
  const source=destinationSource(),items=currentDestinationItems(),matches=designatedSiteMatches(input.value),shown=matches.slice(0,80);
- list.innerHTML=shown.length?shown.map(site=>'<button type="button" class="destination-option" role="option" data-destination-id="'+esc(site.id)+'"><span class="destination-option-title">'+esc(site.name)+'</span><span class="destination-option-meta">'+esc(site.country)+' · '+esc(site.designation||site.source||"Tourism destination")+'</span></button>').join(""):'<div class="destination-option-empty">'+(items.length?"Tidak ada destinasi yang cocok. Ubah jenis/negara atau kata pencarian.":source==="unesco"?"Katalog UNESCO belum tersedia. Coba pencarian lokasi biasa.":"Katalog wisata belum tersedia. Coba pencarian lokasi biasa.")+'</div>';
+ list.innerHTML=shown.length?shown.map(site=>'<button type="button" class="destination-option" role="option" data-destination-id="'+esc(site.id)+'"><span class="destination-option-title">'+esc(site.name)+'</span><span class="destination-option-meta">'+esc(site.country)+' · '+esc(site.designation||site.source||"Tourism destination")+'</span></button>').join(""):'<div class="destination-option-empty">'+(items.length?"No ada destinasi yang cocok. Ubah jenis/countries atau kata pencarian.":source==="unesco"?"Katalog UNESCO belum tersedia. Coba pencarian lokasi biasa.":"Katalog tourism belum tersedia. Coba pencarian lokasi biasa.")+'</div>';
  list.hidden=!open;
  input.setAttribute("aria-expanded",open?"true":"false");
  list.querySelectorAll("[data-destination-id]").forEach(button=>button.addEventListener("click",()=>goToDesignatedSite(button.dataset.destinationId)));
@@ -539,7 +539,7 @@ function renderUnTourismLayer(){
    const valueText=new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(row.value);
    const unitText=row.unit?" "+esc(row.unit):"";
    const sourceUrl="https://www.untourism.int/tourism-statistics/tourism-statistics-database";
-   marker.bindPopup('<div class="potential-popup"><b>'+esc(coordinate.name)+'</b><div>'+esc(row.indicator)+'</div><p><strong>'+esc(valueText)+unitText+'</strong></p><small>Year '+esc(row.year)+' · National/area statistics, not attraction visitor counts.</small><br><a href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Sumber: UN Tourism ↗</a></div>');
+   marker.bindPopup('<div class="potential-popup"><b>'+esc(coordinate.name)+'</b><div>'+esc(row.indicator)+'</div><p><strong>'+esc(valueText)+unitText+'</strong></p><small>Year '+esc(row.year)+' · National/area statistics, not attraction visitor counts.</small><br><a href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Source: UN Tourism ↗</a></div>');
    marker.bindTooltip(coordinate.name+": "+valueText,{direction:"top",sticky:true});
    marker.addTo(layer);
   });
@@ -547,7 +547,7 @@ function renderUnTourismLayer(){
   state.map.setView([18,10],2);
   const note=ambiguous.length?(" "+ambiguous.length+" countries were omitted because they have multiple category rows; select a classification to narrow the results."): "";
   const unmatched=uniqueRows.length-points.length;
-  const unitNote=units.length===1?" Unit: "+units[0]+".":" Unit mengikuti baris sumber.";
+  const unitNote=units.length===1?" Unit: "+units[0]+".":" Units follow source rows.";
   setUnTourismStatus("Layer active · "+points.length+" country markers for "+indicator+" ("+year+"). Marker size shows relative values in the selected dataset; points use country/capital reference coordinates, not territorial boundaries."+unitNote+note+(unmatched?" "+unmatched+" countries were skipped because coordinates/names did not match.":""),"success");
  }).catch(error=>setUnTourismStatus("Could not prepare country points: "+error.message,"error"))
  .finally(()=>{showBtn.disabled=false;showBtn.textContent="Show statistics on map";});
@@ -666,7 +666,7 @@ async function ensureTradeFeed(){
  if(state.tradePromise)return state.tradePromise;
  state.tradePromise=(async()=>{
   const response=await fetch(TRADE_URL,{cache:"no-cache",headers:{Accept:"application/json"}});
-  if(!response.ok)throw new Error("Feed perdagangan HTTP "+response.status);
+  if(!response.ok)throw new Error("Trade feed HTTP "+response.status);
   const payload=await response.json();
   state.tradeFeed=payload;
   state.tradeRows=Array.isArray(payload.items)?payload.items:(Array.isArray(payload.records)?payload.records:(Array.isArray(payload.data)?payload.data:[]));
@@ -1086,7 +1086,7 @@ async function init(){
  let catalogLoaded=false;
  try{
   const response=await fetch(CATALOG_URL,{cache:"no-cache"});
-  if(!response.ok)throw new Error("Katalog HTTP "+response.status);
+  if(!response.ok)throw new Error("Catalogue HTTP "+response.status);
   const payload=await response.json();state.catalog=Array.isArray(payload.opportunities)?payload.opportunities:[];populateCatalog();catalogLoaded=true;
  }catch(error){setStatus("Business catalogue could not be loaded: "+error.message,"error");}
  if(state.siteContext){
