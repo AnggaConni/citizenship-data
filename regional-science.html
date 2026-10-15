@@ -649,7 +649,7 @@
       function comtradeProductLabel(row){return String(row.cmdDesc||row.cmdCode||row.aggrLevel||"Unspecified HS product");}
       async function fetchGeoparkTrade(countryCode){
         const endYear=new Date().getUTCFullYear()-1, startYear=endYear-4;
-        const params=new URLSearchParams({reporterCode:countryCode,period:Array.from({length:endYear-startYear+1},(_,i)=>String(startYear+i)).join(","),cmdCode:"TOTAL",flowCode:"M",partnerCode:"0",motCode:"0",partner2Code:"0",aggregateBy:"6",breakdownMode:"classic"});
+        const params=new URLSearchParams({reporterCode:countryCode,period:Array.from({length:endYear-startYear+1},(_,i)=>String(startYear+i)).join(","),cmdCode:"AG2",flowCode:"M",partnerCode:"0",motCode:"0",partner2Code:"0",aggregateBy:"6",breakdownMode:"classic"});
         const url=COMTRADE_API+"?"+params.toString();
         const data=await apiJSON(url,{timeoutMs:45000},6*60*60*1000);
         const rows=Array.isArray(data.data)?data.data:[];
@@ -730,16 +730,18 @@
           const rows=result.rows;
           const partners=new Set(rows.map(row=>row.partnerCode).filter(value=>value!=null&&String(value)!=="0")).size;
           const products=economicProducts(rows);
-          const total=products.reduce((sum,row)=>sum+(row.value||0),0);
+          const totalRows=rows.filter(row=>["AG2","TOTAL"].includes(String(row.cmdCode||"")));
+          const productRows=products.filter(row=>!["AG2","TOTAL","0"].includes(String(row.code)));
+          const total=totalRows.length?totalRows.reduce((sum,row)=>sum+(comtradeNumber(row.primaryValue)||0),0):null;
           const years=[...new Set(rows.map(row=>String(row.period||"")).filter(Boolean))].sort();
-          $("geoecon-import-value").textContent=formatTradeUSD(total||null);
+          $("geoecon-import-value").textContent=formatTradeUSD(total);
           $("geoecon-partners").textContent=partners.toLocaleString("en-US");
           $("geoecon-records").textContent=rows.length.toLocaleString("en-US");
-          $("geoecon-products").textContent=products.filter(p=>p.code!=="TOTAL"&&p.code!=="0").length.toLocaleString("en-US");
+          $("geoecon-products").textContent=productRows.length.toLocaleString("en-US");
           $("geoecon-import-note").textContent="Query years: "+(years.length?years.join(", "):result.period||"not returned");
           $("geoecon-records-note").textContent="Annual reported import records · "+(result.elapsed?result.elapsed+"s":"response time not returned");
-          renderGeoparkProductBars(products);
-          renderGeoparkLinkages(item,rows,products);
+          renderGeoparkProductBars(productRows);
+          renderGeoparkLinkages(item,rows,productRows);
           $("geoecon-status").className=rows.length?"geoecon-status success":"geoecon-status";
           $("geoecon-status").textContent=rows.length?"Received "+rows.length+" Comtrade record(s) for "+(item.country||"the reporting country")+". National trade is context only; it is not a measure of geopark-level economic impact.":"Comtrade returned no product rows for this request. Check reporter coverage, API limits and year parameters; an empty result does not mean no economic activity.";
         }).catch(error=>{
