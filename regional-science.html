@@ -98,14 +98,17 @@
         <section class="panel" aria-labelledby="selected-title">
           <div class="panel-head"><div><h2 id="selected-title">Selected location</h2><p>Click a point on the map to inspect the available metadata.</p></div></div>
           <div id="selected-detail" class="selected-card"><div class="empty-detail">No location selected yet. The map points are fetched from source APIs when this page opens.</div></div>
-          <div class="research-actions"><button type="button" class="secondary-btn" id="research-from-location" disabled><i class="fa-solid fa-book-open"></i> Research this location</button><button type="button" class="secondary-btn" id="run-climate" disabled><i class="fa-solid fa-cloud-sun"></i> Climate context</button></div>
+          <div class="research-actions"><button type="button" class="secondary-btn" id="research-from-location" disabled><i class="fa-solid fa-book-open"></i> Research this location</button><button type="button" class="secondary-btn" id="run-climate" disabled><i class="fa-solid fa-water"></i> Water & climate</button></div>
         </section>
 
         <section class="panel" id="climate-panel" aria-labelledby="climate-title">
-          <div class="panel-head"><div><h2 id="climate-title">Climate context for a selected point</h2><p>NASA POWER monthly time series for the selected map coordinate; this is climate context, not a field measurement or hazard forecast.</p></div><span class="source-count">NASA POWER</span></div>
-          <div id="climate-status" class="api-status" role="status" aria-live="polite">Choose a mapped location, then select Climate context to fetch 2021–2025 monthly indicators.</div>
-          <div id="climate-results"></div>
-          <div class="source-warning">NASA POWER values are gridded model/reanalysis-based estimates. They do not establish local river discharge, groundwater availability, marine conditions, or site-level extremes. Check the parameter metadata and local observations before scientific or policy use.</div>
+          <div class="panel-head"><div><h2 id="climate-title">Hydrology, water security & climate</h2><p>Combine modeled river discharge at the selected point, country-level freshwater indicators, and meteorological context. These are complementary evidence layers—not a flood warning.</p></div><span class="source-count">3 SOURCES</span></div>
+          <div id="hydrology-status" class="api-status" role="status" aria-live="polite">Select a map location, then choose Water & climate to load river discharge context.</div>
+          <div id="hydrology-results"></div>
+          <div class="source-warning">Open-Meteo Flood API uses modeled GloFAS discharge at a roughly 5 km grid. The nearest river cell may not correspond to the river of interest. Do not interpret this as an official warning or site-specific forecast.</div>
+          <div style="border-top:1px solid #e6ede3;margin-top:12px;padding-top:12px"><div class="panel-head" style="margin-bottom:7px"><div><h2 style="font-size:12px">Country water-security indicators</h2><p>World Bank indicators sourced from FAO AQUASTAT, where available.</p></div><span class="source-count">WORLD BANK</span></div><div id="water-security-status" class="api-status" role="status" aria-live="polite">Country-level results load when a selected location can be matched reliably to one country.</div><div id="water-security-results"></div></div>
+          <div style="border-top:1px solid #e6ede3;margin-top:12px;padding-top:12px"><div class="panel-head" style="margin-bottom:7px"><div><h2 style="font-size:12px">Meteorological context</h2><p>NASA POWER monthly estimates at the selected coordinates.</p></div><span class="source-count">NASA POWER</span></div><div id="climate-status" class="api-status" role="status" aria-live="polite">Monthly context for temperature, precipitation and relative humidity.</div><div id="climate-results"></div></div>
+          <div class="source-warning">World Bank water indicators are country-level statistics, not site measurements. NASA POWER values are gridded meteorological estimates—not discharge or water availability. Check indicator year, source notes, and local hydrological observations before scientific or policy use.</div>
         </section>
       </aside>
     </section>
@@ -172,13 +175,15 @@
       const ROR = "https://api.ror.org/v2/organizations";
       const OBIS = "https://api.obis.org/v3";
       const NASA_POWER = "https://power.larc.nasa.gov/api/temporal/monthly/point";
+      const FLOOD_API = "https://flood-api.open-meteo.com/v1/flood";
+      const WORLD_BANK = "https://api.worldbank.org/v2";
       const DATASETS = {
         mab:{id:"mab001",name:"Biosphere reserve",color:"#2e8b5b",max:1500},
         geopark:{id:"eg0001",name:"Global geopark",color:"#8b6fe8",max:600},
         marine:{id:"ioc001",name:"Marine biodiversity area",color:"#168db5",max:1200},
         obis:{id:"obis",name:"OBIS marine occurrence",color:"#e38b40",max:500}
       };
-      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,researchResults:[],busy:false,networkBusy:false,climateBusy:false,obisLoaded:false,apiCache:new Map()};
+      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,researchResults:[],networkResults:[],waterContext:{},evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
       const $ = id => document.getElementById(id);
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
@@ -226,11 +231,11 @@
         if(!point)return null;
         if(type==="mab"){
           const name=getFirst(p,["title_en","title","name","name_en","biosphere_reserve"])||"Biosphere reserve";
-          return {type:type,kind:"Biosphere reserve",name:String(name),country:String(getFirst(p,["country_title_en","country","countries","country_name"])||""),lat:point.lat,lon:point.lon,description:String(getFirst(p,["description_en","description","introduction_en"])||""),source:String(getFirst(p,["url","website","source_url"])||"https://data.unesco.org/explore/dataset/mab001/information/"),meta:"UNESCO Man and the Biosphere",id:String(getFirst(p,["mab_id","uuid","recordid"])||name)};
+          return {type:type,kind:"Biosphere reserve",name:String(name),country:String(getFirst(p,["country_title_en","country","countries","country_name"])||""),countryCode:String(getFirst(p,["iso2","country_code","iso_a2","country_iso2"])||"").toUpperCase(),lat:point.lat,lon:point.lon,description:String(getFirst(p,["description_en","description","introduction_en"])||""),source:String(getFirst(p,["url","website","source_url"])||"https://data.unesco.org/explore/dataset/mab001/information/"),meta:"UNESCO Man and the Biosphere",id:String(getFirst(p,["mab_id","uuid","recordid"])||name)};
         }
         if(type==="geopark"){
           const name=getFirst(p,["title_en","name","geopark_name","ugg_id"])||"Global geopark";
-          return {type:type,kind:"Global geopark",name:String(name),country:String(getFirst(p,["countries","country_title_en","country","country_name"])||""),lat:point.lat,lon:point.lon,description:String(getFirst(p,["introduction_en","description","sustaining_local_communities_description"])||""),source:String(getFirst(p,["website","url","source_url"])||"https://data.unesco.org/explore/dataset/eg0001/"),meta:"UNESCO Global Geoparks",id:String(getFirst(p,["ugg_id","uuid","recordid"])||name)};
+          return {type:type,kind:"Global geopark",name:String(name),country:String(getFirst(p,["countries","country_title_en","country","country_name"])||""),countryCode:String(getFirst(p,["iso2","country_code","iso_a2","country_iso2"])||"").toUpperCase(),lat:point.lat,lon:point.lon,description:String(getFirst(p,["introduction_en","description","sustaining_local_communities_description"])||""),source:String(getFirst(p,["website","url","source_url"])||"https://data.unesco.org/explore/dataset/eg0001/"),meta:"UNESCO Global Geoparks",id:String(getFirst(p,["ugg_id","uuid","recordid"])||name)};
         }
         const name=getFirst(p,["area_name","name","title_en"])||"Marine biodiversity area";
         const species=Number(getFirst(p,["n_species","distinct_species"])||0);
@@ -242,7 +247,7 @@
         if(species)detail.push(number(species)+" recorded species");
         if(observations)detail.push(number(observations)+" observations");
         if(firstYear||lastYear)detail.push("record years "+String(firstYear||"unknown")+"–"+String(lastYear||"unknown"));
-        return {type:type,kind:"Marine biodiversity area",name:String(name),country:String(getFirst(p,["country_title_en","country","country_name"])||""),lat:point.lat,lon:point.lon,description:detail.join(" · "),source:String(getFirst(p,["source_url","url"])||"https://data.unesco.org/explore/dataset/ioc001/"),meta:"OBIS-based marine indicators · "+areaType,id:String(getFirst(p,["area_id","uuid","recordid"])||name),species:species,observations:observations};
+        return {type:type,kind:"Marine biodiversity area",name:String(name),country:String(getFirst(p,["country_title_en","country","country_name"])||""),countryCode:String(getFirst(p,["iso2","country_code","iso_a2","country_iso2"])||"").toUpperCase(),lat:point.lat,lon:point.lon,description:detail.join(" · "),source:String(getFirst(p,["source_url","url"])||"https://data.unesco.org/explore/dataset/ioc001/"),meta:"OBIS-based marine indicators · "+areaType,id:String(getFirst(p,["area_id","uuid","recordid"])||name),species:species,observations:observations};
       }
       function normalizeObisRow(row){
         if(!row || typeof row!=="object")return null;
