@@ -223,7 +223,7 @@
             <button class="query-chip" type="button" data-query="Marine biodiversity, sustainable fisheries, aquaculture and seafood security">Biodiversity & Seafood</button>
             <button class="query-chip" type="button" data-query="Water governance, environmental governance, SDG indicators and evidence-informed policy">Governance & SDGs</button>
           </div>
-          <details style="margin-top:10px"><summary>Optional Semantic Scholar API key</summary><p>Anonymous search is attempted by default. If you have a Semantic Scholar key, it is saved only in this browser and sent in the request header—not committed to GitHub.</p><div class="api-toolbar"><input id="s2-key-input" type="password" autocomplete="off" maxlength="200" placeholder="Optional x-api-key" style="flex:1;min-width:180px;padding:9px;border:1px solid #d9e4d7;border-radius:9px;font-size:10px"><button type="button" class="secondary-btn" id="save-s2-key">Save locally</button><button type="button" class="secondary-btn" id="clear-s2-key">Remove</button></div><div class="api-status" id="s2-key-status">No key stored in this browser.</div></details>
+          <details style="margin-top:10px"><summary>Semantic Scholar connection</summary><p>Search requests use a restricted Cloudflare Worker proxy to avoid browser CORS restrictions. Any Semantic Scholar API key is configured server-side as a Worker secret; it is not exposed in this page or browser storage.</p><div class="api-status" id="s2-key-status">Proxy endpoint: <code>/semantic-scholar</code> · Up to 8 papers per query · 12-second upstream timeout.</div></details>
           <div class="provider-status" id="research-provider-status" aria-label="Research provider status"></div>
           <div class="research-note">OpenAlex uses semantic similarity; Crossref and Semantic Scholar provide complementary metadata and relevance-ranked search; OpenAIRE adds research-graph records. Results are deduplicated where possible. Relevance, citation counts, and open-access labels do not establish methodological quality or policy applicability. Review each original source.</div>
           <div id="research-status" class="alert info" role="status" aria-live="polite">Search OpenAlex, Crossref, Semantic Scholar and OpenAIRE in parallel. Results from available providers will be retained even if one provider is unavailable.</div>
@@ -286,7 +286,7 @@
       const DATAHUB = "https://data.unesco.org/api/explore/v2.1/catalog/datasets/";
       const OPENALEX = "https://api.openalex.org/works";
       const OPENAIRE = "https://api.openaire.eu/graph/v3";
-      const SEMANTIC_SCHOLAR = "https://api.semanticscholar.org/graph/v1/paper/search";
+      const SEMANTIC_SCHOLAR_PROXY = "https://civilaegis-tinyfish-proxy.conniezz-cool.workers.dev/semantic-scholar";
       const CROSSREF = "https://api.crossref.org/works";
       const ROR = "https://api.ror.org/v2/organizations";
       const OBIS = "https://api.obis.org/v3";
@@ -373,7 +373,7 @@
           actions:[["research","Search policy and governance evidence","fa-book-open"],["projects","Find governance projects & datasets","fa-diagram-project"],["sdg","Load official SDG indicators","fa-list-check"]]
         }
       };
-      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",sdgPage:1,sdgTotalPages:1,fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map(),semanticScholarAuthFallback:false};
+      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",sdgPage:1,sdgTotalPages:1,fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
       const $ = id => document.getElementById(id);
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
@@ -796,31 +796,12 @@
         return items.map(normalizeCrossref);
       }
       async function fetchSemanticScholarWorks(query){
-        const params=new URLSearchParams({
-          query:String(query||"").slice(0,400),
-          limit:"8",
-          fields:"title,year,authors,citationCount,url,abstract,openAccessPdf,externalIds,publicationVenue,isOpenAccess"
-        });
-        const url=SEMANTIC_SCHOLAR+"?"+params.toString();
-        const key=localStorage.getItem("regionalScienceSemanticScholarKey")||"";
-        state.semanticScholarAuthFallback=false;
-        const options=key?{headers:{"x-api-key":key,"Accept":"application/json"}}:undefined;
-        try{
-          const data=await apiJSON(url,options);
-          return (data.data||[]).map(normalizeSemanticScholar);
-        }catch(error){
-          // A saved x-api-key can trigger a CORS preflight, and anonymous requests
-          // can fail transiently. Retry network/CORS errors and invalid-key responses
-          // once without authentication before marking this provider unavailable.
-          const message=String(error&&error.message||error);
-          const retryable=/failed to fetch|load failed|networkerror|network error|HTTP 401|HTTP 403|HTTP 5\d\d/i.test(message);
-          if(!retryable)throw error;
-          state.apiCache.delete(url);
-          await sleep(350);
-          const data=await apiJSON(url,{headers:{"Accept":"application/json"}},1);
-          state.semanticScholarAuthFallback=true;
-          return (data.data||[]).map(normalizeSemanticScholar);
+        const params=new URLSearchParams({query:String(query||"").trim().slice(0,400)});
+        const data=await apiJSON(SEMANTIC_SCHOLAR_PROXY+"?"+params.toString(),null,900000);
+        if(!data||!Array.isArray(data.data)){
+          throw new Error(data&&data.error?String(data.error):"Semantic Scholar proxy returned an unexpected response.");
         }
+        return data.data.map(normalizeSemanticScholar);
       }
       async function fetchOpenAIREWorks(query){
         const params=new URLSearchParams({search:query.slice(0,500),type:"publication",pageSize:"8",sortBy:"relevance DESC"});
@@ -855,7 +836,7 @@
           settled.forEach((result,i)=>{
             if(result.status==="fulfilled"){
               const items=result.value||[];
-              good.push({name:providers[i].name,status:"ok",detail:items.length+" result(s)"+(providers[i].name==="Semantic Scholar"&&state.semanticScholarAuthFallback?" · anonymous fallback":"")});
+              good.push({name:providers[i].name,status:"ok",detail:items.length+" result(s)"});
               groups.push(items);
             }else{
               const message=String(result.reason&&result.reason.message||"Unavailable");const friendly=/failed to fetch|load failed|networkerror|network error/i.test(message)?"Network/CORS failure":message.slice(0,80);good.push({name:providers[i].name,status:"error",detail:friendly});
@@ -2056,20 +2037,7 @@
         $("print-brief").addEventListener("click",printEvidenceBrief);
         $("run-projects").addEventListener("click",()=>performNetworkSearch("projects"));
         $("run-organizations").addEventListener("click",()=>performNetworkSearch("organizations"));
-        $("save-s2-key").addEventListener("click",()=>{
-          const key=$("s2-key-input").value.trim();
-          if(key){localStorage.setItem("regionalScienceSemanticScholarKey",key);$("s2-key-status").textContent="API key saved in this browser only. It is not stored in the repository.";}
-          else{$("s2-key-status").textContent="Enter a key first, or use Remove to clear the locally saved key.";}
-          state.apiCache.clear();
-        });
-        $("clear-s2-key").addEventListener("click",()=>{
-          localStorage.removeItem("regionalScienceSemanticScholarKey");
-          $("s2-key-input").value="";
-          $("s2-key-status").textContent="Stored key removed. Anonymous requests will be used.";
-          state.apiCache.clear();
-        });
-        const savedKey=localStorage.getItem("regionalScienceSemanticScholarKey")||"";
-        if(savedKey){$("s2-key-input").value=savedKey;$("s2-key-status").textContent="An API key is saved in this browser.";}
+        $("s2-key-status").textContent="Using the Cloudflare Worker proxy; no browser API key is required.";
         window.addEventListener("resize",()=>state.map.invalidateSize());
         refreshData();
         providerPills("research-provider-status",[
