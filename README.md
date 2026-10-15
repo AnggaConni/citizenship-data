@@ -1,9 +1,10 @@
 # Open Data Explorers
 
-**Open Data Explorers** is an independent, no-fee project for exploring curated citizenship knowledge and biodiversity information. It brings together three user-facing experiences—Curated Data, the live Biodiversity Explorer, and the Biodiversity Atlas—backed by a Python pipeline that publishes country-level occurrence records.
+**Open Data Explorers** is an independent, no-fee project for exploring curated citizenship knowledge and biodiversity information. It brings together four user-facing experiences—Curated Data, the live Biodiversity Explorer, the Biodiversity Atlas, and a Regional Science Observatory—backed by a Python pipeline that publishes country-level occurrence records.
 
 - **Live site:** https://anggaconni.github.io/citizenship-data/
 - **Biodiversity Atlas:** https://anggaconni.github.io/citizenship-data/biodiversity-atlas.html
+- **Regional Science Observatory:** https://anggaconni.github.io/citizenship-data/regional-science.html
 - **Source code:** https://github.com/AnggaConni/citizenship-data
 - **Software terms:** [LICENSE](./LICENSE)
 - **Biodiversity pipeline documentation:** [biodiversity/README.md](./biodiversity/README.md)
@@ -39,7 +40,15 @@ When a user selects an occurrence, the detail panel performs on-demand lookups f
 
 The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interface for the pipeline outputs. It reads the country index and generated JSON files directly, so visitors can select a country, inspect published record summaries, view occurrence points and density-grid cells, search records, and inspect source-linked details without triggering another API scan. **The first published country dataset is Indonesia.** The application retrieves and retains a limited, incrementally updated set of GBIF records; this describes application coverage, not the authenticity or provenance of each record. It is not a complete GBIF download or a complete species inventory.
 
-### 4. Biodiversity Distribution Pipeline
+### 4. Regional Science Observatory
+
+A Leaflet-based science mapping page that connects three datasets from UNESCO DataHub—Man and the Biosphere reserves (`mab001`), Global Geoparks (`eg0001`), and Marine Biodiversity by Ocean Area (`ioc001`)—with scientific works discovered through OpenAlex semantic search. Users can toggle map layers, inspect available source metadata, and search by research question or challenge.
+
+The page retrieves records from public APIs when opened. Coordinates are source points or representative locations, not official boundaries. The interface intentionally omits IUCN-derived threatened-species fields from the marine indicator dataset; publication relevance is a retrieval signal, not an assessment of study quality or a systematic review. Source records, publication metadata, and map tiles retain their own licences and attribution requirements.
+
+Open the [Regional Science Observatory](./regional-science.html).
+
+### 5. Biodiversity Distribution Pipeline
 
 A Python pipeline, run through GitHub Actions, that produces country-level JSON and GeoJSON from:
 
