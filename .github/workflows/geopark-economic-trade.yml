@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: geopark-economic-trade-snapshot
+  group: geopark-economic-trade-batched-v2
   cancel-in-progress: true
 
 jobs:
