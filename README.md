@@ -69,6 +69,17 @@ All mapped coordinates are source points or representative locations, not offici
 
 Open the [Regional Science Observatory](./regional-science.html).
 
+#### Active research workstreams
+
+The Observatory currently focuses on four selectable workstreams rather than trying to operationalize every possible science theme:
+
+1. **IHP-WISER / Water Informatics** — existing Open-Meteo Flood API/GloFAS river-discharge context, World Bank national freshwater indicators, NASA POWER gridded meteorology, research discovery, and linked water-quality resources such as UNEP GEMS/Water GEMStat. GEMStat is presented as a source portal, not as a live station-value API integration.
+2. **Marine Technology Transfer** — thematic searches across OpenAlex, Crossref, Semantic Scholar, OpenAIRE projects and research products, plus links to IOC-UNESCO and GOOS resources. This discovers publications/projects; it is **not** yet an inventory of available devices, procurement-ready technology, transfer agreements, or confirmed institutional needs.
+3. **Marine Biodiversity & Seafood Security** — existing OBIS marine occurrence layer and themed research/project discovery, with FAO/FAOSTAT and fisheries-statistics source links. A live FAO fisheries-series API connector is **not** implemented yet. OBIS occurrences do not measure fish-stock abundance, sustainable catch, or household food security.
+4. **Water & Environmental Governance for SDGs** — themed evidence discovery and source-linked briefs, plus a browser request to the UNSD SDG API goal-list endpoint for official goal-level metadata (SDGs 6, 13, 14, 15 and 17). This is metadata, not an indicator time series; indicator observations must be checked in the official UN SDG Global Database.
+
+The theme selector sets focused research and project-search queries and supplies workstream-specific source links, limitations, and Evidence Brief context. An API error means that source could not be reached in this session; it does not mean relevant data do not exist. All generated briefs remain exploratory drafts requiring human review.
+
 ### 5. Biodiversity Distribution Pipeline
 
 A Python pipeline, run through GitHub Actions, that produces country-level JSON and GeoJSON from:
