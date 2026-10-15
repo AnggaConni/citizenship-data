@@ -1304,6 +1304,7 @@
         }catch(error){
           state.sdgObservations=[];
           state.sdgObservationFetched=false;
+          state.sdgPage=1;state.sdgTotalPages=1;
           $("sdg-observations-status").textContent="Could not fetch observations ("+String(error&&error.message||"request failed")+"). Browser CORS, upstream service limits or series dimensions may be involved. Try the official UN SDG database or a different series.";
           $("sdg-observations-table").innerHTML="";
         }finally{
