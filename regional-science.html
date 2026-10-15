@@ -911,8 +911,23 @@
         return {title:title,url:link,meta:[country,types,row.status].filter(Boolean).join(" · "),description:(row.links||[]).slice(0,2).map(l=>l.value).filter(Boolean).join(" · "),source:"ROR registry"};
       }
       function openAIREUrl(endpoint,query,extra){
-        const params=new URLSearchParams(Object.assign({search:query.slice(0,180),pageSize:"6",sortBy:"relevance DESC"},extra||{}));
-        return OPENAIRE+"/"+endpoint+"?"+params.toString();
+        // OpenAIRE Graph v3 uses hyphenated endpoint names and a query parameter
+        // called "search". Keep filters separate from the text query.
+        const normalizedEndpoint = ({
+          "research-products":"research-products",
+          "projects":"projects",
+          "organizations":"organizations"
+        })[endpoint] || endpoint;
+        const params = new URLSearchParams();
+        params.set("search", query.slice(0,180));
+        params.set("pageSize", "6");
+        params.set("sortBy", "relevance DESC");
+        Object.entries(extra || {}).forEach(([key,value]) => {
+          if (value !== undefined && value !== null && String(value).trim() !== "") {
+            params.set(key, String(value));
+          }
+        });
+        return OPENAIRE + "/" + normalizedEndpoint + "?" + params.toString();
       }
       async function performNetworkSearch(mode){
         if(state.networkBusy)return;
@@ -924,7 +939,7 @@
         $("network-results").innerHTML="";
         const tasks=mode==="projects"?[
           {name:"OpenAIRE projects",run:async()=>{const data=await apiJSON(openAIREUrl("projects",query));return (data.results||[]).map(normalizeOpenAIREProject);}},
-          {name:"OpenAIRE datasets/software",run:async()=>{const data=await apiJSON(openAIREUrl("research-products",query,{type:'("dataset" OR "software")'}));return (data.results||[]).map(normalizeOpenAIREAsset);}}
+          {name:"OpenAIRE datasets/software",run:async()=>{const params=new URLSearchParams({search:query.slice(0,180),pageSize:"12",sortBy:"relevance DESC"});params.append("type","dataset");params.append("type","software");const data=await apiJSON(OPENAIRE+"/research-products?"+params.toString());return (data.results||[]).map(normalizeOpenAIREAsset);}}
         ]:[
           {name:"OpenAIRE organizations",run:async()=>{const data=await apiJSON(openAIREUrl("organizations",query));return (data.results||[]).map(normalizeOpenAIREOrganization);}},
           {name:"ROR registry",run:async()=>{const params=new URLSearchParams({query:query.slice(0,180)});const data=await apiJSON(ROR+"?"+params.toString());return (data.items||[]).map(normalizeROR);}}
