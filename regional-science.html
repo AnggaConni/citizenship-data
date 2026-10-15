@@ -454,17 +454,33 @@
         }
         const id=plain(product.id);
         const url=product.webUrl||product.landingPage||product.url||(doi?"https://doi.org/"+String(doi).replace(/^https?:\/\/doi.org\//i,""):(id?OPENAIRE+"/research-products/"+encodeURIComponent(id):"https://explore.openaire.eu/"));
-        const access=plain(product.accessRightLabel||product.bestAccessRight||"").toLowerCase();
+        const access=plain(product.accessRightLabel||(product.bestAccessRight&&product.bestAccessRight.label)||product.bestAccessRight||"").toLowerCase();
         const orgs=product.organizations&&(product.organizations.organization||product.organizations);
         const organizationRows=Array.isArray(orgs)?orgs:(orgs?[orgs]:[]);
-        const institutions=organizationRows.map(org=>({name:plain(org.legalName||org.name||org),url:plain(org.rorId||org.ror||org.id),type:"institution",source:"OpenAIRE"})).filter(o=>o.name);
+        const institutions=organizationRows.map(org=>{
+          const pids=Array.isArray(org.pids)?org.pids:[];
+          const rorPid=pids.find(pid=>String(pid.scheme||"").toLowerCase()==="ror");
+          const target=plain(rorPid&&rorPid.value)||plain(org.rorId||org.ror)||(org.id?OPENAIRE+"/organizations/"+encodeURIComponent(plain(org.id)):"");
+          return {name:plain(org.legalName||org.name||org),url:target,type:"institution",source:"OpenAIRE"};
+        }).filter(o=>o.name);
         const projectRows=Array.isArray(product.projects)?product.projects:(product.projects?[product.projects]:[]);
-        const projects=projectRows.map(project=>({name:plain(project.name||project.title||project),url:plain(project.webUrl||project.url||project.id),type:"project",source:"OpenAIRE"})).filter(p=>p.name);
+        const projects=projectRows.map(project=>{
+          const name=plain(project.name||project.title||project.acronym||project);
+          const id=plain(project.id);
+          const target=project.webUrl||project.url||(id?OPENAIRE+"/projects/"+encodeURIComponent(id):"");
+          return {name:name,url:target,type:"project",source:"OpenAIRE"};
+        }).filter(p=>p.name);
         const authorRows=Array.isArray(authorsValue)?authorsValue:(authorsValue?[authorsValue]:[]);
-        const authorRelations=authorRows.map(author=>({name:plain(author.fullName||author.name||author),url:plain(author.orcid||author.id),type:"author",source:"OpenAIRE"})).filter(a=>a.name);
-        return sourceWork("OpenAIRE",{title:title,year:date,authors:authors,doi:doi,url:url,citations:product.citationCount||product.citationsCount,openAccess:access.includes("open"),score:product.score,type:plain(product.type)||"Research output",abstract:plain(product.description||product.abstract||product.summary),relationships:{authors:authorRelations,institutions:institutions,projects:projects}});
+        const authorRelations=authorRows.map(author=>{
+          const pid=author.pid&&author.pid.id;
+          const orcid=pid&&String(pid.scheme||"").toLowerCase()==="orcid"?plain(pid.value):"";
+          const id=plain(author.id);
+          return {name:plain(author.fullName||author.name||author),url:orcid?"https://orcid.org/"+orcid:(id?OPENAIRE+"/persons/"+encodeURIComponent(id):""),type:"author",source:"OpenAIRE"};
+        }).filter(a=>a.name);
+        const descriptions=product.descriptions||product.description||product.abstract||product.summary;
+        return sourceWork("OpenAIRE",{title:title,year:date,authors:authors,doi:doi,url:url,citations:product.citationCount||product.citationsCount,openAccess:access.includes("open"),score:product.score,type:plain(product.type)||"Research output",abstract:plain(descriptions),relationships:{authors:authorRelations,institutions:institutions,projects:projects}});
       }
-            function canonicalDoi(doi){
+      function canonicalDoi(doi){
         return String(doi||"").trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i,"").replace(/^doi:\s*/i,"").toLowerCase();
       }
       function mergeWorks(groups){
