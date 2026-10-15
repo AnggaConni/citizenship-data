@@ -143,7 +143,7 @@
           <div class="data-field"><label for="sdg-series">Official indicator series</label><select id="sdg-series" class="data-select" disabled><option value="">Load metadata to choose a series…</option></select></div>
         </div>
         <div id="sdg-series-detail" class="api-status">The selected indicator's definition, series metadata and reporting dimensions will appear here when available.</div>
-        <div class="data-actions"><button type="button" class="primary-btn" id="load-sdg-observations" disabled><i class="fa-solid fa-chart-line"></i> Load reported values</button><button type="button" class="secondary-btn" id="export-sdg-csv" disabled><i class="fa-solid fa-download"></i> Export indicator CSV</button><a class="secondary-btn" href="https://unstats.un.org/sdgs/dataportal/database" target="_blank" rel="noopener noreferrer">Official SDG database ↗</a></div>
+        <div class="data-actions"><button type="button" class="primary-btn" id="load-sdg-observations" disabled><i class="fa-solid fa-chart-line"></i> Load reported values</button><button type="button" class="secondary-btn" id="export-sdg-csv" disabled><i class="fa-solid fa-download"></i> Export page CSV</button><button type="button" class="secondary-btn" id="sdg-prev-page" disabled>Previous page</button><span id="sdg-page-label" class="api-status">Page 1</span><button type="button" class="secondary-btn" id="sdg-next-page" disabled>Next page</button><a class="secondary-btn" href="https://unstats.un.org/sdgs/dataportal/database" target="_blank" rel="noopener noreferrer">Official SDG database ↗</a></div>
         <div id="sdg-observations-status" class="api-status" role="status" aria-live="polite">Choose an indicator series and country after metadata loads. An empty result is not proof that no relevant activity exists.</div>
         <div id="sdg-observations-table" class="data-table-wrap"></div>
         <p class="theme-caveat">Observation units are shown only when the API supplies a unit/measure dimension; otherwise the UI labels them “not supplied in response.” Different series and disaggregations are not added together. No synthetic SDG score is calculated. Values and definitions must be interpreted using the custodian source and official methodology.</p>
@@ -359,7 +359,7 @@
           actions:[["research","Search policy and governance evidence","fa-book-open"],["projects","Find governance projects & datasets","fa-diagram-project"],["sdg","Load official SDG indicators","fa-list-check"]]
         }
       };
-      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
+      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",sdgPage:1,sdgTotalPages:1,fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
       const $ = id => document.getElementById(id);
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
@@ -1248,7 +1248,13 @@
         ].filter(Boolean);
         target.textContent=parts.join(" · ")+" . The official observation response may provide unit/dimension metadata; if it does not, the table will say so explicitly.";
       }
-      async function loadSDGObservations(){
+      function setSDGPageControls(){
+        $("sdg-page-label").textContent="Page "+String(state.sdgPage)+" of "+String(state.sdgTotalPages||1);
+        $("sdg-prev-page").disabled=state.sdgDataBusy||state.sdgPage<=1;
+        $("sdg-next-page").disabled=state.sdgDataBusy||state.sdgPage>=(state.sdgTotalPages||1);
+      }
+      async function loadSDGObservations(page){
+        const requestedPage=page===undefined?1:Math.max(1,Number(page)||1);
         const series=selectedSDGSeries();
         if(!series){
           $("sdg-observations-status").textContent="Choose an indicator series first.";
@@ -1257,6 +1263,7 @@
         if(state.sdgDataBusy)return;
         state.sdgDataBusy=true;
         state.sdgObservationFetched=false;
+        state.sdgPage=requestedPage;
         state.sdgSelectedSeries=series;
         const rawCode=$("sdg-country").value;
         const areaCode=String(Number(rawCode));
@@ -1267,9 +1274,12 @@
         $("sdg-observations-table").innerHTML="";
         $("sdg-observations-status").textContent="Requesting official UNSD observations for series "+series.code+" and "+state.sdgCountryName+"…";
         try{
-          const params=new URLSearchParams({seriesCode:series.code,areaCode:areaCode,page:"1",pageSize:"250"});
+          const params=new URLSearchParams({seriesCode:series.code,areaCode:areaCode,page:String(requestedPage),pageSize:"250"});
           const payload=await apiJSON(SDG_API+"/Series/Data?"+params.toString(),null,900000);
           const observations=Array.isArray(payload)?payload:(payload&&Array.isArray(payload.data)?payload.data:(payload&&Array.isArray(payload.observations)?payload.observations:[]));
+          const reportedPages=payload&&Number(payload.totalPages);
+          state.sdgTotalPages=Number.isFinite(reportedPages)&&reportedPages>0?reportedPages:1;
+          state.sdgPage=payload&&Number(payload.pageNumber)>0?Number(payload.pageNumber):requestedPage;
           state.sdgObservations=observations.filter(row=>row&&row.value!==undefined&&row.value!==null&&String(row.value).trim()!=="").map(row=>({
             seriesCode:String(row.series||row.seriesCode||series.code),
             indicatorCode:series.indicatorCode,
@@ -1288,8 +1298,8 @@
           const count=state.sdgObservations.length;
           const total=payload&&Number.isFinite(Number(payload.totalElements))?Number(payload.totalElements):null;
           $("sdg-observations-status").textContent=count
-            ? "Returned "+number(count)+" observation row(s)"+(total!==null&&total>count?" from "+number(total)+" total available rows (first page only)":"")+" for "+state.sdgCountryName+". Values and units are displayed as reported; inspect source and footnotes."
-            : "The API returned no observation rows for this exact series/country query. That is not proof the indicator is unavailable; check disaggregations, series dimensions and the official database.";
+            ? "Returned "+number(count)+" observation row(s) for "+state.sdgCountryName+" (page "+state.sdgPage+" of "+state.sdgTotalPages+(total!==null?"; "+number(total)+" total row(s) reported":"")+"). Values, units and dimensions are shown only as supplied; use the page controls to inspect additional rows."
+            : "The API returned no observation rows on page "+state.sdgPage+" for this exact series/country query. That is not proof the indicator is unavailable; check disaggregations, series dimensions and the official database.";
           renderSDGObservations();
         }catch(error){
           state.sdgObservations=[];
@@ -1299,6 +1309,7 @@
         }finally{
           state.sdgDataBusy=false;
           $("load-sdg-observations").disabled=!selectedSDGSeries();
+          setSDGPageControls();
         }
       }
       function renderSDGObservations(){
@@ -1325,7 +1336,7 @@
       }
       function exportSDGObservations(){
         if(!state.sdgObservations.length)return;
-        downloadCSV("unsd-sdg-"+state.sdgObservations[0].indicatorCode+"-"+$("sdg-country").value+".csv",
+        downloadCSV("unsd-sdg-"+state.sdgObservations[0].indicatorCode+"-"+$("sdg-country").value+"-page-"+state.sdgPage+".csv",
           ["country_code","country_name","indicator_code","series_code","year","value","unit","dimensions_or_disaggregation","source","footnotes"],
           state.sdgObservations.map(row=>[row.countryCode,row.countryName,row.indicatorCode,row.seriesCode,row.year,row.value,row.unit,row.dimensions,row.source,row.footnotes.join("; ")]));
       }
@@ -1576,7 +1587,7 @@
         const question=$("brief-question").value.trim()||"No decision question supplied.";
         const date=new Date().toISOString().slice(0,10);
         const activeTheme=THEMES[state.selectedTheme]||THEMES.water;
-        const lines=["# Regional Science Intelligence — Evidence Brief","","**Prepared:** "+date+" (UTC)","**Status:** Exploratory source-linked draft; human review required.","","## 1. Decision question","",question,"","## Selected thematic workstream","","- **Workstream:** "+briefText(activeTheme.title),"- **Focus:** "+briefText(activeTheme.description),"- **Interpretation boundary:** "+briefText(activeTheme.limits),"- **Official SDG evidence:** "+(state.selectedTheme==="governance"?(state.sdgObservationFetched?number(state.sdgObservations.length)+" returned observation row(s) for "+briefText(state.sdgCountryName||"selected area")+"; see the dedicated section below.":(state.sdgLoaded?number(state.sdgSeries.length)+" relevant series options loaded; no observation query completed in this session.":"Metadata not loaded in this session; use the official UN SDG database.")):"Not queried for this selected workstream."),"","## 2. Selected location",""];
+        const lines=["# Regional Science Intelligence — Evidence Brief","","**Prepared:** "+date+" (UTC)","**Status:** Exploratory source-linked draft; human review required.","","## 1. Decision question","",question,"","## Selected thematic workstream","","- **Workstream:** "+briefText(activeTheme.title),"- **Focus:** "+briefText(activeTheme.description),"- **Interpretation boundary:** "+briefText(activeTheme.limits),"- **Official SDG evidence:** "+(state.selectedTheme==="governance"?(state.sdgObservationFetched?number(state.sdgObservations.length)+" returned observation row(s), page "+state.sdgPage+" of "+state.sdgTotalPages+", for "+briefText(state.sdgCountryName||"selected area")+"; see the dedicated section below.":(state.sdgLoaded?number(state.sdgSeries.length)+" relevant series options loaded; no observation query completed in this session.":"Metadata not loaded in this session; use the official UN SDG database.")):"Not queried for this selected workstream."),"","## 2. Selected location",""];
         if(selected){
           lines.push("- **Feature:** "+briefText(selected.name)+" ("+briefText(selected.kind)+")");
           lines.push("- **Country/area:** "+(briefText(selected.country)||"Not supplied"));
@@ -1831,22 +1842,25 @@
           state.sdgSelectedSeries=selectedSDGSeries();
           state.sdgObservations=[];
           state.sdgObservationFetched=false;
+          state.sdgPage=1;state.sdgTotalPages=1;
           $("sdg-observations-table").innerHTML="";
           $("export-sdg-csv").disabled=true;
           $("load-sdg-observations").disabled=!state.sdgSelectedSeries;
-          renderSDGSeriesDetail();
+          renderSDGSeriesDetail();setSDGPageControls();
           $("sdg-observations-status").textContent=state.sdgSelectedSeries?"Selected "+state.sdgSelectedSeries.indicatorCode+" / "+state.sdgSelectedSeries.code+". Load reported observations to continue.":"Choose an indicator series.";
         });
         $("sdg-country").addEventListener("change",()=>{
           const country=SDG_COUNTRIES.find(item=>item[0]===$("sdg-country").value);
           state.sdgCountryName=country?country[1]:$("sdg-country").selectedOptions[0]?.textContent||"";
           state.sdgObservations=[];
-          state.sdgObservationFetched=false;
+          state.sdgObservationFetched=false;state.sdgPage=1;state.sdgTotalPages=1;
           $("sdg-observations-table").innerHTML="";
-          $("export-sdg-csv").disabled=true;
+          $("export-sdg-csv").disabled=true;setSDGPageControls();
           $("sdg-observations-status").textContent="Reporting area changed to "+state.sdgCountryName+". Load values again for this area.";
         });
-        $("load-sdg-observations").addEventListener("click",loadSDGObservations);
+        $("load-sdg-observations").addEventListener("click",()=>loadSDGObservations(1));
+        $("sdg-prev-page").addEventListener("click",()=>{if(state.sdgPage>1)loadSDGObservations(state.sdgPage-1);});
+        $("sdg-next-page").addEventListener("click",()=>{if(state.sdgPage<state.sdgTotalPages)loadSDGObservations(state.sdgPage+1);});
         $("export-sdg-csv").addEventListener("click",exportSDGObservations);
         $("tech-registry-form").addEventListener("submit",saveTechnologyLead);
         $("tech-registry-list").addEventListener("click",event=>{
