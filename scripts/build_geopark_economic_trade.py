@@ -161,22 +161,33 @@ def build_country_record(iso3: str, reporter: dict[str, Any], rows: list[dict[st
 
 def build_snapshot(api_key: str, *, now: datetime | None = None,
                    reporters: tuple[str, ...] = REPORTERS,
-                   sleep_seconds: float = 0.2) -> dict[str, Any]:
+                   sleep_seconds: float = 0.25, batch_size: int = 5) -> dict[str, Any]:
     if not api_key.strip():
         raise ValueError("UN_COMTRADE_API_KEY is required; refusing to build a preview-limited snapshot.")
+    if batch_size < 1 or batch_size > 5:
+        raise ValueError("batch_size must be between 1 and 5 for UN Comtrade reporter queries.")
     now = now or datetime.now(timezone.utc)
     end_year = now.year - 1
     years = list(range(end_year - 3, end_year + 1))
     ref = reporter_lookup(request_json(REPORTERS_URL))
+    prepared = [(iso3, ref.get(iso3)) for iso3 in reporters]
     countries: dict[str, Any] = {}
     failures: list[dict[str, str]] = []
-    for index, iso3 in enumerate(reporters):
-        reporter = ref.get(iso3)
+    valid = [(iso3, reporter) for iso3, reporter in prepared if reporter]
+    for iso3, reporter in prepared:
         if not reporter:
             failures.append({"iso3": iso3, "reason": "Reporter code not found in UN Comtrade reference."})
-            continue
+            countries[iso3] = {
+                "iso3": iso3, "reporterCode": None, "countryName": iso3, "available": False,
+                "latestYear": None, "totalImportUsd": None, "recordCount": 0, "productCount": 0,
+                "products": [], "yearsQueried": years,
+                "note": "No active UN Comtrade reporter code was found for this ISO-3 code.",
+            }
+    for offset in range(0, len(valid), batch_size):
+        batch = valid[offset:offset + batch_size]
+        codes = [str(reporter["reporterCode"]) for _, reporter in batch]
         params = {
-            "reporterCode": reporter["reporterCode"],
+            "reporterCode": ",".join(codes),
             "period": ",".join(map(str, years)),
             "cmdCode": "AG2",
             "flowCode": "M",
@@ -190,12 +201,29 @@ def build_snapshot(api_key: str, *, now: datetime | None = None,
             rows = payload.get("data", [])
             if not isinstance(rows, list):
                 raise RuntimeError("Unexpected data field in UN Comtrade response")
-            countries[iso3] = build_country_record(iso3, reporter, rows, years)
-            print(f"{iso3}: {len(rows)} records; {countries[iso3]['productCount']} products; year={countries[iso3]['latestYear']}")
-        except Exception as error:  # Continue for other countries; expose each provider failure.
-            failures.append({"iso3": iso3, "reason": str(error)[:300]})
-            print(f"WARNING {iso3}: {error}")
-        if index + 1 < len(reporters):
+            by_reporter: dict[str, list[dict[str, Any]]] = {code: [] for code in codes}
+            for row in rows:
+                code = str(row.get("reporterCode") or "")
+                if code in by_reporter:
+                    by_reporter[code].append(row)
+            for iso3, reporter in batch:
+                reporter_rows = by_reporter.get(str(reporter["reporterCode"]), [])
+                countries[iso3] = build_country_record(iso3, reporter, reporter_rows, years)
+                item = countries[iso3]
+                print(f"{iso3}: {len(reporter_rows)} records; {item['productCount']} products; year={item['latestYear']}")
+        except Exception as error:
+            reason = str(error)[:300]
+            for iso3, reporter in batch:
+                failures.append({"iso3": iso3, "reason": reason})
+                countries[iso3] = {
+                    "iso3": iso3, "reporterCode": reporter["reporterCode"],
+                    "countryName": reporter["countryName"], "available": False,
+                    "latestYear": None, "totalImportUsd": None, "recordCount": 0,
+                    "productCount": 0, "products": [], "yearsQueried": years,
+                    "note": "UN Comtrade batch request failed: " + reason,
+                }
+            print(f"WARNING reporter batch {','.join(batch_iso for batch_iso, _ in batch)}: {reason}")
+        if offset + batch_size < len(valid):
             time.sleep(max(0, sleep_seconds))
     available = sum(1 for item in countries.values() if item.get("available"))
     if not countries:
@@ -211,13 +239,13 @@ def build_snapshot(api_key: str, *, now: datetime | None = None,
             "reportersRequested": len(reporters),
             "reportersIncluded": len(countries),
             "countriesAvailable": available,
-            "maxRecordsPerCountry": MAX_RECORDS,
+            "batchSize": batch_size,
+            "maxRecordsPerRequest": MAX_RECORDS,
             "failures": failures,
             "interpretation": "National annual merchandise imports from reported HS 2-digit product groups. Not geopark-level revenue, tourism spend, employment, local production or community income.",
         },
         "countries": countries,
     }
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
