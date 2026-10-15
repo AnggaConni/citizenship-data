@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -50,7 +50,7 @@
 <main class="page">
   <section class="hero">
     <div class="hero-copy"><div class="eyebrow" id="heroEyebrow">SELECTED UNESCO SITE · LOCAL ECONOMY</div><h2 id="heroTitle">Explore the economy around a selected UNESCO site.</h2><p id="heroDescription">The map starts from the selected site coordinates. Explore nearby visitor services, local businesses and optional international trade signals.</p></div>
-    <div class="hero-status"><span id="overallStatus" class="pill gray">Peta siap · letakkan pin</span><p style="font-size:9px;color:var(--muted);margin:6px 0 0">Garis menunjukkan hubungan data dan hipotesis peluang, bukan jaminan penjualan.</p></div>
+    <div class="hero-status"><span id="overallStatus" class="pill gray">Map ready · choose a location</span><p style="font-size:9px;color:var(--muted);margin:6px 0 0">Lines show data relationships and opportunity hypotheses, not guaranteed sales.</p></div>
   </section>
 
   <div class="workspace">
@@ -59,19 +59,19 @@
         <div class="map-title"><span class="world-icon">◎</span><div><h3>Selected Site & Local Economy</h3><p id="mapSubtitle">Selected UNESCO site · preparing local analysis</p></div></div>
         <div class="map-tools"><button id="zoomLocalBtn" type="button" class="desktop-only">Zoom local links</button><button id="zoomGlobalBtn" type="button" class="desktop-only">Zoom international</button><button id="resetMapBtn" type="button">World view</button></div>
       </div>
-      <div id="potentialMap" role="application" aria-label="Peta dunia interaktif. Klik untuk menaruh pin; seret pin untuk memindahkannya."></div>
+      <div id="potentialMap" role="application" aria-label="Interactive map. Click to place a pin or drag the pin to move it."></div>
       <div class="map-note">
-        <div class="legend"><span><i style="--line-color:#db2777"></i>Wisata ≤5 km</span><span><i style="--line-color:#0d9488"></i>Ekosistem lokal</span><span><i style="--line-color:#2563eb"></i>Sinyal pasar internasional</span></div>
-        <span id="mapAttribution">Peta © OpenStreetMap contributors</span>
+        <div class="legend"><span><i style="--line-color:#db2777"></i>Tourism ≤5 km</span><span><i style="--line-color:#0d9488"></i>Local ecosystem</span><span><i style="--line-color:#2563eb"></i>International market signals</span></div>
+        <span id="mapAttribution">Map © OpenStreetMap contributors</span>
       </div>
     </section>
 
-    <aside class="sidebar" aria-label="Potential filters and results">
+    <aside class="sidebar" aria-label="Location filters and analysis results">
       <section class="sidebar-section">
-        <div class="side-heading"><h3>01 · Lokasi & filter</h3><span class="pill">PIN DRAGGABLE</span></div>
-        <div class="field"><label for="locationSearch">Cari lokasi</label><input id="locationSearch" type="search" placeholder="Contoh: Aceh, Indonesia" autocomplete="off"></div>
-        <div class="btn-row"><button id="searchLocationBtn" class="primary" type="button">Cari lokasi</button><button id="myLocationBtn" type="button">◎ Lokasi saya</button></div>
-<div class="tourism-picker-section" aria-label="Cari destinasi wisata dan situs UNESCO">
+        <div class="side-heading"><h3>01 · Location & filters</h3><span class="pill">PIN DRAGGABLE</span></div>
+        <div class="field"><label for="locationSearch">Search location</label><input id="locationSearch" type="search" placeholder="Example: Aceh, Indonesia" autocomplete="off"></div>
+        <div class="btn-row"><button id="searchLocationBtn" class="primary" type="button">Search location</button><button id="myLocationBtn" type="button">◎ My location</button></div>
+<div class="tourism-picker-section" aria-label="Search tourism destinations and UNESCO sites">
           <div class="field">
             <label for="destinationSourceFilter">Sumber destinasi</label>
             <select id="destinationSourceFilter">
@@ -82,81 +82,81 @@
           <div class="field">
             <label for="designatedSiteSearch">Go to tourism / UNESCO site</label>
             <div class="destination-combo">
-              <input id="designatedSiteSearch" type="search" placeholder="Ketik nama situs atau buka daftar…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="designatedSiteOptions" aria-expanded="false">
-              <button id="toggleDesignatedSiteOptions" type="button" aria-label="Tampilkan daftar destinasi" title="Browse designated sites">▾</button>
+              <input id="designatedSiteSearch" type="search" placeholder="Type a site name or browse the list…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="designatedSiteOptions" aria-expanded="false">
+              <button id="toggleDesignatedSiteOptions" type="button" aria-label="Browse destinations" title="Browse designated sites">▾</button>
               <div id="designatedSiteOptions" class="destination-options" role="listbox" aria-label="UNESCO designated destinations" hidden></div>
             </div>
-            <p id="designatedSiteStatus" class="field-help" role="status" aria-live="polite">Cari atau pilih destinasi resmi. Memuat katalog UNESCO…</p>
+            <p id="designatedSiteStatus" class="field-help" role="status" aria-live="polite">Search or select an official destination. Loading the UNESCO catalogue…</p>
           </div>
           <div class="two-fields tourism-filter-row">
             <div class="field"><label for="designationFilter">Jenis destinasi</label><select id="designationFilter">
-              <option value="all">Semua destinasi</option>
+              <option value="all">All destinations</option>
               <option value="world_heritage">World Heritage Site</option>
               <option value="geopark">Global Geopark</option>
               <option value="biosphere_reserve">Biosphere Reserve</option>
             </select></div>
-            <div class="field"><label for="designationCountryFilter">Negara</label><select id="designationCountryFilter"><option value="all">Semua negara</option></select></div>
+            <div class="field"><label for="designationCountryFilter">Negara</label><select id="designationCountryFilter"><option value="all">All countries</option></select></div>
           </div>
-          <p class="field-help">Pilih hasil untuk memindahkan pin langsung ke koordinat destinasi, lalu analisis peluang di sekitarnya.</p>
-          <p id="destinationSourceNote" class="field-help">Koordinat Tourism berasal dari katalog tempat/panduan wisata. <a href="https://www.untourism.int/tourism-statistics/tourism-statistics-database" target="_blank" rel="noopener noreferrer">UN Tourism Statistics ↗</a> menyediakan statistik negara/region, bukan koordinat atraksi.</p>
+          <p class="field-help">Select a result to move the pin to its coordinates, then analyse nearby opportunities.</p>
+          <p id="destinationSourceNote" class="field-help">Tourism coordinates come from a catalogue of places and travel guides. <a href="https://www.untourism.int/tourism-statistics/tourism-statistics-database" target="_blank" rel="noopener noreferrer">UN Tourism Statistics ↗</a> provides country- and region-level statistics, not attraction coordinates.</p>
         <details id="unTourismLayerPanel" class="un-tourism-layer">
           <summary>UN Tourism statistics layer <span class="layer-scope">country-level</span></summary>
-          <p class="field-help">Tampilkan statistik resmi per negara pada peta. Ini bukan jumlah pengunjung di objek wisata tertentu.</p>
+          <p class="field-help">Display official country-level statistics on the map. These are not visitor counts for individual attractions.</p>
           <div class="field">
-            <label for="unTourismDatasetSelect">Dataset / indikator utama</label>
-            <select id="unTourismDatasetSelect" disabled><option value="">Memuat daftar dataset…</option></select>
+            <label for="unTourismDatasetSelect">Dataset / primary indicator</label>
+            <select id="unTourismDatasetSelect" disabled><option value="">Loading dataset list…</option></select>
           </div>
-          <div class="btn-row"><button id="unTourismLoadBtn" type="button">Muat statistik</button><button id="unTourismClearBtn" type="button">Hapus layer</button></div>
+          <div class="btn-row"><button id="unTourismLoadBtn" type="button">Load statistics</button><button id="unTourismClearBtn" type="button">Clear layer</button></div>
           <div id="unTourismFilters" hidden>
             <div class="field" style="margin-top:9px"><label for="unTourismIndicatorSelect">Indikator</label><select id="unTourismIndicatorSelect"></select></div>
             <div class="two-fields">
               <div class="field"><label for="unTourismYearSelect">Tahun</label><select id="unTourismYearSelect"></select></div>
-              <div class="field"><label for="unTourismBreakdownSelect">Klasifikasi (opsional)</label><select id="unTourismBreakdownSelect"><option value="">Tidak ada filter khusus</option></select></div>
+              <div class="field"><label for="unTourismBreakdownSelect">Klasifikasi (opsional)</label><select id="unTourismBreakdownSelect"><option value="">No additional filter</option></select></div>
             </div>
-            <button id="unTourismShowBtn" class="primary" type="button">Tampilkan statistik di peta</button>
+            <button id="unTourismShowBtn" class="primary" type="button">Show statistics on map</button>
           </div>
-          <div id="unTourismStatus" class="status-line" role="status" aria-live="polite">Pilih dataset lalu klik Muat statistik. Tabel besar tidak diunduh sebelum diminta.</div>
+          <div id="unTourismStatus" class="status-line" role="status" aria-live="polite">Pilih dataset lalu klik Load statistics. Tabel besar tidak diunduh sebelum diminta.</div>
         </details>
         </div>
-        <div class="field" style="margin-top:9px"><label for="resourceInput">Potensi / sumber daya lokal</label><input id="resourceInput" type="text" placeholder="Contoh: singkong, kopi, bambu"></div>
-        <div class="btn-row" style="margin-bottom:9px"><button id="exampleCassavaBtn" type="button">Contoh: singkong</button><button id="exampleCraftBtn" type="button">Contoh: kerajinan</button></div>
-        <div class="field"><label for="opportunitySelect">Ide usaha yang ingin ditelusuri</label><select id="opportunitySelect"><option value="auto">Otomatis dari sumber daya</option></select></div>
-        <div class="field"><label for="marketSelect">Negara tujuan (opsional)</label><select id="marketSelect"><option value="all">Semua pasar yang memiliki data</option><option value="NLD">Belanda (NLD)</option><option value="DEU">Jerman (DEU)</option><option value="USA">Amerika Serikat (USA)</option><option value="GBR">Britania Raya (GBR)</option><option value="JPN">Jepang (JPN)</option><option value="ARE">Uni Emirat Arab (ARE)</option></select><p class="field-help">Hanya pasar dengan observasi perdagangan yang cocok yang akan mendapatkan garis.</p></div>
+        <div class="field" style="margin-top:9px"><label for="resourceInput">Local resource / capability</label><input id="resourceInput" type="text" placeholder="Example: cassava, coffee, bamboo"></div>
+        <div class="btn-row" style="margin-bottom:9px"><button id="exampleCassavaBtn" type="button">Example: cassava</button><button id="exampleCraftBtn" type="button">Example: crafts</button></div>
+        <div class="field"><label for="opportunitySelect">Business opportunity to explore</label><select id="opportunitySelect"><option value="auto">Auto-detect from resources</option></select></div>
+        <div class="field"><label for="marketSelect">Target market (optional)</label><select id="marketSelect"><option value="all">All markets with available data</option><option value="NLD">Netherlands (NLD)</option><option value="DEU">Germany (DEU)</option><option value="USA">United States (USA)</option><option value="GBR">United Kingdom (GBR)</option><option value="JPN">Japan (JPN)</option><option value="ARE">United Arab Emirates (ARE)</option></select><p class="field-help">Only markets with matching trade observations will receive a connection line.</p></div>
         <div class="check-list">
-          <label class="check-item"><input id="showTourism" type="checkbox" checked> Atraksi wisata dalam 5 km</label>
-          <label class="check-item"><input id="showLocal" type="checkbox" checked> Pasar, pemasok, retail, usaha sekitar</label>
-          <label class="check-item"><input id="showInternational" type="checkbox" checked> Sinyal impor internasional</label>
+          <label class="check-item"><input id="showTourism" type="checkbox" checked> Tourism attractions within 5 km</label>
+          <label class="check-item"><input id="showLocal" type="checkbox" checked> Nearby markets, suppliers, shops and businesses</label>
+          <label class="check-item"><input id="showInternational" type="checkbox" checked> International import signals</label>
         </div>
-        <div class="btn-row" style="margin-top:10px"><button id="analyzeBtn" type="button" class="primary">Analisis titik ↗</button><button id="clearPointBtn" type="button">Hapus pin</button></div>
+        <div class="btn-row" style="margin-top:10px"><button id="analyzeBtn" type="button" class="primary">Analyse point ↗</button><button id="clearPointBtn" type="button">Clear pin</button></div>
         <div id="statusLine" class="status-line" role="status" aria-live="polite">Selected site coordinates load automatically. Nearby places and optional market signals are analysed from this location.</div>
       </section>
 
       <section class="sidebar-section">
-        <div class="side-heading"><h3>02 · Ringkasan titik</h3><span id="dataModePill" class="pill gray">BELUM DIPILIH</span></div>
+        <div class="side-heading"><h3>02 · Location summary</h3><span id="dataModePill" class="pill gray">NOT SELECTED</span></div>
         <div class="mini-stats">
-          <div class="mini-stat"><span>Wisata ≤5 km</span><b id="tourismCount">—</b><small>atraksi terpetakan</small></div>
-          <div class="mini-stat"><span>Usaha sekitar</span><b id="localCount">—</b><small>titik calon kanal</small></div>
+          <div class="mini-stat"><span>Tourism ≤5 km</span><b id="tourismCount">—</b><small>mapped attractions</small></div>
+          <div class="mini-stat"><span>Nearby businesses</span><b id="localCount">—</b><small>potential channels</small></div>
           <div class="mini-stat"><span>Pasar global</span><b id="marketCount">—</b><small>negara dengan sinyal</small></div>
         </div>
-        <div class="side-heading"><h3>Ide usaha yang relevan</h3><small id="ideaSummary">Menunggu lokasi</small></div>
-        <div id="opportunityResults" class="cards"><div class="empty">Letakkan pin lalu klik Analisis titik untuk melihat potensi.</div></div>
+        <div class="side-heading"><h3>Relevant business opportunities</h3><small id="ideaSummary">Waiting for location</small></div>
+        <div id="opportunityResults" class="cards"><div class="empty">Place a pin and click Analyse point to explore potential.</div></div>
       </section>
 
       <section class="sidebar-section">
-        <div class="side-heading"><h3>03 · Potensi lokal</h3><small id="localSummary">Radius 5 km</small></div>
-        <div id="localResults" class="cards"><div class="empty">Titik wisata, pasar, perajin, pemasok dan retail akan tampil di sini.</div></div>
+        <div class="side-heading"><h3>03 · Local potential</h3><small id="localSummary">5 km radius</small></div>
+        <div id="localResults" class="cards"><div class="empty">Mapped attractions, markets, craftspeople, suppliers and retailers will appear here.</div></div>
       </section>
 
       <section class="sidebar-section">
-        <div class="side-heading"><h3>04 · Pasar internasional</h3><small id="marketSummary">Data perdagangan GPIR</small></div>
-        <div id="marketResults" class="cards"><div class="empty">Masukkan sumber daya atau pilih ide usaha untuk mencari kecocokan dengan data impor.</div></div>
+        <div class="side-heading"><h3>04 · International markets</h3><small id="marketSummary">GPIR trade data</small></div>
+        <div id="marketResults" class="cards"><div class="empty">Enter local resources or select a business opportunity to find matching import signals.</div></div>
       </section>
     </aside>
   </div>
 
   <div class="below-map">
-    <section class="info-panel"><h3>Bagaimana membaca garis?</h3><p><b>Pink — wisata:</b> garis hanya dibuat ke atraksi yang terpetakan dalam radius 5 km. <b>Hijau — ekosistem lokal:</b> pasar, pemasok, retail atau usaha yang tercatat di peta. <b>Biru — internasional:</b> negara tujuan yang mempunyai baris impor cocok dengan kata kunci produk di feed GPIR. Klik “Zoom to link” untuk melihat hubungan tertentu.</p></section>
-    <section class="info-panel"><h3>Sumber & batasan</h3><ul><li>OpenStreetMap/Overpass: titik terpetakan, mungkin tidak lengkap atau tidak aktif.</li><li>UN Comtrade GPIR: statistik impor per negara dan produk; bukan penjualan retail atau order buyer.</li><li>UN Tourism: data statistik dipakai di Explorer statistik, bukan hitungan pengunjung per atraksi.</li><li>Semua rekomendasi adalah hipotesis untuk diteliti. Periksa buyer, margin, izin, pasokan dan repeat order sebelum investasi.</li></ul></section>
+    <section class="info-panel"><h3>How to read the connections</h3><p><b>Pink — tourism:</b> lines connect only to mapped attractions within 5 km. <b>Green — local ecosystem:</b> markets, suppliers, retailers or businesses mapped in OpenStreetMap. <b>Blue — international:</b> destination countries with import records matching product keywords in the GPIR feed. Select “Zoom to link” to inspect a specific connection.</p></section>
+    <section class="info-panel"><h3>Sources & limitations</h3><ul><li>OpenStreetMap/Overpass: mapped features may be incomplete or no longer active.</li><li>UN Comtrade via GPIR: country/product import statistics; not retail sales or confirmed buyer orders.</li><li>UN Tourism: statistics are used in the statistics layer, not as visitor counts per attraction.</li><li>All recommendations are hypotheses for further investigation. Verify buyers, margins, permits, supply capacity and repeat orders before investing.</li></ul></section>
   </div>
   <footer class="foot"><span>Regional Science Observatory · Local Economy Explorer · Nearby mapped places and market signals.</span><span><a href="./regional-science.html">Regional Science Observatory</a> · <a href="https://anggaconni.github.io/GPIR/index.html" target="_blank" rel="noopener">GPIR</a> · <a href="https://www.openstreetmap.org/copyright">OpenStreetMap attribution</a></span></footer>
 </main>
