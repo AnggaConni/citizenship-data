@@ -792,66 +792,79 @@
 
 async function requestGeoeconPois(item,requestId){
         const cacheKey=geoeconPoiCacheKey(item),cached=readGeoeconPoiCache(cacheKey);
-        if(cached)return {places:cached,queryRadiusKm:5,strategy:"cached full-radius results",endpoint:"session cache"};
-        const attempts=[
-          {endpoint:"https://overpass-api.de/api/interpreter",radius:5000,mode:"full",label:"5 km full search"},
-          {endpoint:"https://overpass.kumi.systems/api/interpreter",radius:5000,mode:"core",label:"5 km core search"},
-          {endpoint:"https://overpass.private.coffee/api/interpreter",radius:2500,mode:"essential",label:"2.5 km essential-place fallback"},
-          {endpoint:"https://maps.mail.ru/osm/tools/overpass/api/interpreter",radius:1500,mode:"essential",label:"1.5 km nearby-place fallback"}
+        if(cached)return {places:cached,queryRadiusKm:5,strategy:"cached GPIR-style Overpass results",endpoint:"overpass-api.de"};
+        // Match GPIR's proven direct Overpass pattern. Do not call alternate public
+        // instances from the browser: their CORS policy blocks GitHub Pages.
+        const stages=[
+          {radius:1000,mode:"essential",label:"1 km local places"},
+          {radius:2500,mode:"core",label:"2.5 km local places"},
+          {radius:5000,mode:"full",label:"5 km local places"}
         ];
-        let errors=[];
-        for(const attempt of attempts){
+        const endpoint="https://overpass-api.de/api/interpreter";
+        const collected=new Map();
+        const failedStages=[];
+        let largestSuccessfulRadius=0;
+        for(const stage of stages){
           if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
-          const query=geoeconOsmQuery(item.lat,item.lon,attempt.radius,attempt.mode);
+          if(Date.now()-state.lastOverpassAt<1200)await new Promise(resolve=>setTimeout(resolve,1200-(Date.now()-state.lastOverpassAt)));
+          state.lastOverpassAt=Date.now();
+          const query=geoeconOsmQuery(item.lat,item.lon,stage.radius,stage.mode);
           const controller=new AbortController();
           let timer=null;
           try{
-            const fetchPromise=(async()=>{
-              let response;
-              try{
-                response=await fetch(attempt.endpoint+"?data="+encodeURIComponent(query),{
-                  method:"GET",headers:{Accept:"application/json"},signal:controller.signal,cache:"no-store",mode:"cors",credentials:"omit"
-                });
-              }catch(getError){
-                if(controller.signal.aborted)throw getError;
-                response=await fetch(attempt.endpoint,{
-                  method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
-                  body:"data="+encodeURIComponent(query),signal:controller.signal,cache:"no-store",mode:"cors",credentials:"omit"
-                });
-              }
-              if(!response.ok)throw new Error("HTTP "+response.status+" at "+new URL(attempt.endpoint).host);
+            const fetchPromise=fetch(endpoint+"?data="+encodeURIComponent(query),{
+              headers:{Accept:"application/json"},signal:controller.signal,cache:"no-store"
+            }).then(async response=>{
+              if(!response.ok)throw new Error("Overpass HTTP "+response.status+" for "+stage.label);
               const payload=await response.json();
-              if(!payload||!Array.isArray(payload.elements))throw new Error("Unexpected response from "+new URL(attempt.endpoint).host);
+              if(!payload||!Array.isArray(payload.elements))throw new Error("Overpass returned an unexpected response");
               return payload;
-            })();
+            });
             const timeoutPromise=new Promise((_,reject)=>{
               timer=setTimeout(()=>{
                 try{controller.abort();}catch(_){}
-                reject(new Error(attempt.label+" timed out after 10 seconds"));
-              },10000);
+                reject(new Error(stage.label+" timed out after 12 seconds"));
+              },12000);
             });
             const payload=await Promise.race([fetchPromise,timeoutPromise]);
             if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
-            const unique=new Map();
+            const before=collected.size;
             (payload.elements||[]).forEach(element=>{
               const poi=normalizeGeoeconPoi(element,item);
-              if(poi)unique.set(poi.id,poi);
+              if(poi)collected.set(poi.id,poi);
             });
-            const places=[...unique.values()].sort((a,b)=>{
-              const aUnnamed=a.name.indexOf("Unnamed ")===0,bUnnamed=b.name.indexOf("Unnamed ")===0;
-              return Number(aUnnamed)-Number(bUnnamed)||a.distance-b.distance||a.name.localeCompare(b.name);
-            });
-            if(attempt.radius===5000)writeGeoeconPoiCache(cacheKey,places);
-            return {places:places,queryRadiusKm:attempt.radius/1000,strategy:attempt.label,endpoint:new URL(attempt.endpoint).host};
+            largestSuccessfulRadius=stage.radius;
+            const count=collected.size;
+            $("geoecon-local-status").textContent="Found "+count+" mapped places so far. Expanding search from "+(stage.radius/1000)+" km…";
+            // Cache the final full-radius query only. Partial fallback results are
+            // not cached as a 5 km result.
+            if(stage.radius===5000)writeGeoeconPoiCache(cacheKey,[...collected.values()]);
           }catch(error){
             if(requestId!==state.geoeconPoiRequestId)throw error;
-            errors.push((error&&error.message)||String(error));
+            failedStages.push((error&&error.message)||String(error));
+            // If a smaller-radius query already yielded places, keep those useful
+            // results rather than letting a later wide-area 504 erase them.
+            if(collected.size>0)break;
           }finally{
             if(timer)clearTimeout(timer);
             try{controller.abort();}catch(_){}
           }
         }
-        throw new Error("All nearby-place searches failed: "+errors.join(" · "));
+        if(!collected.size){
+          throw new Error("Overpass returned no usable results. "+failedStages.join(" · "));
+        }
+        const places=[...collected.values()].sort((a,b)=>{
+          const aUnnamed=a.name.indexOf("Unnamed ")===0,bUnnamed=b.name.indexOf("Unnamed ")===0;
+          return Number(aUnnamed)-Number(bUnnamed)||a.distance-b.distance||a.name.localeCompare(b.name);
+        });
+        const radiusKm=largestSuccessfulRadius/1000||1;
+        return {
+          places:places,
+          queryRadiusKm:radiusKm,
+          strategy:failedStages.length?"progressive radius fallback; later query failed":"progressive direct Overpass search",
+          endpoint:"overpass-api.de",
+          failedStages:failedStages
+        };
       }
 
       function geoeconPoiIcon(category,selected=false){
