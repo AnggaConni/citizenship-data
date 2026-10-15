@@ -792,8 +792,10 @@
         L.circleMarker([item.lat,item.lon],{radius:10,color:"#fff",weight:3,fillColor:"#8b6fe8",fillOpacity:1})
           .bindPopup('<strong>'+esc(item.name)+'</strong><br>Selected UNESCO Global Geopark').addTo(state.geoeconPoiLayer);
         const bounds=L.latLngBounds([[item.lat,item.lon]]);
+        bounds.extend(radius.getBounds());
         places.slice(0,350).forEach(poi=>{
           const marker=geoeconPoiIcon(poi.category);
+          marker.geoeconPoiId=poi.id;
           marker.setLatLng([poi.lat,poi.lon]);
           marker.bindPopup('<div class="popup-type">'+esc(poi.categoryLabel)+'</div><div class="popup-title">'+esc(poi.name)+'</div><div>'+esc(geoeconDistanceLabel(poi.distance))+' from geopark</div><button type="button" class="geoecon-trigger" data-geoecon-poi-popup="'+esc(poi.id)+'">View place details</button>');
           marker.on("click",()=>selectGeoeconPoi(poi.id,false));
@@ -862,8 +864,9 @@
           state.geoeconMap.setView([poi.lat,poi.lon],Math.max(state.geoeconMap.getZoom(),15),{animate:true});
           if(state.geoeconPoiLayer){
             state.geoeconPoiLayer.eachLayer(layer=>{
-              if(layer.getLatLng&&Math.abs(layer.getLatLng().lat-poi.lat)<1e-6&&Math.abs(layer.getLatLng().lng-poi.lon)<1e-6&&layer.setStyle){
-                layer.setStyle({radius:10,weight:3,fillOpacity:1});
+              if(layer.geoeconPoiId&&layer.setStyle){
+                const active=layer.geoeconPoiId===poi.id;
+                layer.setStyle({radius:active?10:6.5,weight:active?3:1.5,fillOpacity:.96});
               }
             });
           }
@@ -904,6 +907,18 @@
           drawGeoeconMap(item,[]);
         }
       }
+      function geoeconCountryLabel(value){
+        const raw=String(value||"").trim();
+        const codes={
+          "ID":"Indonesia","IDN":"Indonesia","MY":"Malaysia","MYS":"Malaysia","TH":"Thailand","THA":"Thailand",
+          "VN":"Viet Nam","VNM":"Viet Nam","PH":"Philippines","PHL":"Philippines","KH":"Cambodia","KHM":"Cambodia",
+          "LA":"Lao PDR","LAO":"Lao PDR","MM":"Myanmar","MMR":"Myanmar","SG":"Singapore","SGP":"Singapore",
+          "BN":"Brunei Darussalam","BRN":"Brunei Darussalam","TL":"Timor-Leste","TLS":"Timor-Leste",
+          "CN":"China","CHN":"China","JP":"Japan","JPN":"Japan","KR":"Republic of Korea","KOR":"Republic of Korea",
+          "IN":"India","IND":"India","LK":"Sri Lanka","LKA":"Sri Lanka","NP":"Nepal","NPL":"Nepal"
+        };
+        return codes[raw.toUpperCase()]||raw||"Country not identified";
+      }
       async function openGeoeconModal(item){
         if(!item||item.type!=="geopark")return;
         state.selectedGeopark=item;
@@ -914,7 +929,7 @@
         const main=$("geoecon-main");if(main)main.scrollTop=0;
         $("geoecon-title").textContent="Local economy · "+item.name;
         $("geoecon-site-name").textContent=item.name;
-        $("geoecon-site-meta").textContent=[item.country||"Country not specified",item.lat.toFixed(4)+", "+item.lon.toFixed(4),"UNESCO Global Geoparks dataset"].join(" · ");
+        $("geoecon-site-meta").textContent=[geoeconCountryLabel(item.country),item.lat.toFixed(4)+", "+item.lon.toFixed(4),"UNESCO Global Geoparks dataset"].join(" · ");
         $("geoecon-open-source").onclick=()=>window.open("https://www.openstreetmap.org/copyright","_blank","noopener");
         const requestId=++state.geoeconRequestId;
         const poiRequestId=++state.geoeconPoiRequestId;
