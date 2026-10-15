@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: geopark-economic-trade-snapshot
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   refresh:
