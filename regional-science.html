@@ -114,6 +114,21 @@
     .geoecon-national-context p{margin:9px 0}
     .geoecon-national-context a{color:#0872a3;font-weight:800}
     @media(max-width:700px){.geoecon-local-tools{grid-template-columns:1fr}.geoecon-local-list{grid-template-columns:1fr}.geoecon-poi-details-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.geoecon-map-panel #geoecon-map{height:43vh;min-height:320px}}
+
+    .geoecon-popup{width:270px;max-width:calc(100vw - 90px);padding:2px 1px 1px;white-space:normal}
+    .geoecon-popup-kicker{display:flex;align-items:center;gap:7px;color:#62806a;font:850 8px/1.4 Manrope,sans-serif;letter-spacing:.11em;text-transform:uppercase}
+    .geoecon-popup-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#8b6fe8;box-shadow:0 0 0 3px #eee8ff}
+    .geoecon-popup-title{margin:8px 0 6px;color:#1e3d2b;font:800 13px/1.45 Manrope,sans-serif;letter-spacing:-.015em;overflow-wrap:anywhere}
+    .geoecon-popup-country{display:flex;align-items:center;gap:6px;color:#718174;font:600 10px/1.5 Manrope,sans-serif}
+    .geoecon-popup-country i{color:#638d6d}
+    .geoecon-popup-actions{display:flex;align-items:center;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid #edf2e9}
+    .geoecon-popup-source{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:7px 9px;border:1px solid #dce8dc;border-radius:8px;background:#fff;color:#356345!important;font:750 9px/1.2 Manrope,sans-serif;text-decoration:none!important;white-space:nowrap}
+    .geoecon-popup .geoecon-trigger{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:1;min-height:34px;margin:0;padding:8px 10px;border:1px solid #c3e4c9;border-radius:9px;background:#edf9ee;color:#17633a;font:800 10px/1.2 Manrope,sans-serif;white-space:nowrap;box-shadow:none}
+    .geoecon-popup .geoecon-trigger:hover{background:#ddf3e1;border-color:#8bcca0}
+    .geoecon-popup .geoecon-trigger i:last-child{font-size:8px;opacity:.72}
+    .leaflet-popup-content{margin:13px 15px!important}
+    .leaflet-popup-content-wrapper{border-radius:13px!important;box-shadow:0 10px 32px #122a1d30!important}
+    .leaflet-popup-tip{box-shadow:0 5px 12px #122a1d10}
 </style>
 </head>
 <body>
@@ -621,8 +636,9 @@
       function markerFor(item){
         const circle=L.circleMarker([item.lat,item.lon],{radius:item.type==="marine"?6.5:7,color:"#ffffff",weight:1.6,fillColor:DATASETS[item.type].color,fillOpacity:.9});
         const sourceUrl=safeUrl(item.source);
-        const econButton=item.type==="geopark" ? '<button type="button" class="geoecon-trigger" data-geoecon-marker="'+esc(item.id)+'"><i class="fa-solid fa-chart-line"></i> Analyse economy</button>' : '';
-        circle.bindPopup('<div class="popup-type">'+esc(item.kind)+'</div><div class="popup-title">'+esc(item.name)+'</div><div>'+esc(item.country||"Country not specified")+'</div><a class="popup-link" href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Open source record ↗</a>'+econButton);
+        const econButton=item.type==="geopark" ? '<button type="button" class="geoecon-trigger" data-geoecon-marker="'+esc(item.id)+'"><i class="fa-solid fa-chart-line"></i><span>Analyse economy</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></button>' : '';
+        const countryLabel=geoeconCountryLabel(item.country);
+        circle.bindPopup('<div class="geoecon-popup"><div class="geoecon-popup-kicker"><span class="geoecon-popup-dot"></span> UNESCO GLOBAL GEOPARK</div><div class="geoecon-popup-title">'+esc(item.name)+'</div><div class="geoecon-popup-country"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>'+esc(countryLabel)+'</div><div class="geoecon-popup-actions"><a class="geoecon-popup-source" href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Source record <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>'+econButton+'</div></div>',{maxWidth:320,minWidth:250,closeButton:true});
         circle.on("click",()=>selectRecord(item));
         return circle;
       }
@@ -757,25 +773,33 @@
         const query=geoeconOsmQuery(item.lat,item.lon);
         let lastError=null;
         for(const endpoint of GEOECON_OVERPASS_ENDPOINTS){
-          if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
-          const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
-          try{
-            const response=await fetch(endpoint+"?data="+encodeURIComponent(query),{
-              method:"GET",headers:{Accept:"application/json"},signal:controller.signal
-            });
-            if(!response.ok)throw new Error("OpenStreetMap Overpass HTTP "+response.status);
-            const payload=await response.json(),raw=Array.isArray(payload.elements)?payload.elements:[];
-            const unique=new Map();
-            raw.forEach(element=>{
-              const poi=normalizeGeoeconPoi(element,item);
-              if(poi)unique.set(poi.id,poi);
-            });
-            const places=[...unique.values()].sort((a,b)=>a.distance-b.distance||a.name.localeCompare(b.name));
-            writeGeoeconPoiCache(cacheKey,places);
-            return places;
-          }catch(error){
-            lastError=error&&error.name==="AbortError"?new Error("OpenStreetMap search timed out after 32 seconds"):error;
-          }finally{clearTimeout(timer);}
+          for(const method of ["GET","POST"]){
+            if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
+            const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),26000);
+            try{
+              const options=method==="GET"
+                ?{method:"GET",headers:{Accept:"application/json"},signal:controller.signal}
+                :{method:"POST",headers:{Accept:"application/json","Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"data="+encodeURIComponent(query),signal:controller.signal};
+              const requestUrl=method==="GET"?endpoint+"?data="+encodeURIComponent(query):endpoint;
+              const response=await fetch(requestUrl,options);
+              if(!response.ok)throw new Error("Overpass "+method+" HTTP "+response.status+" ("+endpoint+")");
+              const payload=await response.json();
+              if(!payload||!Array.isArray(payload.elements))throw new Error("Overpass returned an unexpected response");
+              const unique=new Map();
+              payload.elements.forEach(element=>{
+                const poi=normalizeGeoeconPoi(element,item);
+                if(poi)unique.set(poi.id,poi);
+              });
+              const places=[...unique.values()].sort((a,b)=>{
+                const aUnnamed=/^Unnamed\b/i.test(a.name),bUnnamed=/^Unnamed\b/i.test(b.name);
+                return Number(aUnnamed)-Number(bUnnamed)||a.distance-b.distance||a.name.localeCompare(b.name);
+              });
+              writeGeoeconPoiCache(cacheKey,places);
+              return places;
+            }catch(error){
+              lastError=error&&error.name==="AbortError"?new Error("OpenStreetMap query timed out"):error;
+            }finally{clearTimeout(timer);}
+          }
         }
         throw lastError||new Error("OpenStreetMap Overpass is unavailable.");
       }
@@ -881,9 +905,10 @@
         state.selectedGeoeconPoiId=null;
         drawGeoeconMap(state.selectedGeopark,places);
         $("geoecon-local-status").className=places.length?"geoecon-status success":"geoecon-status";
+        const namedCount=places.filter(place=>!/^Unnamed\b/i.test(place.name)).length;
         $("geoecon-local-status").textContent=places.length
-          ? "Found "+places.length+" mapped places within 5 km. Named businesses and public places are shown first by distance; missing records are a coverage gap, not proof no business exists."
-          : "No nearby places were returned for this point. Try Refresh places or confirm coverage in OpenStreetMap.";
+          ? "Found "+places.length+" mapped places within 5 km, including "+namedCount+" with a recorded name. Named places are listed first. OpenStreetMap coverage may be incomplete."
+          : "Overpass responded successfully but returned no mapped places within 5 km. Try Refresh places or verify the geopark coordinate.";
         renderGeoeconPoiList();
         renderGeoeconPoiDetail(null);
       }
@@ -964,12 +989,15 @@
         });
         document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("geoecon-modal").classList.contains("is-open"))closeGeoeconModal();});
         $("selected-detail").addEventListener("click",event=>{const button=event.target.closest("#selected-geoecon-trigger");if(button&&state.selected)openGeoeconModal(state.selected);});
-        $("map").addEventListener("click",event=>{
-          const button=event.target.closest("[data-geoecon-marker]");if(!button)return;
+        document.addEventListener("click",event=>{
+          const button=event.target.closest("[data-geoecon-marker]");
+          if(!button)return;
+          event.preventDefault();
+          event.stopPropagation();
           const id=button.getAttribute("data-geoecon-marker");
           const item=state.records.geopark.find(row=>String(row.id)===String(id));
           if(item)openGeoeconModal(item);
-        });
+        },true);
         $("geoecon-local-search").addEventListener("input",renderGeoeconPoiList);
         $("geoecon-local-category").addEventListener("change",renderGeoeconPoiList);
         $("geoecon-refresh-local").addEventListener("click",()=>{
