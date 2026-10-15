@@ -42,25 +42,30 @@ The [Biodiversity Atlas](./biodiversity-atlas.html) is the published-data interf
 
 ### 4. Regional Science Observatory
 
-A Leaflet-based science mapping and recommendation page. It combines public location datasets with research discovery, project search, organization lookup, marine occurrence mapping, and climate context.
+A Leaflet-based regional science mapping and decision-support prototype. It combines open location datasets with research discovery, project/organization lookup, selected-location hydrology and climate context, and a source-linked Evidence Brief Generator.
 
-**Location and environmental sources**
-- **UNESCO DataHub MAB (`mab001`):** biosphere reserve source records and coordinates.
-- **UNESCO Global Geoparks (`eg0001`):** geopark records and available coordinates.
-- **UNESCO Marine Biodiversity by Ocean Area (`ioc001`):** source-provided area-level indicators. IUCN-derived threatened-species fields are intentionally not displayed.
-- **OBIS API:** optional aggregated marine occurrence points, loaded only when the user enables the map layer. Aggregated cells must not be interpreted as individual observations or full catalogue coverage.
-- **NASA POWER monthly API:** optional 2021–2025 meteorological context for a selected map coordinate (temperature, precipitation rate and relative humidity, where valid values are returned). These are gridded estimates, not field measurements, river discharge data or forecasts.
+**Location and environment**
+- **UNESCO DataHub MAB (mab001):** biosphere-reserve source points.
+- **UNESCO Global Geoparks (eg0001):** geopark records and coordinates where supplied.
+- **UNESCO Marine Biodiversity by Ocean Area (ioc001):** area-level marine indicators where usable source coordinates are present. IUCN-derived threatened-species fields are not displayed.
+- **OBIS API:** optional Asia-Pacific marine occurrence points/aggregated cells, loaded on demand. This is a limited sample, not the complete catalogue.
+- **Open-Meteo Flood API / GloFAS:** selected land-point modelled river-discharge series, with recent values and a short forecast. The API's roughly 5 km nearest river cell may not be the river of interest; it is not an official flood warning.
+- **World Bank Indicators API / FAO AQUASTAT:** latest available national freshwater indicators: water stress (`ER.H2O.FWST.ZS`) and renewable internal freshwater resources per capita (`ER.H2O.INTR.PC`). These are national statistics, not site measurements; missing values are not zero.
+- **NASA POWER monthly API:** 2021–2025 gridded meteorological context (temperature, precipitation rate and relative humidity) for selected coordinates; not water availability or river discharge.
 
-**Scientific discovery and collaboration sources**
-- **OpenAlex:** semantic search for publications based on the meaning of a question.
-- **Crossref:** bibliographic metadata and DOI records.
-- **Semantic Scholar:** relevance-ranked paper search, available citation metadata, abstracts and open-access links where supplied. An API key is optional and, if provided, is stored in that browser's local storage only. It is not committed to the repository.
-- **OpenAIRE Graph v3:** research outputs/publications and, in the collaboration finder, project records, research datasets/software and organizations.
-- **ROR API v2:** research organization registry search and organization identifiers.
+**Scientific discovery and relationships**
+- **OpenAlex:** semantic search for works based on the meaning of a question, plus author/institution IDs where source metadata supplies them.
+- **Crossref:** publication metadata, DOI and available author-affiliation data.
+- **Semantic Scholar:** paper search, author/citation metadata and abstracts where available. An optional key is stored only in browser local storage, never in the repository.
+- **OpenAIRE Graph v3:** publications/research outputs, projects, datasets/software and organizations. Related project and organization fields are shown only when supplied in the source response.
+- **ROR API v2:** organization identity lookup. Searches should use a real institution name or acronym, not a research-topic sentence.
 
-The research recommender queries OpenAlex, Crossref, Semantic Scholar and OpenAIRE in parallel, then groups duplicate results by DOI or normalized title where possible. The project/network panel searches OpenAIRE projects and datasets/software or organizations, paired with ROR when searching institutions. API services have independent availability, rate limits, data coverage and schemas; errors from one provider should not remove successful results from others. Browser requests may still be restricted by network or cross-origin policies.
+**Evidence Brief Generator**
+Builds a draft Markdown brief from the currently loaded location, source counts, retrieved publications, research-network results, and available water/climate records. It can download Markdown or use the browser's print dialog for PDF. It explicitly reports unavailable sources and limitations. It is not a systematic review, scientific quality appraisal, causal analysis, scientific consensus statement, or automated policy recommendation.
 
-Coordinates are source points or representative locations, not official boundaries. The observatory provides research discovery, not a systematic review, quality appraisal, scientific consensus, proof of causality, or an automated policy recommendation. Check each original record, methods, licence, and context before relying on it. Source records, article metadata, and map tiles retain their own licences and attribution requirements.
+The recommender queries OpenAlex, Crossref, Semantic Scholar and OpenAIRE in parallel, and groups duplicate works by DOI or normalized title where possible. Browser requests may be restricted by cross-origin policy, upstream rate limits, data coverage or source schema changes. Provider failures should be interpreted as unavailable data, not as evidence that no relevant records exist.
+
+All mapped coordinates are source points or representative locations, not official boundaries. Check the source licence, observation date, indicator year/units, original methodology and local context before scientific or policy use. Modelled river discharge and gridded climate do not replace official basin data, gauge measurements or local authority warnings.
 
 Open the [Regional Science Observatory](./regional-science.html).
 
