@@ -118,7 +118,7 @@
           <div id="research-results" class="research-results results-scroll"></div>
         </section>
         <section class="panel" id="network-panel" aria-labelledby="network-title">
-          <div class="panel-head"><div><h2 id="network-title">Projects, datasets & research institutions</h2><p>Discover related project records and organizations across OpenAIRE Graph and the ROR registry.</p></div><span class="source-count">3 ENDPOINTS</span></div>
+          <div class="panel-head"><div><h2 id="network-title">Projects, datasets & research institutions</h2><p>Discover related project records and organizations across OpenAIRE Graph and the ROR registry. ROR searches organization names and identifiers, so use an institution name or acronym for the best match.</p></div><span class="source-count">3 ENDPOINTS</span></div>
           <label for="network-query" class="stat-label" style="display:block;margin-bottom:7px">Topic or institution name</label>
           <input id="network-query" class="research-input" style="min-height:0;resize:vertical" maxlength="180" value="marine biodiversity and climate resilience" placeholder="e.g. water informatics, marine conservation, geoparks">
           <div class="api-toolbar"><button type="button" class="primary-btn" id="run-projects"><i class="fa-solid fa-diagram-project"></i> Find projects & datasets</button><button type="button" class="secondary-btn" id="run-organizations"><i class="fa-solid fa-building-columns"></i> Find institutions</button></div>
@@ -627,7 +627,7 @@
         const button=$("run-climate");button.disabled=true;
         $("climate-status").textContent="Requesting NASA POWER monthly data for "+point.lat.toFixed(3)+", "+point.lon.toFixed(3)+"…";
         $("climate-results").innerHTML="";
-        const params=new URLSearchParams({parameters:"T2M,PRECTOTCORR,RH2M",community:"AG",longitude:String(point.lon),latitude:String(point.lat),start:"202101",end:"202512",format:"JSON","time-standard":"UTC"});
+        const params=new URLSearchParams({parameters:"T2M,PRECTOTCORR,RH2M",community:"AG",longitude:String(point.lon),latitude:String(point.lat),start:"2021",end:"2025,format:"JSON","time-standard":"UTC"});
         try{
           const data=await apiJSON(NASA_POWER+"?"+params.toString(),null,43200000);
           const values=data.properties&&data.properties.parameter||{};
