@@ -651,7 +651,7 @@
         const endYear=new Date().getUTCFullYear()-1, startYear=endYear-4;
         const params=new URLSearchParams({reporterCode:countryCode,period:Array.from({length:endYear-startYear+1},(_,i)=>String(startYear+i)).join(","),cmdCode:"TOTAL",flowCode:"M",partnerCode:"0",motCode:"0",partner2Code:"0",aggregateBy:"6",breakdownMode:"classic"});
         const url=COMTRADE_API+"?"+params.toString();
-        const data=await apiJSON(url,null,6*60*60*1000);
+        const data=await apiJSON(url,{timeoutMs:45000},6*60*60*1000);
         const rows=Array.isArray(data.data)?data.data:[];
         return {rows:rows,period:(data.query&&data.query.period)||params.get("period"),url:url,elapsed:data.elapsedTime};
       }
@@ -822,21 +822,24 @@
         return "";
       }
       async function apiJSON(url,options,ttlMs){
+        const opts=Object.assign({},options||{});
         const ttl=Number(ttlMs)||900000;
+        const timeoutMs=Number(opts.timeoutMs)||18000;
+        delete opts.timeoutMs;
         const cached=state.apiCache.get(url);
         if(cached&&Date.now()-cached.when<ttl)return cached.data;
         const controller=new AbortController();
-        const timer=setTimeout(()=>controller.abort(),18000);
+        const timer=setTimeout(()=>controller.abort(),timeoutMs);
         try{
-          const req=Object.assign({method:"GET",mode:"cors",credentials:"omit",signal:controller.signal,headers:{"Accept":"application/json"}},options||{});
-          req.headers=Object.assign({"Accept":"application/json"},(options&&options.headers)||{});
+          const req=Object.assign({method:"GET",mode:"cors",credentials:"omit",signal:controller.signal,headers:{"Accept":"application/json"}},opts);
+          req.headers=Object.assign({"Accept":"application/json"},opts.headers||{});
           const response=await fetch(url,req);
           if(!response.ok)throw new Error("HTTP "+response.status);
           const data=await response.json();
           state.apiCache.set(url,{when:Date.now(),data:data});
           return data;
         }catch(error){
-          if(error&&error.name==="AbortError")throw new Error("Request timed out after 18 seconds");
+          if(error&&error.name==="AbortError")throw new Error("Request timed out after "+Math.round(timeoutMs/1000)+" seconds");
           throw error;
         }finally{clearTimeout(timer);}
       }
