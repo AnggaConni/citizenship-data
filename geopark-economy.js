@@ -539,7 +539,7 @@ function renderUnTourismLayer(){
    const valueText=new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(row.value);
    const unitText=row.unit?" "+esc(row.unit):"";
    const sourceUrl="https://www.untourism.int/tourism-statistics/tourism-statistics-database";
-   marker.bindPopup('<div class="potential-popup"><b>'+esc(coordinate.name)+'</b><div>'+esc(row.indicator)+'</div><p><strong>'+esc(valueText)+unitText+'</strong></p><small>Tahun '+esc(row.year)+' · Statistik nasional/area, bukan hitungan pengunjung atraksi.</small><br><a href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Sumber: UN Tourism ↗</a></div>');
+   marker.bindPopup('<div class="potential-popup"><b>'+esc(coordinate.name)+'</b><div>'+esc(row.indicator)+'</div><p><strong>'+esc(valueText)+unitText+'</strong></p><small>Year '+esc(row.year)+' · Statistik nasional/area, bukan hitungan pengunjung atraksi.</small><br><a href="'+sourceUrl+'" target="_blank" rel="noopener noreferrer">Sumber: UN Tourism ↗</a></div>');
    marker.bindTooltip(coordinate.name+": "+valueText,{direction:"top",sticky:true});
    marker.addTo(layer);
   });
@@ -777,7 +777,7 @@ function opportunityScore(opp,terms,pois,marketRows){
  const raw=resourcePoints+tourismPoints+localPoints+tradePoints;
  return {score:Math.min(100,Math.round(raw/104*100)),resourceMatches,localRelevant,tourism,matchedTrade,tourismPoints,localPoints,tradePoints};
 }
-function businessTypeLabel(type){return type==="grow"?"Budidaya":type==="service"?"Jasa":"Produk";}
+function businessTypeLabel(type){return type==="grow"?"Cultivation":type==="service"?"Services":"Product";}
 function renderOpportunityCards(terms,tradeMatches){
  const filter=$("opportunitySelect").value;
  const scored=state.catalog.filter(o=>filter==="auto"||o.id===filter).map(opp=>({...opp,_score:opportunityScore(opp,terms,state.pois,tradeMatches)}));
@@ -791,18 +791,18 @@ function renderOpportunityCards(terms,tradeMatches){
   const reasons=[];
   if(s.resourceMatches.length)reasons.push("cocok kata kunci: "+s.resourceMatches.slice(0,3).join(", "));
   if(s.tourism.length&&s.tourismPoints)reasons.push(s.tourism.length+" tourism attractions within 5 km");
-  if(s.localRelevant.length)reasons.push(s.localRelevant.length+" titik ekosistem lokal terkait");
-  if(s.matchedTrade.length)reasons.push(s.matchedTrade.length+" sinyal impor produk");
+  if(s.localRelevant.length)reasons.push(s.localRelevant.length+" related local ecosystem points");
+  if(s.matchedTrade.length)reasons.push(s.matchedTrade.length+" product import signals");
   const why=reasons.length?reasons.join(" · "):"No specific matching signal was found; field validation is still required.";
-  const tag=opp.business_type==="service"?"Jasa":opp.business_type==="grow"?"Budidaya":"Produk";
-  return '<article class="potential-card"><div class="card-top"><h4>'+(i+1)+". "+esc(opp.title)+'</h4><span class="card-tag">'+esc(tag)+'</span></div><p>'+esc(opp.action_summary||opp.rationale||"Ide untuk diuji secara lokal.")+'</p><p class="card-meta">Kecocokan konteks: <b>'+s.score+'/100</b> · Modal indikatif '+esc(moneyIDR(opp.capital_min_idr))+'–'+esc(moneyIDR(opp.capital_max_idr))+'</p><p>'+esc(why)+'</p><div class="card-actions"><button type="button" data-select-opp="'+esc(opp.id)+'">Telusuri potensi</button><a class="btn" style="min-height:28px;padding:5px 7px;font-size:9px" href="./enterprise.html">Buka SME Finder ↗</a></div></article>';
+  const tag=opp.business_type==="service"?"Services":opp.business_type==="grow"?"Cultivation":"Product";
+  return '<article class="potential-card"><div class="card-top"><h4>'+(i+1)+". "+esc(opp.title)+'</h4><span class="card-tag">'+esc(tag)+'</span></div><p>'+esc(opp.action_summary||opp.rationale||"Ide untuk diuji secara lokal.")+'</p><p class="card-meta">Context fit: <b>'+s.score+'/100</b> · Indicative capital '+esc(moneyIDR(opp.capital_min_idr))+'–'+esc(moneyIDR(opp.capital_max_idr))+'</p><p>'+esc(why)+'</p><div class="card-actions"><button type="button" data-select-opp="'+esc(opp.id)+'">Telusuri potensi</button><a class="btn" style="min-height:28px;padding:5px 7px;font-size:9px" href="https://anggaconni.github.io/GPIR/enterprise.html" target="_blank" rel="noopener">Open SME Finder ↗</a></div></article>';
  }).join("");
  $("opportunityResults").querySelectorAll("[data-select-opp]").forEach(btn=>btn.addEventListener("click",()=>{
   $("opportunitySelect").value=btn.dataset.selectOpp;
   analyzePoint();
  }));
 }
-function moneyIDR(v){if(num(v)==null)return"belum ditentukan";return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v));}
+function moneyIDR(v){if(num(v)==null)return"not specified";return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v));}
 function markerPopup(title,subtitle,source){return '<div class="potential-popup"><b>'+esc(title)+'</b><small>'+esc(subtitle||"")+'</small><br><small>'+esc(source||"")+'</small></div>';}
 function drawLocalMap(terms){
  state.poiLayer.clearLayers();state.linkLayer.clearLayers();state.marketLayer.clearLayers();
@@ -852,16 +852,16 @@ function drawLocalMap(terms){
  $("tourismCount").textContent=allPoints.filter(p=>p.category==="tourism"&&p.distance<5).length;
  $("localCount").textContent=allPoints.filter(p=>p.category!=="tourism"&&p.distance<=5).length;
  $("marketCount").textContent=state.marketSignals.length;
- $("mapSubtitle").textContent=origin.label+" · "+origin.lat.toFixed(4)+", "+origin.lon.toFixed(4)+" · "+allPoints.length+" titik lokal";
+ $("mapSubtitle").textContent=origin.label+" · "+origin.lat.toFixed(4)+", "+origin.lon.toFixed(4)+" · "+allPoints.length+" mapped places";
 }
 function renderLocalCards(){
  const locals=state.pois.filter(p=>p.category==="tourism"&&p.distance<5&&$("showTourism").checked||p.category!=="tourism"&&p.distance<=5&&$("showLocal").checked).sort((a,b)=>a.distance-b.distance).slice(0,12);
- $("localSummary").textContent=locals.length+" titik · radius 5 km";
+ $("localSummary").textContent=locals.length+" points · 5 km radius";
  if(!locals.length){$("localResults").innerHTML='<div class="empty">No mapped points match this radius. This does not prove that other businesses or attractions do not exist.</div>';return;}
  $("localResults").innerHTML=locals.map(p=>{
   const tag=p.category==="tourism"?"tourism":"local";
   const type=poiLabel(p.category);
-  return '<article class="potential-card"><div class="card-top"><h4>'+esc(p.name)+'</h4><span class="card-tag '+tag+'">'+esc(type)+'</span></div><p class="card-meta">'+distanceLabel(p.distance)+' of pin · '+esc(p.source)+'</p><div class="card-actions"><button type="button" data-zoom-poi="'+esc(p.id)+'">Zoom to link</button>'+(p.url?'<a class="btn" style="min-height:28px;padding:5px 7px;font-size:9px" target="_blank" rel="noopener" href="'+esc(p.url)+'">Sumber ↗</a>':"")+'</div></article>';
+  return '<article class="potential-card"><div class="card-top"><h4>'+esc(p.name)+'</h4><span class="card-tag '+tag+'">'+esc(type)+'</span></div><p class="card-meta">'+distanceLabel(p.distance)+' of pin · '+esc(p.source)+'</p><div class="card-actions"><button type="button" data-zoom-poi="'+esc(p.id)+'">Zoom to link</button>'+(p.url?'<a class="btn" style="min-height:28px;padding:5px 7px;font-size:9px" target="_blank" rel="noopener" href="'+esc(p.url)+'">Source ↗</a>':"")+'</div></article>';
  }).join("");
  $("localResults").querySelectorAll("[data-zoom-poi]").forEach(btn=>btn.addEventListener("click",()=>zoomLocalPoi(btn.dataset.zoomPoi)));
 }
@@ -878,7 +878,7 @@ function renderMarketCards(){
  $("marketResults").innerHTML=rows.map((m,i)=>{
   const top=m.topSignal||{},growth=num(top.yoy_growth_pct),value=num(top.latest_import_usd);
   const status=growth!=null&&growth>0?"Import value increased "+growth.toFixed(1)+"% YoY":growth!=null&&growth<0?"Import value decreased "+Math.abs(growth).toFixed(1)+"% YoY":"No readable year-on-year growth signal is available";
-  return '<article class="potential-card"><div class="card-top"><h4>'+esc(m.name)+'</h4><span class="card-tag trade">'+esc(m.iso)+'</span></div><p><b>'+esc(top.product_name||"Produk cocok")+'</b></p><p class="card-meta">'+esc(status)+' · Tahun '+esc(top.latest_year||"—")+'</p><p>Nilai impor dilaporkan: <b>'+esc(compactUSD(value))+'</b>. Ini arus perdagangan nasional, bukan penjualan lokal atau purchase order.</p><p class="card-meta">'+m.signals.length+' observasi cocok · skor sinyal '+Math.round(m.score)+'</p><div class="card-actions"><button type="button" data-zoom-market="'+esc(m.iso)+'">Zoom to link ↗</button></div></article>';
+  return '<article class="potential-card"><div class="card-top"><h4>'+esc(m.name)+'</h4><span class="card-tag trade">'+esc(m.iso)+'</span></div><p><b>'+esc(top.product_name||"Matching product")+'</b></p><p class="card-meta">'+esc(status)+' · Year '+esc(top.latest_year||"—")+'</p><p>Reported import value: <b>'+esc(compactUSD(value))+'</b>. Ini arus perdagangan nasional, bukan penjualan lokal atau purchase order.</p><p class="card-meta">'+m.signals.length+' observasi cocok · skor sinyal '+Math.round(m.score)+'</p><div class="card-actions"><button type="button" data-zoom-market="'+esc(m.iso)+'">Zoom to link ↗</button></div></article>';
  }).join("");
  $("marketResults").querySelectorAll("[data-zoom-market]").forEach(btn=>btn.addEventListener("click",()=>zoomMarket(btn.dataset.zoomMarket)));
 }
@@ -888,6 +888,68 @@ function zoomMarket(iso){
  const m=state.marketSignals.find(x=>x.iso===iso);if(!m||!state.origin)return;
  state.map.fitBounds(L.latLngBounds([[state.origin.lat,state.origin.lon],[m.lat,m.lon]]),{padding:[45,45],maxZoom:6});
 }
+function updateEconomyDashboard(){
+ const places=Array.isArray(state.pois)?state.pois:[];
+ const total=places.length;
+ const isTourism=p=>p.category==="tourism";
+ const isBusiness=p=>["market","food_buyer","retail","supplier","maker","service","institution"].includes(p.category);
+ const within1=places.filter(p=>Number(p.distance)<=1).length;
+ const tourism=places.filter(isTourism);
+ const businesses=places.filter(isBusiness);
+ const categories=new Map();
+ places.forEach(p=>categories.set(p.category,(categories.get(p.category)||0)+1));
+ const categoryLabels={"tourism":"Tourism & culture","market":"Markets","food_buyer":"Food & dining","retail":"Shops & retail","supplier":"Suppliers & agriculture","maker":"Crafts & producers","service":"Services","institution":"Facilities","other":"Other mapped places"};
+ $("dashPoiTotal").textContent=total.toLocaleString("en-US");
+ $("dashTourismTotal").textContent=tourism.length.toLocaleString("en-US");
+ $("dashBusinessTotal").textContent=businesses.length.toLocaleString("en-US");
+ $("dashNearTotal").textContent=within1.toLocaleString("en-US");
+ $("dashCategoryCount").textContent=categories.size.toLocaleString("en-US");
+ $("dashMarketSignals").textContent=state.marketSignals.length.toLocaleString("en-US");
+ const renderBars=(targetId,rows,totalValue)=>{
+  const target=$(targetId);
+  if(!totalValue){target.innerHTML='<div class="empty">No mapped places are available for this calculation.</div>';return;}
+  target.innerHTML=rows.map(([label,count])=>{
+   const share=100*count/totalValue;
+   return '<div class="dashboard-bar-row"><span class="dashboard-bar-label">'+esc(label)+'</span><div class="dashboard-bar-track"><div class="dashboard-bar-fill" style="width:'+Math.max(0,Math.min(100,share)).toFixed(1)+'%"></div></div><span class="dashboard-bar-value">'+share.toFixed(0)+'%</span></div>';
+  }).join("");
+ };
+ renderBars("dashCategoryBars",[...categories.entries()].map(([key,value])=>[categoryLabels[key]||key,value]).sort((a,b)=>b[1]-a[1]),total);
+ const bands=[
+  ["0–1 km",places.filter(p=>p.distance<=1).length],
+  ["1–3 km",places.filter(p=>p.distance>1&&p.distance<=3).length],
+  ["3–5 km",places.filter(p=>p.distance>3&&p.distance<=5.01).length]
+ ];
+ renderBars("dashDistanceBars",bands,total);
+ const nearest=rows=>rows.length?rows.slice().sort((a,b)=>a.distance-b.distance)[0]:null;
+ const nearestTourism=nearest(tourism);
+ const nearestBusiness=nearest(businesses);
+ $("dashNearestTourism").textContent=nearestTourism?nearestTourism.name+" · "+distanceLabel(nearestTourism.distance):"No mapped tourism feature";
+ $("dashNearestBusiness").textContent=nearestBusiness?nearestBusiness.name+" · "+distanceLabel(nearestBusiness.distance):"No mapped business/service";
+ let note=total
+  ? "The map contains "+total+" mapped features within the 5 km search radius. "+businesses.length+" are classified as local businesses, services or suppliers, and "+tourism.length+" as tourism or cultural features."
+  : "No nearby features were returned. This may reflect incomplete map coverage or temporary Overpass service failures; it does not mean the local economy is absent.";
+ if(state.poiFallbackUsed)note+=" A fallback query was used ("+(state.poiSearchStrategy||"reduced query")+") and may return fewer categories than the full query.";
+ note+=" Counts are based on OpenStreetMap tags and are not official business-register statistics.";
+ $("dashEvidenceNote").textContent=note;
+}
+function exportEconomyEvidence(){
+ const rows=state.pois||[];
+ if(!rows.length){setStatus("There are no mapped places to export yet.","error");return;}
+ const headers=["site_or_pin","latitude","longitude","place_id","name","category","distance_km","source","website"];
+ const values=rows.map(p=>[
+  state.origin&&state.origin.label||"",
+  state.origin&&state.origin.lat||"",
+  state.origin&&state.origin.lon||"",
+  p.id,p.name,poiLabel(p.category),Number(p.distance).toFixed(3),p.source||"OpenStreetMap",p.url||""
+ ]);
+ const quote=value=>'"'+String(value==null?"":value).replace(/"/g,'""')+'"';
+ const csv=[headers,...values].map(row=>row.map(quote).join(",")).join("\r\n");
+ const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8;"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="local-economy-evidence-"+new Date().toISOString().slice(0,10)+".csv";
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ setStatus("Exported "+rows.length+" mapped features to CSV.","success");
+}
 function renderAll(terms,matchedRows){
  const selectedFilter=$("marketSelect").value;
  const filteredRows=selectedFilter==="all"?matchedRows:matchedRows.filter(row=>String(row.market_iso3||"").toUpperCase()===selectedFilter);
@@ -896,6 +958,7 @@ function renderAll(terms,matchedRows){
  drawLocalMap(terms);
  renderLocalCards();
  renderMarketCards();
+ updateEconomyDashboard();
  $("dataModePill").textContent=state.dataStatus==="live"?"COMTRADE LIVE":state.dataStatus==="preview"?"COMTRADE PREVIEW":String(state.dataStatus||"TRADE DATA").toUpperCase();
  $("dataModePill").className="pill "+(state.dataStatus==="live"?"green":"gold");
 }
@@ -905,7 +968,7 @@ async function analyzePoint(){
  const terms=buildSearchTerms();state.lastTerms=terms;
  $("analyzeBtn").disabled=true;$("analyzeBtn").textContent="Analysing…";
  setStatus("Searching for mapped features within 5 km and loading relevant import signals…");
- setOverall("Analisis berjalan","gold");
+ setOverall("Analysis in progress","gold");
  const outcomes=await Promise.allSettled([fetchNearby(origin.lat,origin.lon),ensureTradeFeed(),ensureCountryContext()]);
  if(seq!==state.analyzeSequence)return;
  if(outcomes[0].status==="fulfilled")state.pois=outcomes[0].value;
@@ -919,9 +982,9 @@ async function analyzePoint(){
  renderAll(finalTerms,matchedRows);
  const notes=[];
  notes.push(state.pois.length+" mapped features found within a 5 km radius");
- notes.push(state.marketSignals.length+" pasar dengan sinyal cocok");
- if(outcomes[0].status==="rejected")notes.push("peta lokal not available");
- if(outcomes[1].status==="rejected")notes.push("feed perdagangan not available");
+ notes.push(state.marketSignals.length+" markets with matching signals");
+ if(outcomes[0].status==="rejected")notes.push("local map data unavailable");
+ if(outcomes[1].status==="rejected")notes.push("trade feed unavailable");
  if(!finalTerms.length)notes.push("enter a resource to find matching product signals");
  setStatus(notes.join(" · ")+". Check sources and validate buyers before investing.",outcomes[0].status==="fulfilled"?"success":"error");
  setOverall(state.marketSignals.length?"Local and global signals found":"Map analysed · limited market signals",state.marketSignals.length?"green":"gold");
@@ -1011,6 +1074,7 @@ async function init(){
  $("searchLocationBtn").addEventListener("click",searchLocation);
  $("myLocationBtn").addEventListener("click",useMyLocation);
  $("analyzeBtn").addEventListener("click",analyzePoint);
+ $("exportEvidenceBtn").addEventListener("click",exportEconomyEvidence);
  $("clearPointBtn").addEventListener("click",clearOrigin);
  $("zoomLocalBtn").addEventListener("click",zoomLocal);
  $("zoomGlobalBtn").addEventListener("click",zoomGlobal);
