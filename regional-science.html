@@ -801,7 +801,7 @@
           const payload=await apiJSON(FLOOD_API+"?"+params.toString(),null,1800000);
           const daily=payload.daily||{};
           const times=Array.isArray(daily.time)?daily.time:[];
-          const raw=Array.isArray(daily.river_discharge_mean)&&daily.river_discharge_mean.some(v=>v!==null)?daily.river_discharge_mean:(daily.river_discharge||[]);
+          const raw=Array.isArray(daily.river_discharge)&&daily.river_discharge.some(v=>v!==null)?daily.river_discharge:(daily.river_discharge_mean||[]);
           const values=raw.map(v=>v===null||v===undefined?null:Number(v));
           const available=values.filter(v=>v!==null&&Number.isFinite(v)&&v>=0);
           if(!times.length||available.length<2)throw new Error("The model returned insufficient river-grid values for this coordinate.");
@@ -813,7 +813,7 @@
             if(date<=today)latestPast={date:date,value:val};
             if(date>=today&&(!forecastPeak||val>forecastPeak.value))forecastPeak={date:date,value:val};
           });
-          const units=(payload.daily_units&&payload.daily_units.river_discharge_mean)||(payload.daily_units&&payload.daily_units.river_discharge)||"m³/s";
+          const units=(payload.daily_units&&payload.daily_units.river_discharge)||(payload.daily_units&&payload.daily_units.river_discharge_mean)||"m³/s";
           state.waterContext.flood={point:point,available:true,times:times,values:values,units:units,latestPast:latestPast,forecastPeak:forecastPeak,source:"Open-Meteo Flood API / GloFAS",retrievedAt:new Date().toISOString(),gridResolution:"about 5 km"};
           $("hydrology-results").innerHTML='<div class="climate-grid">'+
             '<div class="climate-metric"><span>Latest model value</span><strong>'+esc(latestPast?number(latestPast.value):"—")+' '+esc(units)+'</strong><small>'+esc(latestPast?latestPast.date:"No recent value returned")+'</small></div>'+
