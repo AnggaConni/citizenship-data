@@ -279,6 +279,13 @@
       const FLOOD_API = "https://flood-api.open-meteo.com/v1/flood";
       const WORLD_BANK = "https://api.worldbank.org/v2";
       const SDG_API = "https://unstats.un.org/SDGAPI/v1/sdg";
+      const FISHSTAT_URL = "./data/fishstat-production.json";
+      const TECH_REGISTRY_KEY = "regionalScienceMarineTechRegistryV1";
+      const SDG_COUNTRIES = [
+        ["360","Indonesia"],["116","Cambodia"],["418","Lao People's Democratic Republic"],["458","Malaysia"],["104","Myanmar"],["608","Philippines"],["702","Singapore"],["764","Thailand"],["704","Viet Nam"],["096","Brunei Darussalam"],["626","Timor-Leste"],["156","China"],["392","Japan"],["410","Republic of Korea"],["356","India"],["050","Bangladesh"],["586","Pakistan"],["144","Sri Lanka"],["524","Nepal"],["598","Papua New Guinea"],["242","Fiji"],["036","Australia"],["554","New Zealand"]
+      ];
+      const SDG_INDICATOR_ALLOWLIST = new Set(["6.3.2","6.4.1","6.4.2","6.5.1","6.5.2","6.6.1","13.2.2","14.1.1","14.2.1","14.4.1","14.5.1","14.6.1","14.7.1","14.a.1","17.16.1","17.18.1","17.18.2","17.18.3"]);
+      const GEMSTAT_LAST_NOTICE = "2026-10-07";
       const DATASETS = {
         mab:{id:"mab001",name:"Biosphere reserve",color:"#2e8b5b",max:1500},
         geopark:{id:"eg0001",name:"Global geopark",color:"#8b6fe8",max:600},
@@ -293,14 +300,14 @@
           question:"What evidence and monitoring gaps should be reviewed for water security, hydrological risk, and water-quality management in this location?",
           researchQuery:"Water informatics, hydrological modelling, water security, river discharge, flood and drought risk, water quality monitoring, and integrated water resources management in Asia and the Pacific",
           projectQuery:"water informatics hydrology water quality water security climate resilience",
-          limits:"Already available: modeled river discharge, national freshwater indicators, and gridded meteorology. These are not local gauge measurements or water-quality samples. GEMStat data access and reuse conditions can vary by provider.",
+          limits:"Already available: modeled river discharge, national freshwater indicators and gridded meteorology. These are not local gauge measurements or water-quality samples. GEMStat reports a service-outage notice dated 7 October 2026; use only its open-license subset unless separate permission is confirmed.",
           sources:[
             {label:"Open-Meteo Flood API",url:"https://open-meteo.com/en/docs/flood-api",note:"Modeled river discharge; roughly 5 km grid, not an official warning."},
             {label:"UNEP GEMS/Water · GEMStat",url:"https://gemstat.org/data-gemstat/",note:"Water-quality data portal; station and parameter coverage varies."},
             {label:"FAO SDG 6.4.2 · Water stress",url:"https://www.fao.org/sustainable-development-goals-data-portal/data/indicators/642-water-stress/",note:"Official national water-stress indicator and methodology."},
             {label:"UN-Water · SDG 6 monitoring",url:"https://www.unwater.org/our-work/sdg-6-integrated-monitoring-initiative/indicator-642-level-water-stress-freshwater",note:"Indicator interpretation and monitoring guidance."}
           ],
-          actions:[["research","Search water research","fa-book-open"],["projects","Find water projects & datasets","fa-diagram-project"],["water","Load water & climate","fa-water"]]
+          actions:[["research","Search water research","fa-book-open"],["projects","Find water projects & datasets","fa-diagram-project"],["water","Load water & climate","fa-water"],["gemstat","Check GEMStat source access","fa-flask"]]
         },
         marineTech: {
           title:"Marine Technology Transfer",
@@ -309,14 +316,14 @@
           question:"Which ocean-observing technologies, institutional capabilities, and capacity-development needs could support the selected marine or coastal challenge?",
           researchQuery:"Marine technology transfer, ocean observing systems, marine sensors, interoperable ocean data infrastructure, ocean science capacity development, and technology needs assessment",
           projectQuery:"marine technology transfer ocean observing technology capacity development ocean data infrastructure",
-          limits:"The application can discover publications, projects, datasets and software records. It does not yet have a verified inventory of available equipment, procurement status, technology owners willing to transfer it, or confirmed recipient needs. Search results are leads for follow-up, not a technology-transfer match confirmed by the parties.",
+          limits:"The application discovers publications, projects, datasets and software, and includes a manually curated local lead register. It does not itself verify the ownership, readiness, procurement status, willingness to transfer, licensing or recipient needs of a technology; those fields must be confirmed by a human reviewer.",
           sources:[
             {label:"IOC-UNESCO",url:"https://www.ioc.unesco.org/en",note:"Official marine science and ocean knowledge programmes."},
             {label:"Global Ocean Observing System (GOOS)",url:"https://goosocean.org/",note:"Ocean-observing networks, requirements and coordination."},
             {label:"UN Ocean Decade",url:"https://oceandecade.org/",note:"Ocean science initiatives and collaboration opportunities."},
             {label:"OpenAIRE Graph",url:"https://graph.openaire.eu/",note:"Searchable research outputs, projects and research products."}
           ],
-          actions:[["research","Search marine technology research","fa-book-open"],["projects","Find projects, datasets & software","fa-diagram-project"]]
+          actions:[["research","Search marine technology research","fa-book-open"],["projects","Find projects, datasets & software","fa-diagram-project"],["tech","Open technology lead register","fa-satellite-dish"]]
         },
         marineSeafood: {
           title:"Marine Biodiversity & Seafood Security",
@@ -325,14 +332,14 @@
           question:"What evidence connects marine biodiversity observations, fisheries or aquaculture trends, and seafood security for this coastal region?",
           researchQuery:"Marine biodiversity, sustainable fisheries, fish stocks, aquaculture, seafood security, food systems, and coastal livelihoods in Asia and the Pacific",
           projectQuery:"marine biodiversity sustainable fisheries aquaculture seafood security fisheries data ocean observation",
-          limits:"OBIS observations show reported occurrences, not population abundance, fish-stock health, catch sustainability, or household food security. FAO/FAOSTAT statistics are external reference sources in this version; a validated live FAO fisheries-series connector has not yet been implemented.",
+          limits:"OBIS records show reported occurrences, not abundance, fish-stock health, sustainable catch or household food security. This version adds an FAO FishStat country-year production series, in tonnes live weight, for capture production and aquaculture. Production is not a direct measure of seafood availability or food security.",
           sources:[
             {label:"Ocean Biodiversity Information System (OBIS)",url:"https://obis.org/",note:"Marine species occurrence records and biodiversity discovery."},
             {label:"OBIS API",url:"https://api.obis.org/",note:"Public API documentation and data-access entry point."},
             {label:"FAOSTAT",url:"https://www.fao.org/faostat/en/",note:"National and global food and agriculture statistics, including fisheries-related domains where available."},
             {label:"FAO Fisheries statistics",url:"https://www.fao.org/fishery/en/statistics",note:"Official fishery and aquaculture statistical resources."}
           ],
-          actions:[["research","Search biodiversity & seafood research","fa-book-open"],["projects","Find related projects & datasets","fa-diagram-project"],["obis","Load OBIS marine observations","fa-fish"]]
+          actions:[["research","Search biodiversity & seafood research","fa-book-open"],["projects","Find related projects & datasets","fa-diagram-project"],["obis","Load OBIS marine observations","fa-fish"],["fishstat","View FAO production series","fa-chart-line"]]
         },
         governance: {
           title:"Water & Environmental Governance for SDGs",
@@ -341,17 +348,17 @@
           question:"What scientific evidence, official SDG indicators, governance arrangements, and data gaps should be reviewed before shaping an environmental or water policy for this location?",
           researchQuery:"Water governance, environmental governance, science-policy interface, evidence-informed policy, SDG 6, SDG 14, SDG 13, implementation case studies, and sustainability indicators",
           projectQuery:"water governance environmental governance sustainable development goals evidence-based policy",
-          limits:"This mode retrieves research and project records and loads official SDG goal metadata. It does not automatically calculate SDG progress, evaluate policy effectiveness, or fetch all indicator values. Use the official UN database and check the custodian agency, disaggregation, methods and reference year before comparing countries.",
+          limits:"This mode loads official UNSD goal/indicator/series metadata and lets users request reported observations for a selected series and country/area. Coverage, dimensions, reporting years and units vary; it does not calculate an SDG score or evaluate policy effectiveness. Check the custodian methodology before cross-country comparison.",
           sources:[
             {label:"UNSD SDG Global Database",url:"https://unstats.un.org/sdgs/dataportal/database",note:"Official indicator observations and national reporting."},
             {label:"UNSD SDG API documentation",url:"https://unstats.un.org/SDGAPI/swagger/",note:"Official API for SDG metadata and observation services."},
             {label:"UN SDG Goals and targets",url:"https://sdgs.un.org/goals",note:"Official goal, target and indicator framework."},
             {label:"FAO · SDG 6.4.2 water stress",url:"https://www.fao.org/sustainable-development-goals-data-portal/data/indicators/642-water-stress/",note:"Custodian source for the water-stress indicator."}
           ],
-          actions:[["research","Search policy and governance evidence","fa-book-open"],["projects","Find governance projects & datasets","fa-diagram-project"],["sdg","Load official SDG goal metadata","fa-list-check"]]
+          actions:[["research","Search policy and governance evidence","fa-book-open"],["projects","Find governance projects & datasets","fa-diagram-project"],["sdg","Load official SDG indicators","fa-list-check"]]
         }
       };
-      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgLoaded:false,sdgBusy:false,evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
+      const state = {map:null,records:{mab:[],geopark:[],marine:[],obis:[]},layers:{},selected:null,selectedTheme:"water",researchResults:[],networkResults:[],waterContext:{},sdgGoals:[],sdgSeries:[],sdgObservations:[],sdgLoaded:false,sdgBusy:false,sdgDataBusy:false,sdgObservationFetched:false,sdgSelectedSeries:null,sdgCountryName:"Indonesia",fishstatDataset:null,fishstatBusy:false,techRegistry:[],evidenceBriefMarkdown:"",busy:false,networkBusy:false,climateBusy:false,waterBusy:false,obisLoaded:false,apiCache:new Map()};
       const $ = id => document.getElementById(id);
       const number = value => Number(value||0).toLocaleString();
       const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
@@ -1048,6 +1055,9 @@
         const sources=theme.sources.map(source=>'<a class="theme-source" href="'+safeUrl(source.url)+'" target="_blank" rel="noopener noreferrer"><strong>'+esc(source.label)+' ↗</strong><span>'+esc(source.note)+'</span></a>').join("");
         const actions=theme.actions.map(action=>'<button type="button" class="theme-action-btn" data-theme-action="'+esc(action[0])+'"><i class="fa-solid '+esc(action[2])+'"></i> '+esc(action[1])+'</button>').join("");
         $("theme-detail").innerHTML='<div><div class="theme-short">'+esc(theme.short)+'</div><h3>'+esc(theme.title)+'</h3><p>'+esc(theme.description)+'</p><div class="theme-boundary"><strong>What this version can support:</strong> '+esc(theme.limits)+'</div><div class="theme-actions">'+actions+'</div></div><div class="theme-side"><div class="stat-label" style="margin-bottom:7px">Relevant sources and tools</div><div class="theme-sources">'+sources+'</div></div>';
+        $("gemstat-panel").hidden=key!=="water";
+        $("fishstat-panel").hidden=key!=="marineSeafood";
+        $("marine-tech-registry").hidden=key!=="marineTech";
         $("sdg-framework").hidden=key!=="governance";
       }
       function selectTheme(key){
@@ -1059,6 +1069,8 @@
         $("brief-question").value=theme.question;
         renderThemePanel(key);
         if(key==="governance")loadSDGFramework();
+        else if(key==="marineSeafood")loadFishStatDataset();
+        else if(key==="marineTech")loadTechnologyRegistry();
       }
       async function loadSDGFramework(){
         if(state.sdgBusy)return;
