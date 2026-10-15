@@ -56,5 +56,9 @@ jobs:
             echo "FishStat series is unchanged; no commit needed."
           else
             git commit -m "Refresh FAO FishStat production series"
-            git push
+            # Other commits to main can arrive while the source ZIP is downloading.
+            # Rebase this generated-data commit on the latest main before pushing.
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
           fi
