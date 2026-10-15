@@ -863,6 +863,107 @@
           button.innerHTML='<i class="fa-solid fa-water"></i> Water & climate';
         }
       }
+      function briefText(value){
+        return String(value==null?"":value).replace(/\r/g," ").replace(/\n+/g," ").replace(/\|/g,"\\|").trim();
+      }
+      function markdownLink(label,url){
+        return "["+briefText(label).replace(/\]/g,"\\]")+"]("+safeUrl(url)+")";
+      }
+      function generateEvidenceBrief(){
+        const selected=state.selected;
+        const question=$("brief-question").value.trim()||"No decision question supplied.";
+        const date=new Date().toISOString().slice(0,10);
+        const lines=["# Regional Science Intelligence — Evidence Brief","","**Prepared:** "+date+" (UTC)","**Status:** Exploratory source-linked draft; human review required.","","## 1. Decision question","",question,"","## 2. Selected location",""];
+        if(selected){
+          lines.push("- **Feature:** "+briefText(selected.name)+" ("+briefText(selected.kind)+")");
+          lines.push("- **Country/area:** "+(briefText(selected.country)||"Not supplied"));
+          lines.push("- **Coordinates:** "+selected.lat.toFixed(5)+", "+selected.lon.toFixed(5));
+          if(selected.countryCode)lines.push("- **Source country code:** "+briefText(selected.countryCode));
+          lines.push("- **Original record:** "+markdownLink("Open source",selected.source||"https://data.unesco.org/"));
+          if(selected.description)lines.push("- **Description:** "+briefText(selected.description).slice(0,600));
+        }else lines.push("No map location selected; this brief is not site-specific.");
+        lines.push("","## 3. Spatial evidence coverage","");
+        [["mab","UNESCO MAB biosphere-reserve points"],["geopark","UNESCO Global Geopark points"],["marine","UNESCO marine-indicator points"],["obis","OBIS marine occurrence points"]].forEach(([key,label])=>{
+          const loaded=key!=="obis"||state.obisLoaded;
+          lines.push("- **"+label+":** "+(loaded?number((state.records[key]||[]).length)+" mapped records loaded":"not loaded in this session")+". Counts describe this interface's retrieved records, not full source coverage.");
+        });
+        lines.push("","## 4. Scientific publications","");
+        if(state.researchResults.length){
+          state.researchResults.slice(0,15).forEach((work,i)=>{
+            lines.push((i+1)+". **"+briefText(work.title||"Untitled work")+"**"+(work.year?" ("+work.year+")":""));
+            lines.push("   - Authors: "+briefText(work.authors||"Not supplied")+"; sources: "+briefText((work.sources||[work.source]).filter(Boolean).join(", ")));
+            if(work.doi)lines.push("   - DOI: "+markdownLink(work.doi,"https://doi.org/"+String(work.doi).replace(/^https?:\/\/doi\.org\//i,"")));
+            else if(work.url)lines.push("   - Record: "+markdownLink("Open publication",work.url));
+            const inst=(work.relationships&&work.relationships.institutions||[]).map(x=>x.name).filter(Boolean);
+            const projects=(work.relationships&&work.relationships.projects||[]).map(x=>x.name).filter(Boolean);
+            if(inst.length)lines.push("   - Institutions reported by metadata: "+briefText(inst.slice(0,5).join("; ")));
+            if(projects.length)lines.push("   - Related projects reported by metadata: "+briefText(projects.slice(0,5).join("; ")));
+          });
+        }else lines.push("No research results loaded. Run the multi-source recommender and rebuild this brief.");
+        lines.push("","## 5. Projects, datasets, software and institutions","");
+        if(state.networkResults.length){
+          state.networkResults.slice(0,15).forEach((item,i)=>{
+            lines.push((i+1)+". **"+briefText(item.title||"Research record")+"** — "+briefText(item.source||"source not supplied"));
+            if(item.meta)lines.push("   - Metadata: "+briefText(item.meta));
+            if(item.url)lines.push("   - "+markdownLink("Open source record",item.url));
+            if(item.description)lines.push("   - Description excerpt: "+briefText(item.description).slice(0,280));
+          });
+        }else lines.push("No network search results loaded. Use the projects/institutions panel and rebuild.");
+        lines.push("","## 6. Hydrology, water security and climate","");
+        const flood=state.waterContext.flood;
+        if(flood&&flood.available){
+          lines.push("- **Modeled river discharge:** latest returned value "+(flood.latestPast?number(flood.latestPast.value)+" "+briefText(flood.units)+" on "+flood.latestPast.date:"not available")+"; highest value on current/future series "+(flood.forecastPeak?number(flood.forecastPeak.value)+" "+briefText(flood.units)+" on "+flood.forecastPeak.date:"not available")+".");
+          lines.push("- **Source:** "+markdownLink("Open-Meteo Flood API / GloFAS","https://open-meteo.com/en/docs/flood-api")+". Approximately 5 km grid; nearest cell may not be the river of interest. Not an official warning.");
+        }else lines.push("- **Modeled river discharge:** "+(flood?("unavailable — "+briefText(flood.reason||"no usable data")):"not queried in this session")+".");
+        const wi=state.waterContext.waterIndicators;
+        if(wi&&wi.available){
+          lines.push("- **Country-level water stress:** "+(wi.waterStress?number(wi.waterStress.value)+"% (year "+wi.waterStress.year+")":"not available")+".");
+          lines.push("- **Renewable internal freshwater resources per capita:** "+(wi.resourcesPerCapita?number(wi.resourcesPerCapita.value)+" m³/person/year (year "+wi.resourcesPerCapita.year+")":"not available")+".");
+          lines.push("- **Source:** "+markdownLink("World Bank Indicators API / FAO AQUASTAT","https://api.worldbank.org/")+". National indicators, not site measurements; indicator years can differ.");
+        }else lines.push("- **Country indicators:** "+(wi?("unavailable — "+briefText(wi.reason||"country/value not resolved")):"not queried in this session")+".");
+        const climate=state.waterContext.climate;
+        if(climate&&climate.temperature){
+          lines.push("- **NASA POWER monthly context, 2021–2025:** mean temperature "+(climate.temperature?climate.temperature.mean.toFixed(1)+" °C":"n/a")+", precipitation rate "+(climate.precipitation?climate.precipitation.mean.toFixed(1)+" mm/day":"n/a")+", relative humidity "+(climate.humidity?climate.humidity.mean.toFixed(1)+"%":"n/a")+".");
+          lines.push("- **Source:** "+markdownLink("NASA POWER","https://power.larc.nasa.gov/")+". Gridded meteorological estimates, not water availability or discharge.");
+        }else lines.push("- **NASA POWER:** "+(climate?("unavailable — "+briefText(climate.reason||"no usable values")):"not queried in this session")+".");
+        lines.push("","## 7. Evidence interpretation and gaps","");
+        lines.push("- Search relevance, citation counts and access labels are retrieval metadata, not measures of methodological quality or policy effectiveness.");
+        lines.push("- This is not a systematic review, scientific consensus statement, causal analysis, or automated policy recommendation.");
+        lines.push("- Verify geographies, indicator dates/units, source licences and original records before reuse.");
+        lines.push("- Compare modeled discharge with official gauges, basin-authority data and local flood/drought bulletins. Do not use this prototype for emergency decisions.");
+        lines.push("- Engage local experts, relevant authorities and Indigenous/local knowledge holders before selecting an intervention.");
+        lines.push("","## 8. Suggested next checks (not policy recommendations)","");
+        lines.push("1. Confirm location and geographic scale.");
+        lines.push("2. Review methods and limitations of the most relevant publications.");
+        lines.push("3. Compare models and national statistics with local measurements and authoritative reports.");
+        lines.push("4. Define baselines, outcome indicators, data owners and monitoring frequency before implementation.");
+        lines.push("","## 9. Source register","");
+        lines.push("- "+markdownLink("UNESCO DataHub MAB","https://data.unesco.org/explore/dataset/mab001/information/")+" · "+markdownLink("Global Geoparks","https://data.unesco.org/explore/dataset/eg0001/")+" · "+markdownLink("Marine indicators","https://data.unesco.org/explore/dataset/ioc001/"));
+        lines.push("- "+markdownLink("OpenAlex","https://openalex.org/")+" · "+markdownLink("Crossref","https://www.crossref.org/")+" · "+markdownLink("Semantic Scholar","https://www.semanticscholar.org/")+" · "+markdownLink("OpenAIRE Graph","https://graph.openaire.eu/"));
+        lines.push("- "+markdownLink("ROR","https://ror.org/")+" · "+markdownLink("OBIS","https://obis.org/")+" · "+markdownLink("World Bank","https://api.worldbank.org/")+" · "+markdownLink("NASA POWER","https://power.larc.nasa.gov/"));
+        lines.push("","---","Generated automatically from the independent Regional Science Observatory on "+date+". All scientific, environmental and institutional conclusions require human review.");
+        state.evidenceBriefMarkdown=lines.join("\n");
+        $("brief-preview").textContent=state.evidenceBriefMarkdown;
+        $("download-brief").disabled=false;
+        $("print-brief").disabled=false;
+        $("brief-status").textContent="Draft generated from currently loaded sources. Check citations, scope and limitations before sharing.";
+        return state.evidenceBriefMarkdown;
+      }
+      function downloadEvidenceBrief(){
+        if(!state.evidenceBriefMarkdown)generateEvidenceBrief();
+        const blob=new Blob([state.evidenceBriefMarkdown],{type:"text/markdown;charset=utf-8"});
+        const url=URL.createObjectURL(blob);
+        const link=document.createElement("a");
+        link.href=url;
+        link.download="regional-science-evidence-brief-"+new Date().toISOString().slice(0,10)+".md";
+        document.body.appendChild(link);link.click();link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }
+      function printEvidenceBrief(){
+        if(!state.evidenceBriefMarkdown)generateEvidenceBrief();
+        window.print();
+      }
+
       async function loadObisLayer(){
         if(state.obisLoaded){renderLayer("obis");return;}
         $("count-obis").textContent="Loading…";
