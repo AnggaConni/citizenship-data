@@ -1,0 +1,60 @@
+name: Refresh FAO FishStat production series
+
+on:
+  push:
+    paths:
+      - ".github/workflows/fishstat-production.yml"
+      - "scripts/build_fishstat_production.py"
+      - "tests/test_fishstat_production.py"
+  schedule:
+    - cron: "15 5 5 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fishstat-production-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test FishStat processing helpers
+        run: python -m unittest tests.test_fishstat_production -v
+      - name: Download the official FAO release and build a compact static series
+        run: python scripts/build_fishstat_production.py --output data/fishstat-production.json --start-year 2000
+      - name: Validate generated output and commit updates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("data/fishstat-production.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          meta = payload.get("metadata", {})
+          rows = payload.get("records", [])
+          if meta.get("status") != "ready" or not rows:
+              raise SystemExit("FishStat output is not ready or contains no country-year rows.")
+          required = {"countryCode", "countryName", "year", "source", "unit", "value"}
+          missing = sorted(required - set(rows[0]))
+          if missing:
+              raise SystemExit("FishStat output is missing required fields: " + ", ".join(missing))
+          print(f"Validated {len(rows)} rows, {meta.get('countries')} countries, years {meta.get('startYear')}–{meta.get('endYear')}, release {meta.get('release')}.")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/fishstat-production.json
+          if git diff --cached --quiet; then
+            echo "FishStat series is unchanged; no commit needed."
+          else
+            git commit -m "Refresh FAO FishStat production series"
+            git push
+          fi
