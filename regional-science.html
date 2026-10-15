@@ -725,7 +725,7 @@
       }
       function geoeconOsmQuery(lat,lon){
         const around="around:"+GEOECON_RADIUS_METRES+","+lat+","+lon;
-        return '[out:json][timeout:12];('+
+        return '[out:json][timeout:8];('+
           'nwr('+around+')["name"]["tourism"~"attraction|museum|gallery|viewpoint|hotel|guest_house|hostel|camp_site"];'+
           'nwr('+around+')["name"]["historic"~"monument|memorial|ruins|castle|archaeological_site"];'+
           'nwr('+around+')["name"]["shop"];'+
@@ -777,7 +777,7 @@
         let lastError=null;
         for(const endpoint of endpoints){
           if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
-          const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),14000);
+          const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);
           try{
             const response=await fetch(endpoint+"?data="+encodeURIComponent(query),{
               method:"GET",headers:{Accept:"application/json"},signal:controller.signal,cache:"no-store"
@@ -797,7 +797,7 @@
             writeGeoeconPoiCache(cacheKey,places);
             return places;
           }catch(error){
-            lastError=error&&error.name==="AbortError"?new Error("Overpass timed out after 14 seconds"):error;
+            lastError=error&&error.name==="AbortError"?new Error("Overpass timed out after 9 seconds"):error;
           }finally{clearTimeout(timer);}
         }
         throw lastError||new Error("All public Overpass endpoints are unavailable.");
@@ -928,7 +928,7 @@
           $("geoecon-local-status").className="geoecon-status error";
           $("geoecon-local-status").textContent="Could not load nearby OpenStreetMap places: "+String(error.message||error)+". The geopark point and radius remain visible; try Refresh places later.";
           $("geoecon-local-list").innerHTML='<div class="geoecon-status error">Overpass may be busy or the location may have incomplete mapping. Refresh the search to retry another public endpoint.</div>';
-          drawGeoeconMap(item,[]);
+          try{if(state.geoeconMap)drawGeoeconMap(item,[]);}catch(drawError){console.warn("Unable to redraw geopark marker after POI search failure",drawError);}
         }
       }
       function geoeconCountryLabel(value){
@@ -967,7 +967,6 @@
         renderGeoeconPoiDetail(null);
         $("geoecon-local-search").value="";
         $("geoecon-local-category").value="all";
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         if(poiRequestId!==state.geoeconPoiRequestId)return;
         try{
           if(!window.L)throw new Error("Leaflet did not load; refresh the page and try again.");
@@ -989,10 +988,16 @@
           setTimeout(()=>{if(state.geoeconMap)state.geoeconMap.invalidateSize();},250);
         }catch(error){
           console.error("Geopark local map initialization failed",error);
-          $("geoecon-map-count").textContent="Map initialization failed";
+          if(state.geoeconMap){try{state.geoeconMap.remove();}catch(_){}state.geoeconMap=null;state.geoeconPoiLayer=null;}
+          const lat=Number(item.lat),lon=Number(item.lon);
+          const bbox=[lon-.08,lat-.055,lon+.08,lat+.055].map(value=>Number(value).toFixed(5)).join("%2C");
+          const fallbackUrl="https://www.openstreetmap.org/export/embed.html?bbox="+bbox+"&layer=mapnik&marker="+encodeURIComponent(lat+","+lon);
+          $("geoecon-map").innerHTML='<iframe title="OpenStreetMap map around '+esc(item.name)+'" src="'+fallbackUrl+'" loading="eager" referrerpolicy="no-referrer-when-downgrade" style="display:block;width:100%;height:100%;min-height:350px;border:0" allowfullscreen></iframe>';
+          $("geoecon-map-count").textContent="Fallback location map";
           $("geoecon-local-status").className="geoecon-status error";
-          $("geoecon-local-status").textContent="Map setup failed: "+String(error.message||error);
-          $("geoecon-local-list").innerHTML='<div class="geoecon-status error">The map could not be initialized. Reload the page after checking network access to Leaflet and map tiles.</div>';
+          $("geoecon-local-status").textContent="The interactive map could not initialize ("+String(error.message||error)+"). A location map is shown instead; business search can still be attempted.";
+          // Still attempt the local places lookup, but don't try to draw extra markers over the iframe.
+          await loadGeoeconLocalPois(item,poiRequestId,false);
           return;
         }
         await loadGeoeconLocalPois(item,poiRequestId,false);
