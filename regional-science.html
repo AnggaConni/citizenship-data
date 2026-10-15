@@ -555,6 +555,20 @@
       }
       function setMapStatus(text){$("map-status").textContent=text;}
       function setDatasetStatus(text){$("data-status").textContent=text;}
+      function geoeconCountryLabel(value){
+        const raw=String(value||"").trim();
+        const codes={
+          "ID":"Indonesia","IDN":"Indonesia","MY":"Malaysia","MYS":"Malaysia",
+          "TH":"Thailand","THA":"Thailand","PH":"Philippines","PHL":"Philippines",
+          "VN":"Vietnam","VNM":"Vietnam","KH":"Cambodia","KHM":"Cambodia",
+          "LA":"Lao PDR","LAO":"Lao PDR","MM":"Myanmar","MMR":"Myanmar",
+          "SG":"Singapore","SGP":"Singapore","BN":"Brunei Darussalam","BRN":"Brunei Darussalam",
+          "TL":"Timor-Leste","TLS":"Timor-Leste","CN":"China","CHN":"China",
+          "JP":"Japan","JPN":"Japan","KR":"South Korea","KOR":"South Korea",
+          "AU":"Australia","AUS":"Australia","NZ":"New Zealand","NZL":"New Zealand"
+        };
+        return codes[raw.toUpperCase()]||raw||"Country not identified";
+      }
       function markerFor(item){
         const circle=L.circleMarker([item.lat,item.lon],{radius:item.type==="marine"?6.5:7,color:"#ffffff",weight:1.6,fillColor:DATASETS[item.type].color,fillOpacity:.9});
         const sourceUrl=safeUrl(item.source);
