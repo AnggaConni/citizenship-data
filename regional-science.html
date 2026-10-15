@@ -735,6 +735,17 @@
           ');out center tags;';
       }
 
+      function geoeconOsmQueryCompact(lat,lon,radius){
+        const around="around:"+Number(radius||3000)+","+lat+","+lon;
+        return '[out:json][timeout:16];('+
+          'nwr('+around+')["name"]["tourism"~"attraction|museum|gallery|viewpoint|hotel|guest_house|hostel|camp_site"];'+
+          'nwr('+around+')["name"]["amenity"~"marketplace|restaurant|cafe|fast_food|food_court|bakery|hotel|guest_house|hostel"];'+
+          'nwr('+around+')["name"]["shop"];'+
+          'nwr('+around+')["name"]["craft"];'+
+          'nwr('+around+')["name"]["historic"~"monument|memorial|ruins|archaeological_site"];'+
+          ');out center tags;';
+      }
+
       function normalizeGeoeconPoi(element,item){
         const tags=element.tags||{};
         const lat=Number(element.lat!=null?element.lat:element.center&&element.center.lat);
@@ -771,10 +782,8 @@
 async function requestGeoeconPois(item,requestId){
         const cacheKey=geoeconPoiCacheKey(item);
         const cached=readGeoeconPoiCache(cacheKey);
-        if(cached)return {places:cached,queryRadiusKm:5,strategy:"cached GPIR-style results",endpoint:"session cache"};
+        if(cached)return {places:cached,queryRadiusKm:5,strategy:"session cache",endpoint:"session cache"};
 
-        // This is intentionally the same request pattern as GPIR's fetchNearby():
-        // one query to the same endpoint, with a 1.2 second request throttle.
         const gpirCacheKey="gpir:potential-pois:v1:"+Number(item.lat).toFixed(3)+":"+Number(item.lon).toFixed(3);
         try{
           const gpirCached=JSON.parse(sessionStorage.getItem(gpirCacheKey)||"null");
@@ -782,61 +791,79 @@ async function requestGeoeconPois(item,requestId){
             const places=gpirCached.data.map(row=>{
               const parts=String(row.id||"node/0").split("/");
               return normalizeGeoeconPoi({
-                type:parts[0]||"node",
-                id:parts.slice(1).join("/")||"0",
+                type:parts[0]||"node",id:parts.slice(1).join("/")||"0",
                 lat:row.lat,lon:row.lon,tags:row.tags||{}
               },item);
             }).filter(Boolean);
             if(places.length){
               writeGeoeconPoiCache(cacheKey,places);
-              return {places:places,queryRadiusKm:5,strategy:"reused GPIR session cache",endpoint:"session cache"};
+              return {places,queryRadiusKm:5,strategy:"reused GPIR session cache",endpoint:"session cache"};
             }
           }
         }catch(_){}
 
-        if(Date.now()-state.lastOverpassAt<1200){
-          await new Promise(resolve=>setTimeout(resolve,1200-(Date.now()-state.lastOverpassAt)));
-        }
-        state.lastOverpassAt=Date.now();
-
-        const endpoint="https://overpass-api.de/api/interpreter";
-        const query=geoeconOsmQuery(item.lat,item.lon);
-        const controller=new AbortController();
-        let timer=null;
-        try{
-          const fetchPromise=fetch(endpoint+"?data="+encodeURIComponent(query),{
-            headers:{Accept:"application/json"},
-            signal:controller.signal,
-            cache:"no-store"
-          }).then(async response=>{
-            if(!response.ok)throw new Error("Overpass HTTP "+response.status);
-            const payload=await response.json();
-            if(!payload||!Array.isArray(payload.elements))throw new Error("Unexpected Overpass response");
-            return payload;
-          });
-          const timeoutPromise=new Promise((_,reject)=>{
-            timer=setTimeout(()=>{
+        const attempts=[
+          {radius:5,query:(lat,lon)=>geoeconOsmQuery(lat,lon),label:"full 5 km query"},
+          {radius:3,query:(lat,lon)=>geoeconOsmQueryCompact(lat,lon,3000),label:"compact 3 km fallback"},
+          {radius:5,query:(lat,lon)=>geoeconOsmQueryCompact(lat,lon,5000),label:"compact 5 km fallback"}
+        ];
+        const endpoints=[
+          "https://overpass-api.de/api/interpreter",
+          "https://overpass.kumi.systems/api/interpreter"
+        ];
+        let lastError=null;
+        for(let attemptIndex=0;attemptIndex<attempts.length;attemptIndex++){
+          const attempt=attempts[attemptIndex];
+          for(let endpointIndex=0;endpointIndex<endpoints.length;endpointIndex++){
+            if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
+            if(Date.now()-state.lastOverpassAt<1200){
+              await new Promise(resolve=>setTimeout(resolve,1200-(Date.now()-state.lastOverpassAt)));
+            }
+            state.lastOverpassAt=Date.now();
+            const controller=new AbortController();
+            let timer=null;
+            try{
+              const query=attempt.query(item.lat,item.lon);
+              const fetchPromise=fetch(endpoints[endpointIndex]+"?data="+encodeURIComponent(query),{
+                headers:{Accept:"application/json"},signal:controller.signal,cache:"no-store"
+              }).then(async response=>{
+                if(!response.ok)throw new Error("Overpass HTTP "+response.status);
+                const payload=await response.json();
+                if(!payload||!Array.isArray(payload.elements))throw new Error("Unexpected Overpass response");
+                return payload;
+              });
+              const timeoutPromise=new Promise((_,reject)=>{
+                timer=setTimeout(()=>{
+                  try{controller.abort();}catch(_){}
+                  reject(new Error("Overpass timed out after 18 seconds"));
+                },18000);
+              });
+              const payload=await Promise.race([fetchPromise,timeoutPromise]);
+              if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
+              const unique=new Map();
+              (payload.elements||[]).forEach(element=>{
+                const poi=normalizeGeoeconPoi(element,item);
+                if(poi)unique.set(poi.id,poi);
+              });
+              const places=[...unique.values()].sort((a,b)=>a.distance-b.distance);
+              writeGeoeconPoiCache(cacheKey,places);
+              try{
+                const shared=places.map(p=>({id:p.id,lat:p.lat,lon:p.lon,tags:p.tags||{},name:p.name,category:p.category,distance:p.distance,source:"OpenStreetMap",url:p.url||""}));
+                sessionStorage.setItem(gpirCacheKey,JSON.stringify({savedAt:Date.now(),data:shared}));
+              }catch(_){}
+              return {places,queryRadiusKm:attempt.radius,
+                strategy:attempt.label+(attemptIndex?" (fallback)":""),
+                endpoint:endpoints[endpointIndex].replace("https://","")};
+            }catch(error){
+              lastError=error;
+              if(error&&error.message==="Search superseded.")throw error;
+            }finally{
+              if(timer)clearTimeout(timer);
               try{controller.abort();}catch(_){}
-              reject(new Error("Overpass request exceeded 34 seconds; the server query allows 28 seconds."));
-            },34000);
-          });
-          const payload=await Promise.race([fetchPromise,timeoutPromise]);
-          if(requestId!==state.geoeconPoiRequestId)throw new Error("Search superseded.");
-          const unique=new Map();
-          (payload.elements||[]).forEach(element=>{
-            const poi=normalizeGeoeconPoi(element,item);
-            if(poi)unique.set(poi.id,poi);
-          });
-          const places=[...unique.values()].sort((a,b)=>a.distance-b.distance);
-          writeGeoeconPoiCache(cacheKey,places);
-          // Keep the same shared session cache key that GPIR uses on this origin.
-          try{sessionStorage.setItem(gpirCacheKey,JSON.stringify({savedAt:Date.now(),data:places}));}catch(_){}
-          if(!places.length)throw new Error("Overpass returned a valid response but no mapped features within 5 km.");
-          return {places:places,queryRadiusKm:5,strategy:"direct GPIR-compatible query",endpoint:"overpass-api.de"};
-        }finally{
-          if(timer)clearTimeout(timer);
-          try{controller.abort();}catch(_){}
+            }
+          }
         }
+        throw new Error("All OpenStreetMap Overpass searches failed. Last error: "+String(lastError&&lastError.message||lastError||"unknown error"));
       }
 
       function geoeconPoiIcon(category,selected=false){
