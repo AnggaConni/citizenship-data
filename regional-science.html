@@ -876,6 +876,28 @@
       function openAIRERecordTitle(row){
         return plain(row.mainTitle||row.title||row.name||row.projectTitle||row.acronym)||"Research record";
       }
+      function openAIRERows(data){
+        // Graph API versions/response envelopes may expose result rows directly
+        // or nest each entity under a "result" or "entity" property.
+        const rows = Array.isArray(data && data.results) ? data.results
+          : Array.isArray(data && data.result) ? data.result
+          : Array.isArray(data && data.items) ? data.items
+          : [];
+        return rows.map(item => {
+          if (!item || typeof item !== "object") return item;
+          return item.result && typeof item.result === "object" ? Object.assign({}, item.result, item)
+            : item.entity && typeof item.entity === "object" ? Object.assign({}, item.entity, item)
+            : item;
+        }).filter(Boolean);
+      }
+      function openAIRESearchParams(query, pageSize){
+        return new URLSearchParams({
+          search: String(query || "").trim().slice(0,180),
+          page: "1",
+          pageSize: String(pageSize || 6),
+          sortBy: "relevance DESC"
+        });
+      }
       function networkCard(title,link,meta,description,source){
         const href=safeUrl(link);
         return '<article class="network-card"><h3><a href="'+href+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a></h3><div class="network-meta">'+esc([meta,source].filter(Boolean).join(" · "))+'</div>'+(description?'<div class="network-desc">'+esc(String(description).slice(0,330))+'</div>':"")+'</article>';
@@ -938,10 +960,10 @@
         $("network-status").textContent=mode==="projects"?"Searching projects and research datasets/software…":"Searching research organizations…";
         $("network-results").innerHTML="";
         const tasks=mode==="projects"?[
-          {name:"OpenAIRE projects",run:async()=>{const data=await apiJSON(openAIREUrl("projects",query));return (data.results||[]).map(normalizeOpenAIREProject);}},
-          {name:"OpenAIRE datasets/software",run:async()=>{const params=new URLSearchParams({search:query.slice(0,180),pageSize:"12",sortBy:"relevance DESC"});params.append("type","dataset");params.append("type","software");const data=await apiJSON(OPENAIRE+"/research-products?"+params.toString());return (data.results||[]).map(normalizeOpenAIREAsset);}}
+          {name:"OpenAIRE projects",run:async()=>{const data=await apiJSON(openAIREUrl("projects",query));return openAIRERows(data).map(normalizeOpenAIREProject);}},
+          {name:"OpenAIRE datasets/software",run:async()=>{const params=openAIRESearchParams(query,12);const data=await apiJSON(OPENAIRE+"/research-products?"+params.toString());const rows=openAIRERows(data);const filtered=rows.filter(row=>{const type=String(row.type||row.subtype||row.resultType||"").toLowerCase();return type.includes("dataset")||type.includes("software");});return (filtered.length?filtered:rows).map(normalizeOpenAIREAsset);}}
         ]:[
-          {name:"OpenAIRE organizations",run:async()=>{const data=await apiJSON(openAIREUrl("organizations",query));return (data.results||[]).map(normalizeOpenAIREOrganization);}},
+          {name:"OpenAIRE organizations",run:async()=>{const data=await apiJSON(openAIREUrl("organizations",query));return openAIRERows(data).map(normalizeOpenAIREOrganization);}},
           {name:"ROR registry",run:async()=>{const params=new URLSearchParams({query:query.slice(0,180)});const data=await apiJSON(ROR+"?"+params.toString());return (data.items||[]).map(normalizeROR);}}
         ];
         try{
@@ -961,7 +983,7 @@
           providerPills("network-provider-status",pills);
           state.networkResults=networkItems;
           $("network-results").innerHTML=resultsHtml.join("");
-          $("network-status").textContent="Search completed. Each result retains its source; provider errors do not remove results from other sources.";
+          $("network-status").textContent=networkItems.length ? "Search completed. Each result retains its source; provider errors do not remove results from other sources." : "Search requests completed but returned no matching records. Try a shorter topic or a distinctive institution name; check provider status above for HTTP errors.";
         }finally{
           state.networkBusy=false;$("run-projects").disabled=false;$("run-organizations").disabled=false;
         }
